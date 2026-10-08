@@ -4,10 +4,9 @@ import { RANKS } from '../../../shared/gamification';
 import { fmtResult } from '../../../shared/grades';
 import type { KidSummary, KidUpcoming } from '../../../shared/supporters';
 import type { User } from '../../../shared/types';
-import { useKids, milestoneIcon, milestoneName, relName } from '../lib/supporters';
+import { kidName, useKids, milestoneIcon, milestoneName, relName } from '../lib/supporters';
 import { fmtDay } from '../lib/util';
 import { earnedWhat, rewardText, useGivenRewards } from '../lib/rewards';
-import { whoName } from '../lib/supporters';
 import { MiniAvatar } from '../components/Cheers';
 import { Avatar, RankBadge } from '../components/ui';
 import { subjectIcon, t, uiLang } from '../i18n';
@@ -54,7 +53,7 @@ export function CheerHome() {
       <header className="home-top"><div><p className="muted small">{t('cheer_kicker')}</p><h1 className="page-title">📣 {t('cheer_title')}</h1></div></header>
       {kids.isLoading && <div className="spinner" />}
       {fresh.slice(0, 3).map(r => <Link key={r.id} to="/cheer/rewards" className="card reward-notice pop-in" data-testid="reward-notice">
-        <MiniAvatar src={r.kid.avatar} name={r.kid.name} size={40} /><span className="grow"><b>🎉 {t('given_earned', { name: whoName(r.kid), reward: rewardText(r.reward) })}</b><small>{t('given_for', { what: earnedWhat(r) })}</small></span><span>→</span></Link>)}
+        <MiniAvatar src={r.kid.avatar} name={r.kid.name} size={40} /><span className="grow"><b>🎉 {t('given_earned', { name: kidName(r.kid), reward: rewardText(r.reward) })}</b><small>{t('given_for', { what: earnedWhat(r) })}</small></span><span>→</span></Link>)}
       {(openN > 0 || (given.data?.rewards.length || 0) > 0) && <Link to="/cheer/rewards" className="card open-rewards-link" data-testid="open-rewards-link">🎁 <b>{t('open_rewards')}</b> <span className="chip warm" data-testid="open-rewards-count">{t('open_rewards_n', { n: openN })}</span><span className="grow" />→</Link>}
       {kids.data && !kids.data.length && <div className="empty-hero" data-testid="cheer-empty"><div className="empty-emoji">📣</div><p>{t('cheer_empty')}</p></div>}
       <div className="kid-grid" data-testid="kid-grid">{kids.data?.map(k => <KidCard key={k.id} k={k} />)}</div>

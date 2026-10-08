@@ -271,7 +271,7 @@ export async function rewardsPlugin(app: FastifyInstance, { pool }: { pool: pg.P
   /* ================= supporter: everything I promised (across kids) ================= */
   app.get('/api/rewards/given', auth, async req => {
     const r = await pool.query(`${EARNED_SQL('supporter')} WHERE e.supporter_id = $1 ORDER BY (e.status = 'open') DESC, e.earned_at DESC LIMIT 300`, [uidOf(req)]);
-    const rewards = r.rows.map(x => ({ ...earnedView(x, x.show_results, 'seen_supporter_at'), kid: person(x.student_id, x.p_name, x.p_etag, x.relation, x.label) }));
+    const rewards = r.rows.map(x => ({ ...earnedView(x, x.show_results, 'seen_supporter_at'), kid: person(x.student_id, x.p_name, x.p_etag) }));   // the KID's own name – l.relation/l.label describe the supporter ("Mama"), never the kid
     return { rewards, unseen: rewards.filter(x => !x.seen).length, open: rewards.filter(x => x.status === 'open').length };
   });
   app.post('/api/rewards/given/seen', auth, async req => {

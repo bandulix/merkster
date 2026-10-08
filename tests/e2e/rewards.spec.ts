@@ -68,10 +68,21 @@ test('rewards: "5 € per 1" – rule → earned on both sides → mark paid →
   await expect(ben.page.getByTestId('rw-item').first()).toHaveAttribute('data-status', 'open');
   await expect(grand(ben.page, 'rw-grand', 'EUR')).toHaveAttribute('data-amount', '5');
 
+  // Oma's overview: the fresh-reward notice names the KID ("Ben hat 5 € verdient"), never her own label ("Oma Ilse")
+  await oma.page.goto('/cheer');
+  await expect(oma.page.getByTestId('reward-notice')).toHaveCount(1);
+  await expect(oma.page.getByTestId('reward-notice').first()).toContainText('Ben');
+  await expect(oma.page.getByTestId('reward-notice').first()).not.toContainText('Oma Ilse');
+  const given = (await apiCall(oma.page, 'GET', '/api/rewards/given')).body.rewards as { kid: { name: string; label: string; relation: string } }[];
+  expect(given.map(g => [g.kid.name, g.kid.label, g.kid.relation])).toEqual([['Ben', '', '']]);
+
   // Oma: open list → mark paid
   await oma.page.goto('/cheer/rewards');
   await expect(oma.page.getByTestId('given-item')).toHaveCount(1);
+  await expect(oma.page.getByTestId('given-item').first()).toHaveAttribute('data-kid', 'Ben');
   await expect(oma.page.getByTestId('given-line').first()).toContainText('5');
+  await expect(oma.page.getByTestId('given-line').first()).toContainText('Ben');
+  await expect(oma.page.getByTestId('given-line').first()).not.toContainText('Oma');
   await shot(oma.page, 'mobile-29-given-rewards.png');
   await oma.page.getByTestId('mark-paid').click();
   await expect(oma.page.getByTestId('given-paid')).toBeVisible();

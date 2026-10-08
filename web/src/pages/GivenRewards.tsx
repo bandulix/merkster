@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
 import { earnedWhat, rewardText, useGivenRewards } from '../lib/rewards';
-import { whoName } from '../lib/supporters';
+import { kidName } from '../lib/supporters';
 import { confetti, toast } from '../lib/util';
 import { MiniAvatar } from '../components/Cheers';
 import { TopBar } from '../components/ui';
@@ -33,9 +33,9 @@ export default function GivenRewards() {
     finally { setBusy(''); }
   };
   const Row = ({ e }: { e: (typeof list)[0] }) => (
-    <div className={'rw-item given ' + e.status} data-testid="given-item" data-status={e.status} data-kid={whoName(e.kid)}>
+    <div className={'rw-item given ' + e.status} data-testid="given-item" data-status={e.status} data-kid={kidName(e.kid)}>
       <MiniAvatar src={e.kid.avatar} name={e.kid.name} size={36} />
-      <span className="grow"><b data-testid="given-line">{t('given_earned', { name: whoName(e.kid), reward: rewardText(e.reward) })}</b>
+      <span className="grow"><b data-testid="given-line">{t('given_earned', { name: kidName(e.kid), reward: rewardText(e.reward) })}</b>
         <small>{t('given_for', { what: earnedWhat(e) })} · {new Date(e.earnedAt).toLocaleDateString(L)}</small></span>
       {e.status === 'open'
         ? <button className="btn primary sm" data-testid="mark-paid" disabled={!!busy} onClick={() => setStatus(e.id, 'paid')}>{t('mark_paid')}</button>

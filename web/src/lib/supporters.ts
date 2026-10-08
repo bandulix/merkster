@@ -25,6 +25,9 @@ export const useKid = (id: string) => useQuery({ queryKey: ['kid', id], queryFn:
 
 export const relName = (r: string) => t(('rel_' + r) as Key);
 export const whoName = (s: { label?: string; name: string; relation?: string }) => (s.label || '').trim() || (s.relation && s.relation !== 'other' ? relName(s.relation) : '') || supporterName(s);
+/** a linked kid as seen by a supporter: always the kid's own first name. (Never whoName() – the link's label/relation
+ *  is how the KID calls the supporter, e.g. "Mama".) */
+export const kidName = (k: { name: string }) => k.name.trim().split(/\s+/)[0] || '?';
 /** emoji, or the preset message text */
 export const reactionText = (r: string) => (r.startsWith('msg:') ? t(('msg_' + r.slice(4)) as Key) : r);
 export const isMessage = (r: string) => r.startsWith('msg:');
