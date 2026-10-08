@@ -1,0 +1,124 @@
+{
+ "vocab-table.png": {
+  "lang": "en",
+  "native": "de",
+  "pairs": [
+   [
+    "the teacher",
+    "die Lehrerin"
+   ],
+   [
+    "the pupil",
+    "der Schüler"
+   ],
+   [
+    "to explain",
+    "erklären"
+   ],
+   [
+    "difficult",
+    "schwierig"
+   ],
+   [
+    "the timetable",
+    "der Stundenplan"
+   ],
+   [
+    "to be late",
+    "zu spät kommen"
+   ],
+   [
+    "the break",
+    "die Pause"
+   ],
+   [
+    "the homework",
+    "die Hausaufgaben"
+   ],
+   [
+    "the playground",
+    "der Schulhof"
+   ],
+   [
+    "to forget",
+    "vergessen"
+   ]
+  ]
+ },
+ "wordlist-fr-de.png": {
+  "lang": "fr",
+  "native": "de",
+  "pairs": [
+   [
+    "la pomme",
+    "der Apfel"
+   ],
+   [
+    "le fromage",
+    "der Käse"
+   ],
+   [
+    "la boulangerie",
+    "die Bäckerei"
+   ],
+   [
+    "les légumes",
+    "das Gemüse"
+   ],
+   [
+    "le petit-déjeuner",
+    "das Frühstück"
+   ],
+   [
+    "la clé",
+    "der Schlüssel"
+   ],
+   [
+    "très",
+    "sehr"
+   ],
+   [
+    "acheter",
+    "kaufen"
+   ],
+   [
+    "la fête",
+    "das Fest"
+   ],
+   [
+    "le garçon",
+    "der Junge"
+   ]
+  ]
+ },
+ "biology-sheet.png": {
+  "lang": null,
+  "native": "de",
+  "pairs": [
+   [
+    "Was ist die kleinste Einheit des Lebens?",
+    "die Zelle"
+   ],
+   [
+    "Was erzeugt in der Zelle Energie (ATP)?",
+    "die Mitochondrien"
+   ],
+   [
+    "Wo liegt die Erbinformation (DNA)?",
+    "im Zellkern"
+   ],
+   [
+    "Was gibt der Pflanzenzelle Stabilität?",
+    "die Zellwand"
+   ],
+   [
+    "Wo findet die Fotosynthese statt?",
+    "in den Chloroplasten"
+   ],
+   [
+    "Was umgibt jede Zelle?",
+    "die Zellmembran"
+   ]
+  ]
+ }
+}

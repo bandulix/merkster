@@ -1,4 +1,4 @@
-/* Snapwise – turn OCR output / pasted text into card rows (no AI). */
+/* Merkster – turn OCR output / pasted text into card rows (no AI). */
 import type { CardType } from '../../../shared/types';
 
 export interface ParsedRow { type?: CardType; a: string; b: string; example?: string; sep?: string | null; conf?: number; low?: boolean; flags?: string[]; ocrConf?: number; kind?: string; }

@@ -22,6 +22,17 @@ const VOCAB = {
   ],
   unreadable: ['last line is cut off at the bottom edge']
 };
+// a German half-year report card (Halbjahreszeugnis) with typical abbreviations, a conduct line and one unreadable grade
+const REPORT = {
+  schoolYear: '2025/26', term: 'h1', termLabel: '', issuedOn: '2026-01-30', system: 'de_grade',
+  lines: [
+    { subject: 'Deutsch', grade: '2' }, { subject: 'Mathematik', grade: '1' }, { subject: 'Englisch', grade: 'sehr gut' },
+    { subject: 'Bio', grade: '1' }, { subject: 'Geschichte', grade: '3' }, { subject: 'Erdk.', grade: '2' },
+    { subject: 'Physik', grade: '2' }, { subject: 'Kunst', grade: '1' }, { subject: 'Sport', grade: '2' },
+    { subject: 'Ev. Religion', grade: '', unreadable: true }, { subject: 'Verhalten', grade: 'gut' }, { subject: 'Darstellendes Spiel', grade: '1' }
+  ],
+  unreadable: ['Religion grade is covered by a stamp']
+};
 const BIO = {
   language: 'de', subject: 'Biology', title: 'Die Zelle',
   cards: [
@@ -56,7 +67,8 @@ http.createServer((req, res) => {
     last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: (j.messages[0]?.content || '').slice(0, 80) };
     if (/Reply with OK/.test(text)) return send(200, { choices: [{ message: { role: 'assistant', content: 'OK' } }] });
     if (/MOCK_FAIL/.test(text)) return send(500, { error: { message: 'mock failure' } });
-    const payload = /Vocabulary:/.test(text) ? VOCAB : BIO;
+    const sys = String(j.messages?.[0]?.content || '');
+    const payload = /REPORT_CARD/.test(sys) ? REPORT : /Vocabulary:/.test(text) ? VOCAB : BIO;
     setTimeout(() => send(200, { id: 'mock-' + count, object: 'chat.completion', model: j.model, choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(payload) }, finish_reason: 'stop' }] }), 400);
   });
 }).listen(PORT, () => console.log(`mock LLM on :${PORT}`));

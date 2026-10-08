@@ -1,4 +1,4 @@
-/* Snapwise – static metadata shared by web + server (English names are used in LLM prompts) */
+/* Merkster – static metadata shared by web + server (English names are used in LLM prompts) */
 import type { Format, Lang, Subject } from './types';
 
 export const LANG_EN: Record<Lang, string> = { en: 'English', de: 'German', fr: 'French', es: 'Spanish', la: 'Latin' };

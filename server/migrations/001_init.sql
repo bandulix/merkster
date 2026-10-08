@@ -1,16 +1,17 @@
--- Snapwise initial schema
+-- Merkster initial schema
 CREATE SEQUENCE IF NOT EXISTS sync_rev;
 
+-- Sign-in is Google only. We keep the minimum: Google's stable account id, name, e-mail, avatar URL.
 CREATE TABLE users (
   id            BIGSERIAL PRIMARY KEY,
-  login         TEXT NOT NULL,                 -- username or e-mail, stored lower-case
+  google_sub    TEXT NOT NULL UNIQUE,          -- OpenID Connect "sub" claim (never changes for a Google account)
   email         TEXT,
-  password_hash TEXT NOT NULL,                 -- argon2id
-  is_admin      BOOLEAN NOT NULL DEFAULT FALSE,
+  name          TEXT NOT NULL DEFAULT '',
+  avatar_url    TEXT,
+  is_admin      BOOLEAN NOT NULL DEFAULT FALSE,  -- synced from ADMIN_EMAILS on every sign-in
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_login_at TIMESTAMPTZ
 );
-CREATE UNIQUE INDEX users_login_key ON users (lower(login));
 
 CREATE TABLE auth_sessions (
   token_hash  TEXT PRIMARY KEY,                -- HMAC(APP_SECRET, token); the raw token only lives in the cookie
@@ -41,6 +42,8 @@ CREATE TABLE tests (
   articles     BOOLEAN NOT NULL DEFAULT FALSE,
   created_day  DATE,
   days         JSONB NOT NULL DEFAULT '[]'::jsonb,  -- days on which the student practised this test
+  result       JSONB,                           -- exam result entered after the test {system, value, max, enteredAt, note}
+  result_skipped BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at   BIGINT NOT NULL,
   deleted      BOOLEAN NOT NULL DEFAULT FALSE,
   rev          BIGINT NOT NULL DEFAULT nextval('sync_rev'),
@@ -75,7 +78,10 @@ CREATE TABLE practice_sessions (
   day         DATE NOT NULL,
   cards       INTEGER NOT NULL DEFAULT 0,
   first_try   INTEGER NOT NULL DEFAULT 0,
-  ms          INTEGER NOT NULL DEFAULT 0,
+  ms          INTEGER NOT NULL DEFAULT 0,       -- wall time
+  active_ms   INTEGER NOT NULL DEFAULT 0,       -- active practice time (idle gaps excluded) – basis for minutes stats
+  correct     INTEGER NOT NULL DEFAULT 0,       -- correct recalls (XP basis)
+  ended_at    BIGINT,                           -- client timestamp (ms)
   test_ids    JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   rev         BIGINT NOT NULL DEFAULT nextval('sync_rev'),

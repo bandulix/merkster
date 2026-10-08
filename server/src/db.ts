@@ -1,4 +1,4 @@
-/* Snapwise – Postgres pool + tiny SQL-file migration runner */
+/* Merkster – Postgres pool + tiny SQL-file migration runner */
 import fs from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';

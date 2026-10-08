@@ -1,4 +1,4 @@
-/* Snapwise – AI extraction on the server. The browser uploads page images (already downscaled to JPEG),
+/* Merkster – AI extraction on the server. The browser uploads page images (already downscaled to JPEG),
    the server forwards them to the configured OpenAI-compatible endpoint and returns validated cards.
    The API key never leaves the server and is never logged. Images are processed in memory and not stored. */
 import type { FastifyInstance } from 'fastify';
@@ -181,5 +181,81 @@ export async function aiPlugin(app: FastifyInstance, { pool, config }: { pool: p
       const out = await callLLM(config, { model: config.llm.textModel, max_tokens: 5, messages: [{ role: 'user', content: 'Reply with OK' }] });
       return { ok: !!out?.choices, model: config.llm.textModel };
     } catch (e) { return reply.code(502).send({ ok: false, status: (e as { status?: number }).status || null }); }
+  });
+}
+
+/* ================= report cards (Zeugnisse) ================= */
+export const REPORT_PROMPT = `REPORT_CARD extraction. You read a photo of a school report card (German "Zeugnis" or similar) and list the subject grades.
+RULES
+- Use ONLY what is printed. Never invent subjects or grades. Keep subject names exactly as printed (abbreviations included).
+- One line per subject grade. Include conduct/remarks lines too (e.g. Verhalten, Mitarbeit) – the app lets the student ignore them.
+- If a grade or subject is cut off, blurry or unreadable, keep the line with "unreadable": true and grade "" (do not guess).
+- grade: exactly as printed ("2", "2-", "gut", "13", "B+", "5.5").
+- term: "h1" for a half-year report (Halbjahr / Halbjahreszeugnis / Zwischenzeugnis), "final" for an end-of-year report (Jahreszeugnis / Schuljahresende / Versetzungszeugnis), otherwise "custom" with "termLabel".
+- schoolYear like "2025/26" if printed, else "". issuedOn as YYYY-MM-DD if a date is printed, else "".
+- system: "de_grade" (1–6), "points15" (0–15 points), "at_grade", "ch_grade", "us_letter", "uk_gcse", "percent", or "" if unclear.
+- Output STRICT JSON only.
+SCHEMA
+{"schoolYear":"","term":"h1|final|custom","termLabel":"","issuedOn":"","system":"","lines":[{"subject":"...","grade":"...","unreadable":false}],"unreadable":["short notes about unreadable parts"]}`;
+export interface ReportExtract { schoolYear: string; term: 'h1' | 'final' | 'custom'; termLabel: string; issuedOn: string; system: string; lines: { subject: string; grade: string; unreadable: boolean }[]; unreadable: string[]; model?: string }
+export function validateReport(obj: unknown): ReportExtract {
+  const o = (obj || {}) as Record<string, unknown>;
+  const s = (v: unknown, n = 80) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, n) : '');
+  const lines = (Array.isArray(o.lines) ? o.lines : []).slice(0, 40).map(x => { const l = (x || {}) as Record<string, unknown>; return { subject: s(l.subject, 60), grade: s(l.grade, 20), unreadable: !!l.unreadable || !s(l.grade, 20) }; }).filter(l => l.subject || l.grade);
+  const term = o.term === 'h1' || o.term === 'final' ? o.term : 'custom';
+  return {
+    schoolYear: /^\d{4}\/\d{2}$/.test(s(o.schoolYear, 7)) ? s(o.schoolYear, 7) : '', term, termLabel: s(o.termLabel, 40),
+    issuedOn: /^\d{4}-\d{2}-\d{2}$/.test(s(o.issuedOn, 10)) ? s(o.issuedOn, 10) : '', system: s(o.system, 12), lines,
+    unreadable: Array.isArray(o.unreadable) ? o.unreadable.map(u => s(u, 200)).filter(Boolean).slice(0, 10) : []
+  };
+}
+export async function reportAiPlugin(app: FastifyInstance, { pool, config }: { pool: pg.Pool; config: Config }) {
+  app.post('/api/ai/report-card', { preHandler: app.requireUser }, async (req, reply) => {
+    if (!config.aiConfigured) return reply.code(503).send({ error: 'ai_not_configured' });
+    const uid = req.user!.id;
+    const usage = (await pool.query(`SELECT count(*) FILTER (WHERE created_at > now() - interval '1 hour') AS h, count(*) AS d FROM ai_requests WHERE user_id = $1 AND created_at > now() - interval '1 day'`, [uid])).rows[0];
+    if (Number(usage.h) >= config.aiLimitHour || Number(usage.d) >= config.aiLimitDay) return reply.code(429).send({ error: 'ai_rate_limited' });
+    if (!req.isMultipart()) return reply.code(415).send({ error: 'multipart_required' });
+    const images: Buffer[] = [], mimes: string[] = [];
+    try {
+      for await (const part of req.parts()) {
+        if (part.type !== 'file') continue;
+        const buf = await part.toBuffer();
+        if (part.file.truncated) return reply.code(413).send({ error: 'file_too_large', maxMB: config.maxUploadMB });
+        const mime = sniffImage(buf);
+        if (!mime) return reply.code(415).send({ error: 'unsupported_image' });
+        images.push(buf); mimes.push(mime);
+      }
+    } catch (e) {
+      const code = (e as { code?: string }).code || '';
+      if (code === 'FST_REQ_FILE_TOO_LARGE') return reply.code(413).send({ error: 'file_too_large', maxMB: config.maxUploadMB });
+      if (code === 'FST_FILES_LIMIT') return reply.code(413).send({ error: 'too_many_files' });
+      throw e;
+    }
+    if (!images.length) return reply.code(400).send({ error: 'nothing_to_read' });
+    const started = Date.now();
+    const log = await pool.query('INSERT INTO ai_requests (user_id, images) VALUES ($1, $2) RETURNING id', [uid, images.length]);
+    try {
+      const content: unknown[] = [{ type: 'text', text: 'Extract this report card (Zeugnis). Return the JSON described in the instructions.' }];
+      images.forEach((buf, i) => content.push({ type: 'image_url', image_url: { url: `data:${mimes[i]};base64,${buf.toString('base64')}`, detail: 'high' } }));
+      const body: Record<string, unknown> = { model: config.llm.visionModel, temperature: 0, max_tokens: config.llm.maxTokens, messages: [{ role: 'system', content: REPORT_PROMPT }, { role: 'user', content }] };
+      if (config.llm.jsonMode !== 'off') body.response_format = { type: 'json_object' };
+      let out;
+      try { out = await callLLM(config, body); }
+      catch (e) { if (config.llm.jsonMode === 'auto' && e instanceof UpstreamError && (e.status === 400 || e.status === 422)) { delete body.response_format; out = await callLLM(config, body); } else throw e; }
+      const msg = out?.choices?.[0]?.message;
+      if (!msg) throw Object.assign(new Error('bad_json'), { code: 'bad_json' });
+      const result = { ...validateReport(parseContent(msg.content)), model: config.llm.visionModel };
+      await pool.query('UPDATE ai_requests SET ok = TRUE, cards = $2, ms = $3 WHERE id = $1', [log.rows[0].id, result.lines.length, Date.now() - started]);
+      req.log.info({ userId: String(uid), lines: result.lines.length, ms: Date.now() - started }, 'ai report card');
+      return result;
+    } catch (e) {
+      await pool.query('UPDATE ai_requests SET ms = $2 WHERE id = $1', [log.rows[0].id, Date.now() - started]);
+      const err = e as Error & { status?: number; code?: string };
+      req.log.warn({ userId: String(uid), upstreamStatus: err.status, err: err.name === 'AbortError' ? 'timeout' : err.code || err.message }, 'ai report card failed');
+      if (err.name === 'AbortError') return reply.code(504).send({ error: 'ai_timeout' });
+      if (err.code === 'bad_json') return reply.code(502).send({ error: 'ai_bad_output' });
+      return reply.code(502).send({ error: 'ai_upstream', status: err.status || null });
+    }
   });
 }

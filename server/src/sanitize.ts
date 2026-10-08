@@ -1,5 +1,6 @@
 /* Strict validation of everything clients send (never trust the browser). */
-import { CARD_TYPES, FORMATS, LANG_CODES, SUBJECT_KEYS, type CardState, type Lang, type WireCard, type WireProfile, type WireSession, type WireTest } from '../../shared/types';
+import { scoreOf, validResult } from '../../shared/grades';
+import { CARD_TYPES, FORMATS, GRADE_SYSTEMS, LANG_CODES, SUBJECT_KEYS, type CardState, type ExamResult, type Lang, type WireCard, type WireProfile, type WireSession, type WireTest } from '../../shared/types';
 
 export const ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -10,6 +11,16 @@ const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) 
 const ts = (v: unknown) => Math.max(0, Math.min(num(v, Date.now()), Date.now() + 864e5)); // no far-future clocks
 const lang = (v: unknown): Lang | null => (LANG_CODES.includes(v as Lang) ? (v as Lang) : null);
 
+export function cleanResult(r: unknown): ExamResult | null {
+  if (!r || typeof r !== 'object') return null;
+  const o = r as Record<string, unknown>;
+  const res: ExamResult = { system: oneOf(o.system, GRADE_SYSTEMS, 'de_grade'), value: num(o.value, NaN), enteredAt: ts(o.enteredAt) };
+  if (res.system === 'xofy') res.max = num(o.max, NaN);
+  if (typeof o.note === 'string' && o.note.trim()) res.note = str(o.note, 300).trim();
+  if (!validResult(res)) return null;
+  res.score = scoreOf(res);   // normalised 0–100, always recomputed on the server
+  return res;
+}
 export function cleanTest(t: unknown): WireTest | null {
   const o = (t || {}) as Record<string, unknown>;
   if (typeof o.id !== 'string' || !ID_RE.test(o.id)) return null;
@@ -18,7 +29,7 @@ export function cleanTest(t: unknown): WireTest | null {
     id: o.id, name: str(o.name, 120).trim() || 'Test', subject: oneOf(o.subject, SUBJECT_KEYS, 'other'),
     foreign: lang(o.foreign), native: lang(o.native) || 'de', testDate: testDate || '2000-01-01', format: oneOf(o.format, FORMATS, 'mixed'),
     articles: !!o.articles, created: day(o.created), days: Array.isArray(o.days) ? o.days.map(day).filter((d): d is string => !!d).slice(-400) : [],
-    updatedAt: ts(o.updatedAt), deleted: !!o.deleted
+    result: cleanResult(o.result), resultSkipped: !!o.resultSkipped, grading: GRADE_SYSTEMS.includes(o.grading as never) ? (o.grading as WireTest['grading']) : null, updatedAt: ts(o.updatedAt), deleted: !!o.deleted
   };
 }
 export function cleanState(s: unknown): CardState {
@@ -46,7 +57,7 @@ export function cleanSession(s: unknown): WireSession | null {
   if (typeof o.id !== 'string' || !ID_RE.test(o.id)) return null;
   const d = day(o.day); if (!d) return null;
   const n = (v: unknown, max: number) => Math.max(0, Math.min(max, Math.floor(num(v))));
-  return { id: o.id, day: d, n: n(o.n, 10000), firstTry: n(o.firstTry, 10000), ms: n(o.ms, 864e5), tests: Array.isArray(o.tests) ? o.tests.filter((x): x is string => typeof x === 'string' && ID_RE.test(x)).slice(0, 50) : [] };
+  return { id: o.id, day: d, n: n(o.n, 10000), firstTry: n(o.firstTry, 10000), ms: n(o.ms, 864e5), activeMs: n(o.activeMs ?? o.ms, 864e5), correct: n(o.correct ?? o.n, 100000), at: typeof o.at === 'number' && o.at > 0 ? Math.min(o.at, Date.now() + 864e5) : null, tests: Array.isArray(o.tests) ? o.tests.filter((x): x is string => typeof x === 'string' && ID_RE.test(x)).slice(0, 50) : [] };
 }
 export function cleanProfile(p: unknown): WireProfile | null {
   const o = (p || {}) as Record<string, unknown>;
@@ -54,7 +65,11 @@ export function cleanProfile(p: unknown): WireProfile | null {
   const s = (d.settings || {}) as Record<string, unknown>;
   const settings = {
     uiLang: oneOf(s.uiLang, ['en', 'de'] as const, 'en'), theme: oneOf(s.theme, ['auto', 'light', 'dark'] as const, 'auto'),
-    sessionSize: [8, 15, 25].includes(s.sessionSize as number) ? (s.sessionSize as number) : 15, tts: s.tts !== false, onboarded: !!s.onboarded
+    sessionSize: [8, 15, 25].includes(s.sessionSize as number) ? (s.sessionSize as number) : 15, tts: s.tts !== false, onboarded: !!s.onboarded,
+    grading: oneOf(s.grading, GRADE_SYSTEMS, 'de_grade'), sound: s.sound === true,
+    termStarts: (Array.isArray(s.termStarts) && s.termStarts.length === 2 && s.termStarts.every(m => Number.isInteger(m) && m >= 1 && m <= 12) && s.termStarts[0] !== s.termStarts[1] ? s.termStarts : [8, 2]) as [number, number],
+    ackLevel: Math.max(1, Math.min(1000, Math.floor(num(s.ackLevel, 1)))),
+    ackBadges: Array.isArray(s.ackBadges) ? s.ackBadges.filter((x): x is string => typeof x === 'string' && /^[a-z0-9_]{2,40}$/.test(x)).slice(0, 200) : []
   };
   const k = (d.streak || {}) as Record<string, unknown>, t = (d.stats || {}) as Record<string, unknown>;
   return {

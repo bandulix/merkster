@@ -1,4 +1,4 @@
-/* Snapwise – Fastify app: static PWA (dist/web) + /api on the same origin */
+/* Merkster – Fastify app: static PWA (dist/web) + /api on the same origin */
 import fs from 'node:fs';
 import path from 'node:path';
 import Fastify from 'fastify';
@@ -9,14 +9,18 @@ import type pg from 'pg';
 import { publicConfig, type Config } from './config';
 import { authPlugin } from './auth';
 import { dataPlugin } from './data';
-import { aiPlugin } from './ai';
+import { aiPlugin, reportAiPlugin } from './ai';
+import { supportersPlugin } from './supporters';
+import { rewardsPlugin } from './rewards';
+import { reportCardsPlugin } from './reportcards';
+import { avatarsPlugin, initAvatars } from './avatars';
 
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",          // tesseract.js WebAssembly
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob:",   // profile pictures are cached and served same-origin (/api/avatars)
   "font-src 'self'",
   "connect-src 'self' data: blob:",
   "media-src 'self' blob:",
@@ -42,7 +46,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
     reply.header('Referrer-Policy', 'same-origin');
     reply.header('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
     if (!req.url.startsWith('/api/')) reply.header('Content-Security-Policy', CSP);
-    else reply.header('Cache-Control', 'no-store');
+    else if (!reply.getHeader('Cache-Control')) reply.header('Cache-Control', 'no-store');   // routes may set their own (avatars: long cache)
     if (config.publicUrl.startsWith('https://')) reply.header('Strict-Transport-Security', 'max-age=15552000');
     return payload;
   });
@@ -64,6 +68,12 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await authPlugin(app, { pool, config });
   await dataPlugin(app, { pool });
   await aiPlugin(app, { pool, config });
+  await reportAiPlugin(app, { pool, config });
+  await supportersPlugin(app, { pool, config });
+  await rewardsPlugin(app, { pool });
+  await reportCardsPlugin(app, { pool });
+  initAvatars(config);
+  await avatarsPlugin(app, { pool });
 
   const hasWeb = fs.existsSync(path.join(config.staticDir, 'index.html'));
   if (hasWeb) {
@@ -71,9 +81,9 @@ export async function buildApp(config: Config, pool: pg.Pool) {
       root: config.staticDir, wildcard: false, index: ['index.html'],
       setHeaders(res, file) {
         const rel = path.relative(config.staticDir, file);
-        if (rel.startsWith('assets' + path.sep)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        else if (/^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest|workbox-.*\.js)$/.test(rel)) res.setHeader('Cache-Control', 'no-cache');
-        else res.setHeader('Cache-Control', 'public, max-age=86400');
+        if (rel.startsWith('assets' + path.sep)) res.header('Cache-Control', 'public, max-age=31536000, immutable');
+        else if (/^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest|workbox-.*\.js)$/.test(rel)) res.header('Cache-Control', 'no-cache');
+        else res.header('Cache-Control', 'public, max-age=86400');
       }
     });
     // client-side routes (/test/abc, /settings …) -> index.html

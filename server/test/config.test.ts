@@ -1,0 +1,32 @@
+/* Config validation – the mock OIDC issuer must be impossible to enable in production. */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+describe('OIDC_TEST_ISSUER safety', () => {
+  const saved = { ...process.env };
+  afterEach(() => { for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved); vi.resetModules(); });
+
+  it('refuses to start when OIDC_TEST_ISSUER is set and NODE_ENV=production', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.OIDC_TEST_ISSUER = 'http://localhost:9090';
+    process.env.APP_SECRET = 'x'.repeat(40);
+    process.env.DATABASE_URL = 'postgres://u:p@localhost:5432/merkster';
+    process.env.GOOGLE_CLIENT_ID = 'x'; process.env.GOOGLE_CLIENT_SECRET = 'y';
+    const { config, validateConfig } = await import('../src/config');
+    expect(config.google.testIssuer).toBe(true);
+    expect(config.nodeEnv).toBe('production');
+    const log = { error: vi.fn(), info: vi.fn() };
+    expect(() => validateConfig(log)).toThrow(/OIDC_TEST_ISSUER/);
+    expect(log.error).toHaveBeenCalledWith(expect.stringMatching(/cannot be used with NODE_ENV=production/));
+  });
+
+  it('allows the mock issuer in development', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.OIDC_TEST_ISSUER = 'http://localhost:9090';
+    process.env.APP_SECRET = 'x'.repeat(40);
+    process.env.DATABASE_URL = 'postgres://u:p@localhost:5432/merkster';
+    const { validateConfig } = await import('../src/config');
+    const log = { error: vi.fn(), info: vi.fn() };
+    expect(() => validateConfig(log)).not.toThrow();
+    expect(log.info).toHaveBeenCalledWith(expect.stringMatching(/mock OpenID/));
+  });
+});

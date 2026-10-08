@@ -1,0 +1,29 @@
+# HTTPS with Caddy (automatic Let's Encrypt).  Set DOMAIN in .env, point DNS at the host, then:
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+services:
+  app:
+    ports: !reset []
+    environment:
+      TRUST_PROXY: "true"
+      PUBLIC_URL: https://${DOMAIN:?set DOMAIN in .env}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

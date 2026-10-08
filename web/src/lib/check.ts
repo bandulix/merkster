@@ -1,4 +1,4 @@
-/* Snapwise – tolerant answer checking.
+/* Merkster – tolerant answer checking.
    result: 'correct' | 'almost' | 'wrong'; accepted: counts as a successful recall. */
 export type CheckResult = 'correct' | 'almost' | 'wrong';
 export type Why = 'typo' | 'accent' | 'case' | 'article' | 'missing_article' | 'empty' | null;

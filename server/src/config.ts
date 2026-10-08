@@ -1,8 +1,9 @@
-/* Snapwise – server configuration. Everything comes from environment variables / the .env file
+/* Merkster – server configuration. Everything comes from environment variables / the .env file
    on the server. Nothing here is sent to the browser except publicConfig(). */
 import fs from 'node:fs';
 import path from 'node:path';
 import type { PublicConfig } from '../../shared/types';
+import { APP_DB } from '../../shared/brand';
 
 /** Minimal .env loader (KEY=VALUE, # comments, optional quotes). Real environment variables win. */
 export function loadDotEnv(file: string) {
@@ -23,12 +24,13 @@ loadDotEnv(process.env.ENV_FILE || path.resolve(process.cwd(), '.env'));
 
 const env = (k: string, d = '') => (process.env[k] !== undefined && process.env[k] !== '' ? String(process.env[k]) : d);
 const bool = (k: string, d: boolean) => { const v = env(k); return v === '' ? d : /^(1|true|yes|on)$/i.test(v); };
+const list = (k: string) => env(k).split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(Boolean);
 const int = (k: string, d: number) => { const v = parseInt(env(k), 10); return Number.isFinite(v) ? v : d; };
 
 function databaseUrl() {
   if (env('DATABASE_URL')) return env('DATABASE_URL');
-  const u = encodeURIComponent(env('POSTGRES_USER', 'snapwise')), p = encodeURIComponent(env('POSTGRES_PASSWORD'));
-  return `postgres://${u}:${p}@${env('POSTGRES_HOST', 'db')}:${env('POSTGRES_PORT', '5432')}/${env('POSTGRES_DB', 'snapwise')}`;
+  const u = encodeURIComponent(env('POSTGRES_USER', APP_DB)), p = encodeURIComponent(env('POSTGRES_PASSWORD'));
+  return `postgres://${u}:${p}@${env('POSTGRES_HOST', 'db')}:${env('POSTGRES_PORT', '5432')}/${env('POSTGRES_DB', APP_DB)}`;
 }
 function firstExisting(...cands: string[]) { return cands.find(c => fs.existsSync(c)) || cands[0]; }
 
@@ -48,6 +50,17 @@ export const config = {
   dbSsl: bool('DATABASE_SSL', false),
   registrationOpen: bool('REGISTRATION_OPEN', true),
   sessionDays: int('SESSION_DAYS', 60),
+  google: {
+    clientId: env('GOOGLE_CLIENT_ID'),
+    clientSecret: env('GOOGLE_CLIENT_SECRET'),
+    redirectUri: env('GOOGLE_REDIRECT_URI') || `${publicUrl}/api/auth/google/callback`,
+    // TEST ONLY: point sign-in at the bundled mock OpenID provider (tools/mock-oidc.mjs). Refused when NODE_ENV=production.
+    issuer: env('OIDC_TEST_ISSUER') || 'https://accounts.google.com',
+    testIssuer: !!env('OIDC_TEST_ISSUER')
+  },
+  adminEmails: list('ADMIN_EMAILS'),
+  allowedDomains: list('ALLOWED_EMAIL_DOMAINS').map(d => d.replace(/^@/, '')),
+  allowlist: list('ALLOWLIST'),
   cookieSecure: cookieSecureRaw === 'auto' ? publicUrl.startsWith('https://') : bool('COOKIE_SECURE', false),
   maxUploadMB: int('MAX_UPLOAD_MB', 8),
   maxUploadFiles: int('MAX_UPLOAD_FILES', 10),
@@ -67,9 +80,11 @@ export const config = {
   staticDir: env('STATIC_DIR') || firstExisting(path.resolve(__dirname, '../web'), path.resolve(process.cwd(), 'dist/web')),
   migrationsDir: firstExisting(path.resolve(__dirname, 'migrations'), path.resolve(__dirname, '../migrations'), path.resolve(process.cwd(), 'server/migrations')),
   version: '1.0.0',
-  aiConfigured: false
+  aiConfigured: false,
+  googleConfigured: false
 };
 config.aiConfigured = !!(config.llm.baseUrl && config.llm.apiKey && config.llm.visionModel);
+config.googleConfigured = !!(config.google.clientId && config.google.clientSecret);
 export type Config = typeof config;
 
 export function validateConfig(log: { error: (m: string) => void; info: (m: string) => void }) {
@@ -78,7 +93,12 @@ export function validateConfig(log: { error: (m: string) => void; info: (m: stri
     problems.push('APP_SECRET must be a random string of at least 32 characters (e.g. `openssl rand -hex 32`).');
   }
   if (!/^postgres(ql)?:\/\//.test(config.databaseUrl)) problems.push('DATABASE_URL (or POSTGRES_*) is not a postgres:// URL.');
+  if (config.google.testIssuer && config.nodeEnv === 'production') {
+    problems.push('OIDC_TEST_ISSUER is a test-only setting (mock Google login) and cannot be used with NODE_ENV=production.');
+  }
   if (problems.length) { problems.forEach(p => log.error(p)); throw new Error('Invalid configuration: ' + problems.join(' ')); }
+  if (!config.googleConfigured) log.error('Google sign-in is not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) – nobody can log in until it is. See README → Google sign-in.');
+  if (config.google.testIssuer) log.info(`TEST MODE: sign-in uses the mock OpenID provider at ${config.google.issuer}`);
   if (!config.aiConfigured) log.info('AI extraction not configured (LLM_BASE_URL / LLM_API_KEY / LLM_VISION_MODEL) – clients use on-device OCR.');
 }
 
@@ -86,6 +106,7 @@ export function validateConfig(log: { error: (m: string) => void; info: (m: stri
 export function publicConfig(): PublicConfig {
   return {
     ai: { configured: config.aiConfigured, model: config.aiConfigured ? config.llm.visionModel : null },
+    auth: { google: config.googleConfigured, testProvider: config.google.testIssuer },
     registrationOpen: config.registrationOpen,
     maxUploadMB: config.maxUploadMB,
     maxUploadFiles: config.maxUploadFiles,

@@ -1,0 +1,61 @@
+/* Grading systems + supporter rewards. Wording matters: Merkster only TRACKS promises – it never handles money. */
+export const en5 = {
+  gs_at_grade: 'Austria 1–5', gs_ch_grade: 'Switzerland 6–1', gs_us_letter: 'US letters A–F', gs_uk_gcse: 'UK GCSE 9–1',
+  ob_grading: 'How are your tests graded?', ob_grading_sub: 'You can change this later and per test.', td_grading: 'Grading for this test', td_grading_default: 'My default ({sys})',
+  self_reported: 'self-reported', verified_by: 'verified by {name}', verify: 'I’ve seen the test ✔', verified: 'Verified ✔', unverify: 'Undo verification',
+  // rewards – student
+  rewards: 'Rewards', my_rewards: 'My rewards', what_can_i_earn: 'What can I earn?', earn_none: 'No rewards set up yet.',
+  rewards_disclaimer: 'Rewards are promises between you and your supporters. Merkster only keeps track – it never handles money.',
+  owes_you: '{name} owes you {reward}! 🎉', promised_you: '{name} promised you: {reward}! 🎉', paid_you: '{name} marked {reward} as done ✅',
+  reward_pop_title: 'Reward earned!', reward_pop_paid: 'Promise kept!', reward_more: '+{n} more',
+  rw_open: 'Open', rw_paid: 'Done', rw_this_month: 'This month', rw_this_year: 'This year', rw_none_yet: 'Nothing earned yet – your next good result could change that!',
+  rw_total_open: '{amount} open', rw_total_paid: '{amount} done', rw_other_n: '{n} other rewards', rw_from: 'from {name}',
+  rw_cap_left: '{n} of {cap} left this month', rw_cap_full: 'Limit reached this month', rw_for_test: 'Rewards for this test',
+  // rule texts
+  rule_grade_atleast: 'for every {grade} or better', rule_grade_exactly: 'for every {grade}', rule_in_subject: 'in {subject}',
+  rule_personal_best: 'for a new personal best', rule_improvement: 'when you beat your last result', rule_improvement_n: 'when you improve by {n}+ points', rule_streak: 'for a {n}-day streak', rule_level: 'for reaching level {n}',
+  rule_converted: 'Set as {orig} ({sys}) – {name} now uses {cur}, so this is converted.', rule_paused: 'paused', rule_cap: 'max {n}× per month',
+  // rewards – supporter
+  kid_rewards: 'Rewards for {name}', rule_new: 'Add a reward', rule_none: 'No rewards yet. A small promise can be a big motivation!',
+  rule_when: 'When…', rt_grade: 'Grade', rt_personal_best: 'Personal best', rt_improvement: 'Improvement', rt_streak: 'Streak', rt_level: 'Level',
+  rule_pick_grade: 'Which grade?', rm_at_least: 'or better', rm_exactly: 'exactly', rule_subject: 'Subject', rule_any_subject: 'Any subject',
+  rule_streak_days: 'Days in a row', rule_level_n: 'Level', rule_min_delta: 'Improve by at least (points of 100)',
+  rule_reward: 'Reward', rw_money: 'Money', rw_other: 'Something else', rule_amount: 'Amount', rule_text_ph: 'e.g. Pizza night, cinema, extra screen time',
+  rule_cap_label: 'At most … per month (optional)', rule_save: 'Save reward', rule_saved: 'Reward saved', rule_delete: 'Delete', rule_pause: 'Pause', rule_resume: 'Resume',
+  rule_delete_confirm: 'Delete this reward? Anything already earned stays on the list.', rule_preview: '{reward} {when}',
+  rule_promise_note: 'This is a promise you keep yourself – Merkster never charges or pays anything.', rule_kid_system: '{name} uses: {sys}',
+  open_rewards: 'Open rewards', open_rewards_n: '{n} open', given_title: 'Promised rewards', given_none: 'Nothing earned yet.',
+  given_earned: '{name} earned {reward}', given_for: 'for {what}', mark_paid: 'Mark as done', mark_open: 'Re-open', marked_paid: 'Marked as done 🎉',
+  reward_notice: '{name} earned a reward from you!', what_result: '{test}: {grade}', what_streak: '{n}-day streak', what_level: 'level {n}',
+  // photo
+  photo_add: 'Add photo of the graded test', photo_change: 'Change photo', photo_remove: 'Remove photo', photo_saved: 'Photo saved', photo_hint: 'Only supporters you allow can see it.',
+  cancel: 'Cancel', photo_view: 'Photo of the test', photo_need_login: 'Sign in to attach a photo.', sees_photos: 'Sees photos of graded tests'
+};
+export const de5: Record<keyof typeof en5, string> = {
+  gs_at_grade: 'Österreich 1–5', gs_ch_grade: 'Schweiz 6–1', gs_us_letter: 'US-Noten A–F', gs_uk_gcse: 'UK GCSE 9–1',
+  ob_grading: 'Wie werden deine Arbeiten benotet?', ob_grading_sub: 'Du kannst das später und pro Test ändern.', td_grading: 'Notensystem für diesen Test', td_grading_default: 'Mein Standard ({sys})',
+  self_reported: 'selbst eingetragen', verified_by: 'bestätigt von {name}', verify: 'Arbeit gesehen ✔', verified: 'Bestätigt ✔', unverify: 'Bestätigung zurücknehmen',
+  rewards: 'Belohnungen', my_rewards: 'Meine Belohnungen', what_can_i_earn: 'Was kann ich verdienen?', earn_none: 'Noch keine Belohnungen eingerichtet.',
+  rewards_disclaimer: 'Belohnungen sind Versprechen zwischen dir und deinen Fans. Merkster merkt sie sich nur – es wird kein Geld bewegt.',
+  owes_you: '{name} schuldet dir {reward}! 🎉', promised_you: '{name} hat dir versprochen: {reward}! 🎉', paid_you: '{name} hat {reward} als erledigt markiert ✅',
+  reward_pop_title: 'Belohnung verdient!', reward_pop_paid: 'Versprechen gehalten!', reward_more: '+{n} weitere',
+  rw_open: 'Offen', rw_paid: 'Erledigt', rw_this_month: 'Diesen Monat', rw_this_year: 'Dieses Jahr', rw_none_yet: 'Noch nichts verdient – das nächste gute Ergebnis kann das ändern!',
+  rw_total_open: '{amount} offen', rw_total_paid: '{amount} erledigt', rw_other_n: '{n} andere Belohnungen', rw_from: 'von {name}',
+  rw_cap_left: 'noch {n} von {cap} diesen Monat', rw_cap_full: 'Limit für diesen Monat erreicht', rw_for_test: 'Belohnungen für diesen Test',
+  rule_grade_atleast: 'für jede {grade} oder besser', rule_grade_exactly: 'für jede {grade}', rule_in_subject: 'in {subject}',
+  rule_personal_best: 'für eine neue Bestleistung', rule_improvement: 'wenn du dein letztes Ergebnis schlägst', rule_improvement_n: 'wenn du dich um {n}+ Punkte verbesserst', rule_streak: 'für {n} Tage am Stück', rule_level: 'für Level {n}',
+  rule_converted: 'Festgelegt als {orig} ({sys}) – {name} nutzt jetzt {cur}, daher umgerechnet.', rule_paused: 'pausiert', rule_cap: 'max. {n}× pro Monat',
+  kid_rewards: 'Belohnungen für {name}', rule_new: 'Belohnung hinzufügen', rule_none: 'Noch keine Belohnungen. Ein kleines Versprechen kann viel motivieren!',
+  rule_when: 'Wann…', rt_grade: 'Note', rt_personal_best: 'Bestleistung', rt_improvement: 'Verbesserung', rt_streak: 'Serie', rt_level: 'Level',
+  rule_pick_grade: 'Welche Note?', rm_at_least: 'oder besser', rm_exactly: 'genau', rule_subject: 'Fach', rule_any_subject: 'Jedes Fach',
+  rule_streak_days: 'Tage am Stück', rule_level_n: 'Level', rule_min_delta: 'Verbesserung um mindestens (Punkte von 100)',
+  rule_reward: 'Belohnung', rw_money: 'Geld', rw_other: 'Etwas anderes', rule_amount: 'Betrag', rule_text_ph: 'z. B. Pizzaabend, Kino, mehr Bildschirmzeit',
+  rule_cap_label: 'Höchstens … pro Monat (optional)', rule_save: 'Belohnung speichern', rule_saved: 'Belohnung gespeichert', rule_delete: 'Löschen', rule_pause: 'Pausieren', rule_resume: 'Fortsetzen',
+  rule_delete_confirm: 'Diese Belohnung löschen? Bereits Verdientes bleibt in der Liste.', rule_preview: '{reward} {when}',
+  rule_promise_note: 'Das ist ein Versprechen, das du selbst einlöst – Merkster bucht oder zahlt nichts.', rule_kid_system: '{name} nutzt: {sys}',
+  open_rewards: 'Offene Belohnungen', open_rewards_n: '{n} offen', given_title: 'Versprochene Belohnungen', given_none: 'Noch nichts verdient.',
+  given_earned: '{name} hat {reward} verdient', given_for: 'für {what}', mark_paid: 'Als erledigt markieren', mark_open: 'Wieder öffnen', marked_paid: 'Als erledigt markiert 🎉',
+  reward_notice: '{name} hat eine Belohnung von dir verdient!', what_result: '{test}: {grade}', what_streak: '{n} Tage am Stück', what_level: 'Level {n}',
+  photo_add: 'Foto der benoteten Arbeit hinzufügen', photo_change: 'Foto ändern', photo_remove: 'Foto entfernen', photo_saved: 'Foto gespeichert', photo_hint: 'Nur Fans, denen du es erlaubst, können es sehen.',
+  cancel: 'Abbrechen', photo_view: 'Foto der Arbeit', photo_need_login: 'Melde dich an, um ein Foto anzuhängen.', sees_photos: 'Sieht Fotos benoteter Arbeiten'
+};

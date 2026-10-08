@@ -26,3 +26,5 @@ coverage/
 .idea/
 __pycache__/
 *.pyc
+# release archives
+*.zip

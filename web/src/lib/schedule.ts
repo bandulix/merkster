@@ -1,4 +1,4 @@
-/* Snapwise – successive-relearning scheduler.
+/* Merkster – successive-relearning scheduler.
    Per card: 1st pass (immediate retrieval) -> later the same day -> next day -> equal gaps
    (~15% of the retention interval, daily if the test is <= 7 days away) -> night before (retrieval only,
    no new cards) -> morning of the test (only cards missed last time, written once). */

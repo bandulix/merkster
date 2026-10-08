@@ -1,20 +1,24 @@
-/* Snapwise – accounts & sessions.
-   - argon2id password hashes (@node-rs/argon2)
-   - random 256-bit session token in an httpOnly, SameSite=Lax cookie; the DB only stores HMAC(APP_SECRET, token)
-   - the very first account becomes admin; REGISTRATION_OPEN=false closes sign-up (admins can still add accounts)
-   - CSRF: state-changing /api calls must send `X-Snapwise: 1` (a custom header forces a CORS preflight, and CORS is never enabled) */
+/* Merkster – sign-in with Google only (OpenID Connect authorization-code flow with PKCE, state and nonce, via openid-client).
+   - We store only Google's stable account id ("sub"), name, e-mail and profile picture (cached copy, see avatars.ts).
+   - Session: random 256-bit token in an httpOnly, SameSite=Lax cookie (Secure on https). The DB stores only HMAC(APP_SECRET, token).
+     SameSite=Lax + same-origin API means the cookie also works inside the installed PWA.
+   - Admins come from ADMIN_EMAILS (verified e-mail). Optional ALLOWED_EMAIL_DOMAINS / ALLOWLIST restrict who may sign in.
+   - CSRF: state-changing /api calls must send `X-Merkster: 1` (custom header => CORS preflight; CORS is never enabled). */
 import crypto from 'node:crypto';
-import { hash as argonHash, verify as argonVerify } from '@node-rs/argon2';
+import * as oidc from 'openid-client';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import type { Config } from './config';
-import { tx } from './db';
 import { limiter } from './ratelimit';
+import { APP_COOKIE, APP_CSRF_HEADER } from '../../shared/brand';
+import { avatarPath, refreshAvatar } from './avatars';
 
-export const COOKIE = 'sw_sid';
-const LOGIN_RE = /^[a-z0-9._@+-]{3,100}$/;
+export const COOKIE = APP_COOKIE;
+/** user columns we load per request (never the picture bytes) */
+const USER_COLS = 'u.id, u.google_sub, u.email, u.name, u.avatar_url, u.avatar_etag, u.is_admin, u.is_supporter, u.created_at, u.last_login_at';
+const FLOW_COOKIE = APP_COOKIE + '_oauth';
 
-export interface DbUser { id: number; login: string; email: string | null; password_hash: string; is_admin: boolean; created_at: Date; last_login_at: Date | null; }
+export interface DbUser { id: number; google_sub: string; email: string | null; name: string; avatar_url: string | null; avatar_etag?: string | null; is_admin: boolean; is_supporter?: boolean; created_at: Date; last_login_at: Date | null; }
 declare module 'fastify' {
   interface FastifyRequest { user: DbUser | null }
   interface FastifyInstance {
@@ -22,44 +26,61 @@ declare module 'fastify' {
     requireAdmin: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
-export const publicUser = (u: DbUser) => ({ id: String(u.id), login: u.login, email: u.email || null, isAdmin: !!u.is_admin, createdAt: u.created_at });
+export const publicUser = (u: DbUser) => ({ id: String(u.id), name: u.name, email: u.email || null, avatar: avatarPath(u.id, u.avatar_etag), isAdmin: !!u.is_admin, createdAt: u.created_at });
+
+/** only a relative in-app path is allowed as post-login target (no open redirects) */
+const safeNext = (v: unknown) => (typeof v === 'string' && /^\/(?![/\\])[\w\-/?=&.%#]*$/.test(v) && v.length < 300 ? v : '/');
+const safeAvatar = (v: unknown) => (typeof v === 'string' && /^https:\/\/[^\s"'<>]+$/.test(v) && v.length <= 500 ? v : null);
+
+export function emailAllowed(config: Pick<Config, 'allowedDomains' | 'allowlist'>, email: string | null, verified: boolean): boolean {
+  if (!config.allowedDomains.length && !config.allowlist.length) return true;   // empty = anyone with a Google account
+  if (!email || !verified) return false;
+  const e = email.toLowerCase();
+  return config.allowlist.includes(e) || config.allowedDomains.includes(e.split('@')[1] || '');
+}
 
 export async function authPlugin(app: FastifyInstance, { pool, config }: { pool: pg.Pool; config: Config }) {
+  const hmac = (t: string) => crypto.createHmac('sha256', config.appSecret).update(t).digest('base64url');
   const hashToken = (t: string) => crypto.createHmac('sha256', config.appSecret).update(t).digest('hex');
   const authLimit = limiter(config.authLimitPer10Min, 10 * 60 * 1000);
-  const dummyHash = await argonHash(crypto.randomBytes(16).toString('hex'));
-  const cookieOpts = () => ({ path: '/', httpOnly: true, sameSite: 'lax' as const, secure: config.cookieSecure, maxAge: config.sessionDays * 86400 });
+  const cookieBase = { path: '/', httpOnly: true, sameSite: 'lax' as const, secure: config.cookieSecure };
 
-  function checkCreds(body: unknown): { error: string } | { login: string; password: string } {
-    const b = (body || {}) as Record<string, unknown>;
-    const login = String(b.login || '').trim().toLowerCase();
-    const password = String(b.password || '');
-    if (!LOGIN_RE.test(login)) return { error: 'invalid_login' };
-    if (password.length < 8 || password.length > 200) return { error: 'weak_password' };
-    return { login, password };
-  }
+  /* ---- OpenID provider (Google; or the mock provider in tests) – discovered lazily, retried on failure ---- */
+  let discovered: Promise<oidc.Configuration> | null = null;
+  const provider = () => {
+    if (!discovered) {
+      const insecure = config.google.testIssuer && config.google.issuer.startsWith('http:');
+      discovered = oidc.discovery(new URL(config.google.issuer), config.google.clientId, config.google.clientSecret, undefined,
+        insecure ? { execute: [oidc.allowInsecureRequests] } : undefined).catch(e => { discovered = null; throw e; });
+    }
+    return discovered;
+  };
+
+  /* short-lived signed cookie carrying PKCE verifier + state + nonce between /google and /callback */
+  const packFlow = (o: object) => { const b = Buffer.from(JSON.stringify(o)).toString('base64url'); return b + '.' + hmac(b); };
+  const unpackFlow = (v: string | undefined): { v: string; s: string; n: string; next: string; exp: number } | null => {
+    if (!v || v.length > 2000) return null;
+    const [b, sig] = v.split('.');
+    if (!b || !sig || sig.length !== hmac(b).length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(hmac(b)))) return null;
+    try { const o = JSON.parse(Buffer.from(b, 'base64url').toString()); return o.exp > Date.now() ? o : null; } catch { return null; }
+  };
+
   async function startSession(reply: FastifyReply, req: FastifyRequest, userId: number) {
     const token = crypto.randomBytes(32).toString('base64url');
     await pool.query('INSERT INTO auth_sessions (token_hash, user_id, expires_at, user_agent) VALUES ($1, $2, now() + make_interval(days => $3), $4)',
       [hashToken(token), userId, config.sessionDays, String(req.headers['user-agent'] || '').slice(0, 200)]);
-    await pool.query('UPDATE users SET last_login_at = now() WHERE id = $1', [userId]);
-    reply.setCookie(COOKIE, token, cookieOpts());
-  }
-  async function createUser(client: pg.Pool | pg.PoolClient, login: string, password: string, isAdmin: boolean): Promise<DbUser> {
-    const r = await client.query('INSERT INTO users (login, email, password_hash, is_admin) VALUES ($1, $2, $3, $4) RETURNING *',
-      [login, login.includes('@') ? login : null, await argonHash(password), isAdmin]);
-    return r.rows[0];
+    reply.setCookie(COOKIE, token, { ...cookieBase, maxAge: config.sessionDays * 86400 });
   }
 
   app.decorateRequest('user', null);
   app.addHook('onRequest', async req => {
     const token = req.cookies?.[COOKIE];
     if (!token || token.length > 100) return;
-    const r = await pool.query(`SELECT u.* FROM auth_sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > now()`, [hashToken(token)]);
+    const r = await pool.query(`SELECT ${USER_COLS} FROM auth_sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > now()`, [hashToken(token)]);
     if (r.rows[0]) req.user = r.rows[0];
   });
   app.addHook('onRequest', async (req, reply) => {
-    if (req.url.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers['x-snapwise'] !== '1') {
+    if (req.url.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers[APP_CSRF_HEADER] !== '1') {
       return reply.code(403).send({ error: 'csrf' });
     }
   });
@@ -68,43 +89,56 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     if (!req.user) return reply.code(401).send({ error: 'unauthorized' });
     if (!req.user.is_admin) return reply.code(403).send({ error: 'forbidden' });
   });
-  const rateOk = (req: FastifyRequest, reply: FastifyReply) => {
-    const r = authLimit(req.ip);
-    if (!r.ok) { reply.header('Retry-After', r.retryAfter).code(429).send({ error: 'rate_limited', retryAfter: r.retryAfter }); return false; }
-    return true;
-  };
+  const fail = (reply: FastifyReply, code: string) => reply.clearCookie(FLOW_COOKIE, { path: '/api/auth/' }).redirect('/login?error=' + code, 302);
 
-  app.post('/api/auth/register', async (req, reply) => {
-    if (!rateOk(req, reply)) return reply;
-    const c = checkCreds(req.body);
-    if ('error' in c) return reply.code(400).send({ error: c.error });
-    try {
-      const user = await tx(pool, async client => {
-        await client.query('SELECT pg_advisory_xact_lock(424242)');
-        const n = Number((await client.query('SELECT count(*) AS n FROM users')).rows[0].n);
-        if (n > 0 && !config.registrationOpen) throw Object.assign(new Error('closed'), { code: 'closed' });
-        return createUser(client, c.login, c.password, n === 0);
-      });
-      await startSession(reply, req, user.id);
-      req.log.info({ userId: String(user.id), admin: user.is_admin }, 'user registered');
-      return reply.code(201).send({ user: publicUser(user) });
-    } catch (e) {
-      const code = (e as { code?: string }).code;
-      if (code === 'closed') return reply.code(403).send({ error: 'registration_closed' });
-      if (code === '23505') return reply.code(409).send({ error: 'login_taken' });
-      throw e;
-    }
+  /* 1) browser navigates here -> redirect to Google */
+  app.get<{ Querystring: { next?: string } }>('/api/auth/google', async (req, reply) => {
+    if (!config.googleConfigured) return fail(reply, 'not_configured');
+    const rl = authLimit(req.ip);
+    if (!rl.ok) return fail(reply, 'rate_limited');
+    let conf: oidc.Configuration;
+    try { conf = await provider(); } catch (e) { req.log.error({ err: (e as Error).message }, 'OIDC discovery failed'); return fail(reply, 'provider_unreachable'); }
+    const verifier = oidc.randomPKCECodeVerifier(), state = oidc.randomState(), nonce = oidc.randomNonce();
+    const url = oidc.buildAuthorizationUrl(conf, {
+      redirect_uri: config.google.redirectUri, scope: 'openid email profile', response_type: 'code',
+      code_challenge: await oidc.calculatePKCECodeChallenge(verifier), code_challenge_method: 'S256', state, nonce, prompt: 'select_account'
+    });
+    reply.setCookie(FLOW_COOKIE, packFlow({ v: verifier, s: state, n: nonce, next: safeNext(req.query.next), exp: Date.now() + 10 * 60e3 }), { ...cookieBase, path: '/api/auth/', maxAge: 600 });
+    return reply.redirect(url.href, 302);
   });
 
-  app.post('/api/auth/login', async (req, reply) => {
-    if (!rateOk(req, reply)) return reply;
-    const b = (req.body || {}) as Record<string, unknown>;
-    const login = String(b.login || '').trim().toLowerCase(), password = String(b.password || '').slice(0, 200);
-    const u: DbUser | undefined = login && login.length <= 100 ? (await pool.query('SELECT * FROM users WHERE lower(login) = $1', [login])).rows[0] : undefined;
-    const ok = await argonVerify(u ? u.password_hash : dummyHash, password).catch(() => false);
-    if (!u || !ok) return reply.code(401).send({ error: 'bad_credentials' });
+  /* 2) Google redirects back here with ?code&state */
+  app.get<{ Querystring: Record<string, string> }>('/api/auth/google/callback', async (req, reply) => {
+    const flow = unpackFlow(req.cookies?.[FLOW_COOKIE]);
+    if (req.query.error) return fail(reply, req.query.error === 'access_denied' ? 'cancelled' : 'failed');
+    if (!flow) return fail(reply, 'expired');
+    let claims: oidc.IDToken | undefined;
+    try {
+      const conf = await provider();
+      const current = new URL(config.google.redirectUri);
+      for (const [k, v] of Object.entries(req.query)) current.searchParams.set(k, String(v));
+      const tokens = await oidc.authorizationCodeGrant(conf, current, { pkceCodeVerifier: flow.v, expectedState: flow.s, expectedNonce: flow.n, idTokenExpected: true });
+      claims = tokens.claims();
+    } catch (e) {
+      req.log.warn({ err: (e as Error).message }, 'Google sign-in failed');
+      return fail(reply, 'failed');
+    }
+    if (!claims?.sub) return fail(reply, 'failed');
+    const email = typeof claims.email === 'string' ? claims.email.slice(0, 200) : null;
+    const verified = claims.email_verified === true;
+    if (!emailAllowed(config, email, verified)) return fail(reply, 'not_allowed');
+    const isAdmin = !!email && verified && config.adminEmails.includes(email.toLowerCase());
+    const name = (typeof claims.name === 'string' ? claims.name : typeof claims.given_name === 'string' ? claims.given_name : '').slice(0, 100);
+    const existing = (await pool.query('SELECT id FROM users WHERE google_sub = $1', [claims.sub])).rows[0];
+    if (!existing && !config.registrationOpen && !isAdmin) return fail(reply, 'closed');
+    const u: DbUser = (await pool.query(`INSERT INTO users (google_sub, email, name, avatar_url, is_admin, last_login_at) VALUES ($1,$2,$3,$4,$5, now())
+      ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url, is_admin = EXCLUDED.is_admin, last_login_at = now()
+      RETURNING id, google_sub, email, name, avatar_url, avatar_etag, is_admin, is_supporter, created_at, last_login_at`, [String(claims.sub).slice(0, 255), email, name, safeAvatar(claims.picture), isAdmin])).rows[0];
+    await refreshAvatar(pool, config, u.id, typeof claims.picture === 'string' ? claims.picture.slice(0, 500) : null, req.log);   // re-downloaded on every sign-in
     await startSession(reply, req, u.id);
-    return { user: publicUser(u) };
+    if (!existing) req.log.info({ userId: String(u.id), admin: isAdmin }, 'new user');
+    reply.clearCookie(FLOW_COOKIE, { path: '/api/auth/' });
+    return reply.redirect(flow.next, 302);
   });
 
   app.post('/api/auth/logout', async (req, reply) => {
@@ -114,30 +148,27 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     return { ok: true };
   });
 
-  app.get('/api/me', { preHandler: app.requireUser }, async req => ({ user: publicUser(req.user as DbUser) }));
+  app.get('/api/me', { preHandler: app.requireUser }, async req => {
+    const u = req.user as DbUser;
+    const c = (await pool.query(`SELECT (SELECT count(*) FROM supporter_links WHERE supporter_id = $1)::int AS kids, (SELECT count(*) FROM supporter_links WHERE student_id = $1)::int AS supporters`, [u.id])).rows[0];
+    return { user: { ...publicUser(u), isSupporter: !!u.is_supporter || c.kids > 0, kids: c.kids, supporters: c.supporters } };
+  });
 
-  app.post('/api/me/password', { preHandler: app.requireUser }, async (req, reply) => {
-    const b = (req.body || {}) as Record<string, unknown>, u = req.user as DbUser;
-    if (!(await argonVerify(u.password_hash, String(b.current || '')).catch(() => false))) return reply.code(401).send({ error: 'bad_credentials' });
-    const next = String(b.next || '');
-    if (next.length < 8 || next.length > 200) return reply.code(400).send({ error: 'weak_password' });
-    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [await argonHash(next), u.id]);
+  /* delete my account and everything in it (GDPR Art. 17) */
+  app.delete('/api/me', { preHandler: app.requireUser }, async (req, reply) => {
+    await pool.query('DELETE FROM users WHERE id = $1', [req.user!.id]);   // cascades to sessions, tests, cards, history, profile, AI log, invites, supporter links (both ways) and reactions
+    req.log.info({ userId: String(req.user!.id) }, 'account deleted');
+    reply.clearCookie(COOKIE, { path: '/' });
     return { ok: true };
   });
 
   /* ---- admin ---- */
   app.get('/api/admin/users', { preHandler: app.requireAdmin }, async () => {
-    const r = await pool.query(`SELECT u.id, u.login, u.is_admin, u.created_at, u.last_login_at,
+    const r = await pool.query(`SELECT u.id, u.name, u.email, u.is_admin, u.created_at, u.last_login_at,
       (SELECT count(*) FROM tests t WHERE t.user_id = u.id AND NOT t.deleted) AS tests,
       (SELECT count(*) FROM ai_requests a WHERE a.user_id = u.id AND a.created_at > now() - interval '30 days') AS ai_30d
       FROM users u ORDER BY u.id`);
-    return { users: r.rows.map(u => ({ id: String(u.id), login: u.login, isAdmin: u.is_admin, createdAt: u.created_at, lastLoginAt: u.last_login_at, tests: Number(u.tests), ai30d: Number(u.ai_30d) })) };
-  });
-  app.post('/api/admin/users', { preHandler: app.requireAdmin }, async (req, reply) => {
-    const c = checkCreds(req.body);
-    if ('error' in c) return reply.code(400).send({ error: c.error });
-    try { const u = await createUser(pool, c.login, c.password, !!((req.body || {}) as Record<string, unknown>).isAdmin); return reply.code(201).send({ user: publicUser(u) }); }
-    catch (e) { if ((e as { code?: string }).code === '23505') return reply.code(409).send({ error: 'login_taken' }); throw e; }
+    return { users: r.rows.map(u => ({ id: String(u.id), name: u.name, email: u.email, isAdmin: u.is_admin, createdAt: u.created_at, lastLoginAt: u.last_login_at, tests: Number(u.tests), ai30d: Number(u.ai_30d) })) };
   });
   app.delete<{ Params: { id: string } }>('/api/admin/users/:id', { preHandler: app.requireAdmin }, async (req, reply) => {
     if (String(req.params.id) === String(req.user!.id)) return reply.code(400).send({ error: 'cannot_delete_self' });
