@@ -3,7 +3,7 @@
 import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { dismissCelebrations, googleLogin, isoDay, newUser, OUT, playSession, pngSize, ROOT, SHOTS } from './helpers';
+import { calm, dismissCelebrations, googleLogin, isoDay, newUser, OUT, playSession, pngSize, ROOT, SHOTS } from './helpers';
 
 const FIX = path.join(ROOT, 'tests/fixtures');
 const STAMP = Date.now().toString(36);
@@ -77,6 +77,7 @@ test('student journey: login → import → practice → level up → result →
   await page.screenshot({ path: path.join(SHOTS, 'mobile-09-done.png') });
   await page.getByTestId('done-home').click();
   await expect(page.locator('[data-testid="level-chip"]:visible').first()).toContainText(/Level [23]|Lv\.? ?[23]/);
+  await calm(page);
   await page.screenshot({ path: path.join(SHOTS, 'mobile-10-today.png') });
 
   // profile: level, xp, badges
@@ -192,6 +193,14 @@ test('same account on a desktop browser: synced data + desktop screenshots + dar
   const dl = page.waitForEvent('download');
   await page.getByTestId('share-png').click();
   await (await dl).saveAs(path.join(SHOTS, 'share-card-week-square.png'));
+  // short animated clip (MediaRecorder); without the Web Share API it is downloaded
+  const vdl = page.waitForEvent('download', { timeout: 60_000 });
+  await page.getByTestId('share-video').click();
+  const video = await vdl;
+  expect(video.suggestedFilename()).toMatch(/\.(webm|mp4)$/);
+  const vpath = path.join(OUT, 'share-week.' + video.suggestedFilename().split('.').pop());
+  await video.saveAs(vpath);
+  expect(fs.statSync(vpath).size).toBeGreaterThan(20_000);
   await ctx.close();
 });
 
@@ -219,6 +228,9 @@ test('installable PWA works offline after the first visit', async ({ browser }) 
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBeTruthy();
+  // first visit finished: data synced to this device (and written to IndexedDB)
+  await expect(page.getByTestId('test-card').filter({ hasText: 'Bio: Die Zelle' })).toBeVisible();
+  await page.waitForTimeout(500);
   const manifest = await (await page.request.get('/manifest.webmanifest')).json();
   expect(manifest.name).toBe('Merkster'); expect(manifest.short_name).toBe('Merkster');
   await ctx.setOffline(true);

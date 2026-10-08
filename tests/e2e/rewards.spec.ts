@@ -5,10 +5,10 @@
       (until the student allows it) → a supporter reacts on the report card. */
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
-import { acceptInvite, apiCall, createInvite, dismissCelebrations, enterGrade, googleLogin, isoDay, newUser, pasteTest, ROOT, SHOTS, skipOnboarding } from './helpers';
+import { acceptInvite, apiCall, createInvite, dismissCelebrations, enterGrade, googleLogin, isoDay, newUser, pasteTest, ROOT, SHOTS, skipOnboarding, calm } from './helpers';
 
 const RUN = Date.now().toString(36);
-const shot = (page: Page, name: string, full = false) => page.screenshot({ path: path.join(SHOTS, name), fullPage: full });
+const shot = async (page: Page, name: string, full = false, fx = false) => { if (!fx) await calm(page); await page.screenshot({ path: path.join(SHOTS, name), fullPage: full }); };
 const BIO = ['Mitochondrium – Kraftwerk der Zelle', 'Ribosom – Proteinfabrik', 'Zellkern – enthält die DNA', 'Zellmembran – Grenze der Zelle'];
 test.describe.configure({ mode: 'serial' });
 

@@ -52,7 +52,9 @@ export function App() {
     (async () => {
       await store.open(user.id);
       // wait briefly for the first sync so a new device shows the user's real data, but never block offline use
-      await Promise.race([startSync(user.id, () => qc.setQueryData(['me'], { user: null, offline: false })), new Promise(r => setTimeout(r, 4000))]);
+      // (longer when this device has no data for the account yet – otherwise it would briefly look like a new account)
+      const fresh = !store.data.settings.onboarded && store.data.tests.length === 0 && navigator.onLine;
+      await Promise.race([startSync(user.id, () => qc.setQueryData(['me'], { user: null, offline: false })), new Promise(r => setTimeout(r, fresh ? 12000 : 4000))]);
       if (!cancelled) setOpenFor(user.id);
     })();
     return () => { cancelled = true; };

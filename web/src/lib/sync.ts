@@ -51,8 +51,10 @@ export async function runSync(): Promise<boolean> {
     const changed = (k: string) => cur[k] !== snapshot[k];
     const n = applyRemote(store.data, res, changed);
     state = settle(state, store.data, res, snapshot, pushed, tombstones, changed);
+    // data first, bookkeeping second: if the page dies in between, the next round simply re-pulls
+    if (n) store.commit(undefined, { sync: false });
+    await store.flush();
     await idbSet(`sync:${uid}`, state);
-    if (n) store.commit(undefined, { sync: false }); else void store.persist();
     backoff = 0; lastOk = Date.now(); setStatus('ok');
     return true;
   } catch (e) {

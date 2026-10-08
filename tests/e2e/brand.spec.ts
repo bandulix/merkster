@@ -9,7 +9,7 @@ const BRAND = path.join(ROOT, 'brand');
 const img = (f: string) => { const p = path.join(SHOTS, f); return fs.existsSync(p) ? `data:image/png;base64,${fs.readFileSync(p).toString('base64')}` : null; };
 const SCREENS: [string, string][] = [
   ['mobile-10-today.png', 'Today'], ['mobile-06-practice.png', 'Practice'], ['mobile-14-results.png', 'Results'],
-  ['mobile-22-cheer-overview.png', 'Supporters'], ['mobile-33-rc-unbox.png', 'Report card'], ['mobile-36-rewards-overview.png', 'Rewards'], ['mobile-37-simulator.png', 'Simulator']
+  ['mobile-22-cheer-overview.png', 'Supporters'], ['mobile-35-rc-detail.png', 'Report card'], ['mobile-36-rewards-overview.png', 'Rewards'], ['mobile-37-simulator.png', 'Simulator']
 ];
 
 test('brand sheet + logo PNGs', async ({ browser }) => {
@@ -32,8 +32,8 @@ test('brand sheet + logo PNGs', async ({ browser }) => {
     .sws{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:40px} .sw{display:grid;grid-template-columns:64px 1fr;grid-template-rows:auto auto;column-gap:16px;align-items:center}
     .sw i{grid-row:span 2;width:64px;height:64px;border-radius:18px;border:2px solid rgba(255,255,255,.15)} .sw b{font-size:24px} .sw small{font-size:18px;opacity:.7}
     .type{font-size:28px;line-height:1.4;opacity:.9} .type b{font-weight:800} .marks{display:flex;gap:24px;align-items:end;margin-top:36px}
-    .marks div{background:#f4f5ef;border-radius:28px;padding:18px} .shots{display:flex;gap:26px;flex-wrap:wrap;align-content:center}
-    figure{margin:0;text-align:center} figure img{width:220px;border-radius:30px;box-shadow:0 20px 50px rgba(0,0,0,.5);border:3px solid #262a47} figcaption{margin-top:12px;font-size:22px;font-weight:700;color:#c6f432}
+    .marks div{background:#f4f5ef;border-radius:28px;padding:18px} .shots{display:grid;grid-template-columns:repeat(4,220px);gap:44px 70px;justify-content:center;align-content:center}
+    figure{margin:0;text-align:center} figure img{width:220px;height:476px;object-fit:cover;object-position:top;border-radius:30px;box-shadow:0 20px 50px rgba(0,0,0,.5);border:3px solid #262a47} figcaption{margin-top:12px;font-size:22px;font-weight:700;color:#c6f432}
   </style></head><body>
     <div>${logo.replace('<svg ', '<svg width="200" height="200" ')}
       <h1>Merkster</h1><p class="tag">Snap it. Drill it. Own the test.</p>

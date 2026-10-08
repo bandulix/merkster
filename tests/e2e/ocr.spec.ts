@@ -12,9 +12,10 @@ const norm = (s: string) => s.toLowerCase().normalize('NFC').replace(/[^\p{L}\p{
 const lev = (a: string, b: string) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
 const MIN_PAIR_ACCURACY = 0.8;   // ≥ 80 % of pairs must come out exactly right (after case/punctuation normalisation)
 const MIN_CHAR_ACCURACY = 0.95;  // and ≥ 95 % character accuracy overall
-const report: Record<string, unknown> = {};
+const REPORT = path.join(OUT, 'ocr-report.json');
+// merged per fixture, so a failing fixture (worker restart) doesn't wipe the others' results
+const report: Record<string, unknown> = fs.existsSync(REPORT) ? JSON.parse(fs.readFileSync(REPORT, 'utf8')) : {};
 
-test.describe.configure({ mode: 'serial' });
 for (const [file, t] of Object.entries(truth)) {
   test(`on-device OCR accuracy: ${file}`, async ({ browser }) => {
     test.setTimeout(240_000);
@@ -23,8 +24,8 @@ for (const [file, t] of Object.entries(truth)) {
     await googleLogin(page, `ocr.${file.replace(/\W/g, '')}.${Date.now().toString(36)}@example.com`, 'OCR Test');
     await skipOnboarding(page);
     await page.getByTestId('nav-new').click();
-    if (t.lang) { await page.getByTestId('subj-languages').click(); await page.getByTestId('foreign-' + t.lang).click(); }
-    else await page.getByTestId('subj-biology').click();
+    if (t.lang) { await page.getByTestId('subj-languages').click(); await page.getByTestId('my-lang-' + t.native).click(); await page.getByTestId('foreign-' + t.lang).click(); }
+    else { await page.getByTestId('subj-biology').click(); await page.getByTestId('native-' + t.native).click(); }
     await page.getByTestId('test-name').fill('OCR ' + file);
     await page.getByTestId('wiz-next').click();
     await page.getByTestId('qdate-7').click();
@@ -48,7 +49,7 @@ for (const [file, t] of Object.entries(truth)) {
     });
     const pairAcc = exact / t.pairs.length, charAcc = 1 - errs / chars;
     report[file] = { method: 'tesseract (on-device)', seconds: Math.round((Date.now() - t0) / 100) / 10, rows: rows.length, expected: t.pairs.length, exactPairs: exact, pairAccuracy: +pairAcc.toFixed(3), charAccuracy: +charAcc.toFixed(3), detail };
-    fs.writeFileSync(path.join(OUT, 'ocr-report.json'), JSON.stringify(report, null, 2));
+    fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(REPORT, JSON.stringify(report, null, 2));
     console.log(`OCR ${file}: ${exact}/${t.pairs.length} exact pairs, char accuracy ${(charAcc * 100).toFixed(1)} %`);
     expect(pairAcc).toBeGreaterThanOrEqual(MIN_PAIR_ACCURACY);
     expect(charAcc).toBeGreaterThanOrEqual(MIN_CHAR_ACCURACY);

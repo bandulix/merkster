@@ -195,3 +195,9 @@ export async function acceptInvite(page: Page, joinPath: string, who?: { email: 
   await page.getByTestId('join-accept').click();
   await expect(page.getByTestId('join-done')).toBeVisible();
 }
+
+/** let celebrations settle before a screenshot: no confetti still falling, no toast on screen (best effort) */
+export async function calm(page: Page) {
+  await expect(page.locator('.confetti')).toHaveCount(0, { timeout: 8000 }).catch(() => undefined);
+  await expect(page.locator('.toast')).toHaveCount(0, { timeout: 8000 }).catch(() => undefined);
+}

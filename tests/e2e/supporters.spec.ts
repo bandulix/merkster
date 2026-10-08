@@ -4,7 +4,7 @@
    that one supporter can cheer for several kids. Also verifies Google profile pictures (avatars). */
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
-import { acceptInvite, apiCall, createInvite, dismissCelebrations, enterGrade, googleLogin, newUser, pairsOf, pasteTest, playSession, SHOTS, skipOnboarding } from './helpers';
+import { acceptInvite, apiCall, createInvite, dismissCelebrations, enterGrade, googleLogin, newUser, pairsOf, pasteTest, playSession, SHOTS, skipOnboarding, calm } from './helpers';
 
 const RUN = Date.now().toString(36);
 const MIA = { email: `mia.${RUN}@example.com`, name: 'Mia Sommer' };
@@ -12,7 +12,7 @@ const OMA = { email: `gisela.${RUN}@example.com`, name: 'Gisela Sommer' };
 const TOM = { email: `tom.nopic.${RUN}@example.com`, name: 'Tom Berger' };   // "nopic" → mock Google sends no picture
 const BIO = ['Mitochondrium – Kraftwerk der Zelle', 'Ribosom – Proteinfabrik', 'Zellkern – enthält die DNA', 'Chloroplast – Ort der Fotosynthese', 'Zellmembran – Grenze der Zelle', 'Vakuole – Speicher der Pflanzenzelle'];
 const MATH = ['Pi – 3,14', 'Primzahl – nur durch 1 und sich selbst teilbar', 'Hypotenuse – längste Seite im rechtwinkligen Dreieck', 'Radius – halber Durchmesser'];
-const shot = (page: Page, name: string, full = false) => page.screenshot({ path: path.join(SHOTS, name), fullPage: full });
+const shot = async (page: Page, name: string, full = false, fx = false) => { if (!fx) await calm(page); await page.screenshot({ path: path.join(SHOTS, name), fullPage: full }); };
 
 test.describe.configure({ mode: 'serial' });
 

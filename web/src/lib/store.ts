@@ -79,6 +79,8 @@ class Store {
     void this.persist();
     if (opts.sync !== false) this.onChange?.();
   }
+  /** wait until pending IndexedDB writes are done */
+  async flush() { while (this.writing) await this.writing; }
   async persist() {
     if (!this.userId) return;
     if (this.writing) { this.dirty = true; return this.writing; }

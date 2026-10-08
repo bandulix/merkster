@@ -1,4 +1,5 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useRef } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../hooks';
 import { store } from '../lib/store';
 import { Logo } from '../components/ui';
@@ -8,7 +9,10 @@ import { t } from '../i18n';
 export function Onboarding() {
   const step = Math.min(3, Math.max(1, Number(useParams().step) || 1));
   const d = useStore(), nav = useNavigate();
-  const done = (to: string) => { store.setSettings({ onboarded: true }); nav(to, { replace: true }); };
+  const leaving = useRef(false);
+  const done = (to: string) => { leaving.current = true; store.setSettings({ onboarded: true }); nav(to, { replace: true }); };
+  // a new device may land here before the first sync finished – once the account turns out to be onboarded, leave
+  if (d.settings.onboarded && !leaving.current) return <Navigate to="/" replace />;
   const art = step === 1 ? <Logo size={120} className="ob-logo" />
     : step === 2 ? <div className="ob-steps"><span>📸</span><i>→</i><span>🧠</span><i>→</i><span>🏆</span></div>
       : <div className="ob-cal">{[t('ob_d1'), t('ob_d2'), t('ob_d3'), '🌙', '☀️'].map((x, i) => <b key={i} style={{ ['--i' as string]: i }}>{x}</b>)}</div>;

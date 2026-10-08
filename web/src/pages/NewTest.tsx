@@ -35,7 +35,7 @@ export function NewTest() {
       <h3 className="q2">{t('wiz_which_lang')}</h3>
       <div className="chips">{(['en', 'fr', 'es', 'la', 'de'] as Lang[]).filter(l => l !== w.native).map(l => <button key={l} data-testid={'foreign-' + l} className={'pill' + (w.foreign === l ? ' on' : '')} onClick={() => up({ foreign: l, articles: l === 'de' })}>{flag(l)} {langName(l)}</button>)}</div>
       <h3 className="q2">{t('wiz_my_lang')}</h3>
-      <div className="chips">{(['de', 'en'] as Lang[]).map(l => <button key={l} className={'pill' + (w.native === l ? ' on' : '')} onClick={() => up({ native: l })}>{flag(l)} {langName(l)}</button>)}</div>
+      <div className="chips">{(['de', 'en'] as Lang[]).map(l => <button key={l} data-testid={'my-lang-' + l} className={'pill' + (w.native === l ? ' on' : '')} onClick={() => up({ native: l })}>{flag(l)} {langName(l)}</button>)}</div>
     </>}
     {w.subject && w.subject !== 'languages' && <>
       <h3 className="q2">{t('wiz_material_lang')}</h3>

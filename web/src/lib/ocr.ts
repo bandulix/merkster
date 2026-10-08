@@ -49,7 +49,7 @@ const toBlob = (src: Src, max: number, q: number) => new Promise<Blob>((res, rej
 export function preprocess(src: Src): HTMLCanvasElement {
   const [sw, sh] = dims(src);
   let k = Math.min(1, 2400 / Math.max(sw, sh));
-  if (Math.max(sw, sh) * k < 1300) k = 1300 / Math.max(sw, sh);
+  if (Math.max(sw, sh) * k < 2000) k = 2000 / Math.max(sw, sh);   // Tesseract likes ~30 px capitals
   const w = Math.round(sw * k), h = Math.round(sh * k);
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const ctx = c.getContext('2d', { willReadFrequently: true })!;
@@ -79,6 +79,76 @@ export function preprocess(src: Src): HTMLCanvasElement {
   const span = Math.max(30, 250 - lo);
   for (let i = 0, j = 0; j < n; i += 4, j++) { const v = Math.max(0, Math.min(255, (g[j] - lo) / span * 255)); d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
   ctx.putImageData(img, 0, 0);
+  return removeRulings(deskew(c));
+}
+
+/** estimate the skew of text lines / table rulings (±6°) from the horizontal projection profile */
+export function skewAngle(gray: Uint8ClampedArray | Float32Array, w: number, h: number, stride = 4): number {
+  const xs: number[] = [], ys: number[] = [];
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) if (gray[(y * w + x) * stride] < 110) { xs.push(x); ys.push(y); }
+  if (xs.length < 200) return 0;
+  const score = (deg: number) => {
+    const t = Math.tan(deg * Math.PI / 180), bins = new Float64Array(h + w);
+    for (let i = 0; i < xs.length; i++) { const r = Math.floor((ys[i] - xs[i] * t) / 2) + w; if (r >= 0 && r < bins.length) bins[r]++; }   // 2-px bins: the sampling grid is 2 px, too
+    let sq = 0; for (let i = 0; i < bins.length; i++) sq += bins[i] * bins[i];
+    return sq;
+  };
+  let best = 0, bestS = -1;
+  for (let a = -6; a <= 6.001; a += 0.5) { const sc = score(a); if (sc > bestS) { bestS = sc; best = a; } }
+  const c0 = best;
+  for (let a = c0 - 0.45; a <= c0 + 0.451; a += 0.1) { const sc = score(a); if (sc > bestS) { bestS = sc; best = a; } }
+  return Math.abs(best) < 0.15 ? 0 : best;
+}
+function deskew(c: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  const deg = skewAngle(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+  if (!deg) return c;
+  const out = document.createElement('canvas'); out.width = c.width; out.height = c.height;
+  const o = out.getContext('2d', { willReadFrequently: true })!;
+  o.fillStyle = '#fff'; o.fillRect(0, 0, out.width, out.height);
+  o.translate(out.width / 2, out.height / 2); o.rotate(-deg * Math.PI / 180); o.drawImage(c, -c.width / 2, -c.height / 2);
+  return out;
+}
+
+/** table rulings touch the letters and confuse Tesseract: whiten long horizontal / vertical dark runs */
+export function rulingMask(gray: Uint8ClampedArray, w: number, h: number, stride = 4): Uint8Array {
+  const dark = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) dark[i] = gray[i * stride] < 200 ? 1 : 0;   // thin rulings are often light grey after scaling
+  const mask = new Uint8Array(w * h);
+  const L = Math.max(60, Math.round(w / 9)), V = Math.max(60, Math.round(h / 9));
+  // horizontal: a pixel (dilated by ±1 row) whose window of length L is ≥ 92 % dark belongs to a ruling
+  const row = new Uint8Array(w), pre = new Uint32Array(w + 1);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) row[x] = dark[y * w + x] | (y > 0 ? dark[(y - 1) * w + x] : 0) | (y < h - 1 ? dark[(y + 1) * w + x] : 0);
+    for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + row[x];
+    let x = 0;
+    while (x + L <= w) {
+      if (pre[x + L] - pre[x] >= L * 0.92) { let e = x + L; while (e < w && row[e]) e++; for (let k = x; k < e; k++) if (dark[y * w + k]) mask[y * w + k] = 1; x = e; } else x++;
+    }
+  }
+  const col = new Uint8Array(h), cp = new Uint32Array(h + 1);
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < h; y++) col[y] = dark[y * w + x] | (x > 0 ? dark[y * w + x - 1] : 0) | (x < w - 1 ? dark[y * w + x + 1] : 0);
+    for (let y = 0; y < h; y++) cp[y + 1] = cp[y] + col[y];
+    let y = 0;
+    while (y + V <= h) {
+      if (cp[y + V] - cp[y] >= V * 0.92) { let e = y + V; while (e < h && col[e]) e++; for (let k = y; k < e; k++) if (dark[k * w + x]) mask[k * w + x] = 1; y = e; } else y++;
+    }
+  }
+  return mask;
+}
+function removeRulings(c: HTMLCanvasElement): HTMLCanvasElement {
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  const img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+  const mask = rulingMask(d, c.width, c.height);
+  let n = 0;
+  const w = c.width;
+  for (let i = 0; i < mask.length; i++) if (mask[i]) {
+    // the ruling plus its anti-aliased fringe (one pixel on each side)
+    for (const j of [i, i - w, i + w, i - 1, i + 1]) if (j >= 0 && j < mask.length && d[j * 4] < 235) { d[j * 4] = d[j * 4 + 1] = d[j * 4 + 2] = 255; }
+    n++;
+  }
+  if (n) ctx.putImageData(img, 0, 0);
   return c;
 }
 
@@ -121,6 +191,19 @@ async function pdfPages(file: File, onStatus: (s: { page: number; of: number }) 
     out.push(words.map(w => w.text).join('').length > 15 ? { kind: 'text', words, canvas } : { kind: 'image', canvas });
   }
   return out;
+}
+
+const plain = (w: string) => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
+/** replace words that only differ by missing diacritics with the version from a diacritics-aware pass */
+export function restoreDiacritics(r: { words: OcrWord[]; lines: OcrWord[][]; text: string }, accented: OcrWord[]) {
+  const map = new Map<string, string>();
+  for (const w of accented) { const t = w.text.trim(); if (t && plain(t) !== t) map.set(plain(t).toLowerCase(), t); }
+  if (!map.size) return 0;
+  let n = 0;
+  const fix = (t: string) => { const m = map.get(t.toLowerCase()); return m && plain(m).toLowerCase() === t.toLowerCase() && m !== t ? m : null; };
+  for (const w of [...r.words, ...r.lines.flat()]) { const m = fix(w.text.trim()); if (m) { w.text = m; n++; } }
+  r.text = r.text.replace(/[\p{L}]+/gu, t => fix(t) ?? t);
+  return n;
 }
 
 export function ocrLangs(test: Pick<Test, 'subject' | 'foreign' | 'native'>) {
@@ -175,6 +258,15 @@ export async function processFiles(files: File[], test: Test, useAI: boolean, on
           if (m.status === 'recognizing text') ps('ocr', m.progress);
           else if (/load|initializ/i.test(m.status)) ps('load', m.progress);
         });
+        const langs = ocrLangs(test);
+        // eng in a multi-language model tends to drop diacritics (Schüler → Schuler): a second pass without
+        // English restores them word by word
+        if (langs.includes('+') && langs.split('+').includes('eng')) {
+          const other = langs.split('+').filter(l => l !== 'eng').join('+');
+          ps('ocr', 1);
+          const r2 = await recognize(canvas, other, isLang ? 6 : 3);
+          restoreDiacritics(r, r2.words);
+        }
         words = r.words; lines = r.lines; text = r.text;
       }
       if (isLang) {
