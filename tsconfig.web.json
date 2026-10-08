@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"], "module": "ESNext", "moduleResolution": "Bundler",
+    "jsx": "react-jsx", "strict": true, "noEmit": true, "skipLibCheck": true, "isolatedModules": true, "resolveJsonModule": true,
+    "types": ["vite/client", "vite-plugin-pwa/client", "vite-plugin-pwa/react"], "allowImportingTsExtensions": false
+  },
+  "include": ["web/src", "shared"]
+}

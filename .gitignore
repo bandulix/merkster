@@ -1,0 +1,28 @@
+# dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+# OCR / PDF runtime is copied from node_modules by scripts/vendor.mjs
+web/public/vendor/
+# secrets – only the example file is committed
+.env
+.env.*
+!.env.example
+# runtime data
+uploads/
+pgdata/
+backups/
+*.sql.gz
+*.dump
+# tests & tooling artifacts
+playwright-report/
+test-results/
+tests/artifacts/
+tests/output/
+coverage/
+*.log
+.DS_Store
+.vscode/
+.idea/
+__pycache__/
+*.pyc
