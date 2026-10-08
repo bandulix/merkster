@@ -77,9 +77,9 @@ export function Home() {
           <button key={x.id} className="ask-card pop-in" data-testid="ask-result" onClick={() => setAsk(x)}>
             <span className="tc-icon">{testIcon(x)}</span><span><b>{t('how_did_it_go')}</b><small>{x.name}</small></span><span className="btn primary sm">{t('enter_result')}</span>
           </button>))}{hero}<EarnCards /></div>
-        {active.length > 0 && <div>
+        {(active.length > 0 || past.length > 0) && <div>
           <div className="sec-head"><h3>{t('your_tests')}</h3><button className="btn link" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
-          <div className="test-list">{active.map(card)}</div>
+          {active.length > 0 && <div className="test-list">{active.map(card)}</div>}
           {past.length > 0 && <details className="past"><summary>{t('past_tests', { n: past.length })}</summary><div className="test-list">{past.map(card)}</div></details>}
         </div>}
       </div>

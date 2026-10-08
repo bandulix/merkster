@@ -199,7 +199,7 @@ test('second student sees none of the first student\'s data', async ({ browser }
   const { ctx, page } = await newUser(browser, { locale: 'en-US' });
   await googleLogin(page, LEO, 'Leo Example');
   await expect(page.getByTestId('onboarding')).toBeVisible();
-  await page.goto('/');
+  await page.getByTestId('ob-skip').click();
   await expect(page.getByTestId('empty-home')).toBeVisible();
   await expect(page.getByText('Englisch Unit 3')).toHaveCount(0);
   const exp = await (await page.request.get('/api/me/export')).json();

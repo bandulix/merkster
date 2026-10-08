@@ -8,11 +8,9 @@ import { de5, en5 } from './strings5';
 import { de6, en6 } from './strings6';
 
 const en2 = {
-  login_title: 'Welcome back', register_title: 'Create your account', login_field: 'Username or e-mail', password: 'Password',
-  login_btn: 'Log in', register_btn: 'Create account', to_register: 'New here? Create an account', to_login: 'Already have an account? Log in',
+    login_btn: 'Log in', register_btn: 'Create account', to_register: 'New here? Create an account', to_login: 'Already have an account? Log in',
   reg_closed: 'Sign-up is closed – ask your admin for an account.', first_admin: 'The first account on this server becomes the admin.',
-  err_bad_credentials: 'Wrong username or password.', err_login_taken: 'That name is already taken.', err_invalid_login: 'Use 3–100 letters, digits or . _ @ + -',
-  err_weak_password: 'At least 8 characters, please.', err_rate_limited: 'Too many attempts – wait a few minutes.', err_network: 'Can’t reach the server.',
+    err_rate_limited: 'Too many attempts – wait a few minutes.', err_network: 'Can’t reach the server.',
   err_registration_closed: 'Sign-up is closed – ask your admin for an account.', err_unknown: 'Something went wrong.',
   s_account: 'Account', logged_in_as: 'Logged in as {login}', admin_badge: 'Admin', logout: 'Log out', logout_confirm: 'Log out on this device?',
   sync_ok: 'Synced', sync_pending: 'Saving…', sync_offline: 'Offline – saved on this device', sync_error: 'Sync problem – retrying',
@@ -25,11 +23,9 @@ const en2 = {
   not_found: 'Page not found', tab_new: 'New', s_offline_hint: 'Downloads the text-recognition engine and language data (~17 MB) so photo import works without internet.'
 } as const;
 const de2: Record<keyof typeof en2, string> = {
-  login_title: 'Willkommen zurück', register_title: 'Konto erstellen', login_field: 'Benutzername oder E-Mail', password: 'Passwort',
-  login_btn: 'Anmelden', register_btn: 'Konto erstellen', to_register: 'Neu hier? Konto erstellen', to_login: 'Schon ein Konto? Anmelden',
+    login_btn: 'Anmelden', register_btn: 'Konto erstellen', to_register: 'Neu hier? Konto erstellen', to_login: 'Schon ein Konto? Anmelden',
   reg_closed: 'Registrierung ist geschlossen – frag deine Admin nach einem Konto.', first_admin: 'Das erste Konto auf diesem Server wird Admin.',
-  err_bad_credentials: 'Benutzername oder Passwort falsch.', err_login_taken: 'Dieser Name ist schon vergeben.', err_invalid_login: '3–100 Buchstaben, Ziffern oder . _ @ + -',
-  err_weak_password: 'Mindestens 8 Zeichen, bitte.', err_rate_limited: 'Zu viele Versuche – warte ein paar Minuten.', err_network: 'Server nicht erreichbar.',
+    err_rate_limited: 'Zu viele Versuche – warte ein paar Minuten.', err_network: 'Server nicht erreichbar.',
   err_registration_closed: 'Registrierung ist geschlossen – frag deine Admin nach einem Konto.', err_unknown: 'Da ist etwas schiefgelaufen.',
   s_account: 'Konto', logged_in_as: 'Angemeldet als {login}', admin_badge: 'Admin', logout: 'Abmelden', logout_confirm: 'Auf diesem Gerät abmelden?',
   sync_ok: 'Synchronisiert', sync_pending: 'Speichert…', sync_offline: 'Offline – auf dem Gerät gespeichert', sync_error: 'Sync-Problem – neuer Versuch läuft',
