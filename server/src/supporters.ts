@@ -32,6 +32,16 @@ const firstName = (n: string) => (n || '').trim().split(/\s+/)[0] || '';
 const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5);
 
+/** DB key of an invite token (the token itself is never stored) */
+export const inviteTokenHash = (secret: string, t: string) => crypto.createHmac('sha256', secret).update('invite:' + t).digest('hex');
+export const INVITE_TOKEN_RE = TOKEN_RE;
+/** is this invite usable right now? (shared by the invite page and the sign-up codeword exemption) */
+export async function inviteIsOpen(q: Q, secret: string, token: unknown): Promise<boolean> {
+  if (typeof token !== 'string' || !TOKEN_RE.test(token)) return false;
+  const r = (await q.query('SELECT * FROM invites WHERE token_hash = $1', [inviteTokenHash(secret, token)])).rows[0];
+  return !!r && inviteRow(r).status === 'open';
+}
+
 const inviteRow = (r: Record<string, any>): Invite => ({
   id: String(r.id), relation: cleanRelation(r.relation), label: r.label, maxUses: r.max_uses, uses: r.uses,
   expiresAt: new Date(r.expires_at).toISOString(), createdAt: new Date(r.created_at).toISOString(),
@@ -81,7 +91,7 @@ export async function supporterExport(q: Q, uid: number) {
 export async function supportersPlugin(app: FastifyInstance, { pool, config }: { pool: pg.Pool; config: Config }) {
   const auth = { preHandler: app.requireUser };
   const uidOf = (req: FastifyRequest) => req.user!.id;
-  const hashToken = (t: string) => crypto.createHmac('sha256', config.appSecret).update('invite:' + t).digest('hex');
+  const hashToken = (t: string) => inviteTokenHash(config.appSecret, t);
   const inviteLimit = limiter(30, 10 * 60e3), reactLimit = limiter(120, 10 * 60e3), createLimit = limiter(20, 60 * 60e3);
   const limited = (reply: FastifyReply, r: { ok: boolean; retryAfter?: number }) => { if (!r.ok) { reply.header('Retry-After', String(r.retryAfter)).code(429).send({ error: 'rate_limited' }); return true; } return false; };
   const tokenOf = (req: FastifyRequest) => { const t = (req.body as { token?: unknown } | null)?.token; return typeof t === 'string' && TOKEN_RE.test(t) ? t : null; };

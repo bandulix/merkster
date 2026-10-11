@@ -131,6 +131,14 @@ textarea { resize: vertical; }
 /* Google button – per Google's sign-in branding guidelines (neutral light theme, official G, Roboto-style medium label) */
 .gsi-btn { display: inline-flex; align-items: center; gap: 12px; height: 48px; padding: 0 22px 0 14px; border-radius: 24px; background: #fff; border: 1px solid #747775; color: #1f1f1f; font: 500 15px/20px Roboto, 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: .25px; text-decoration: none; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); transition: box-shadow .15s, transform .12s; }
 .gsi-btn:hover { box-shadow: 0 8px 30px rgba(198, 244, 50, .35); } .gsi-btn:active { transform: scale(.98); }
+.auth-code { width: 100%; max-width: 340px; display: grid; gap: 6px; margin: 0 0 16px; text-align: left; }
+.auth-code label { font-weight: 750; font-size: .9rem; color: #fff; display: flex; align-items: center; gap: 6px; }
+.auth .auth-code input { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .28); color: #fff; font-weight: 650; letter-spacing: .02em; }
+.auth .auth-code input::placeholder { color: #aab0cc; } .auth .auth-code input:focus { border-color: var(--lime); }
+.auth .auth-code input.bad { border-color: var(--coral, #ff6b6b); animation: shake .35s; }
+.auth-code .hint { font-size: .8rem; color: #aab0cc; line-height: 1.35; margin: 0; }
+.auth-code-btn { margin-top: 4px; }
+.auth-link { background: none; border: 0; color: #dfe3f5; text-decoration: underline; cursor: pointer; font: inherit; font-size: .9rem; margin-top: 12px; }
 .gsi-icon { display: grid; place-items: center; width: 20px; height: 20px; }
 
 /* ---------- home ---------- */
@@ -399,6 +407,7 @@ textarea { resize: vertical; }
 
 /* invite landing + "you're now cheering" */
 .auth-title.sm { font-size: 1.9rem; }
+.auth-claim.sm { font-size: 1rem; font-weight: 650; color: #dfe3f5; max-width: 340px; }
 .join-avatars { display: flex; align-items: center; gap: 12px; margin: 10px 0; } .join-heart { font-size: 2.4rem; animation: boing 1.2s ease-in-out infinite; }
 .join-done .auth-card { animation: levelin .8s cubic-bezier(.2, 1.5, .4, 1); }
 

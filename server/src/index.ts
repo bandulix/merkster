@@ -12,7 +12,7 @@ async function main() {
   // housekeeping: expired sessions
   setInterval(() => { pool.query('DELETE FROM auth_sessions WHERE expires_at < now()').catch(() => undefined); }, 6 * 3600e3).unref();
   await app.listen({ port: config.port, host: config.host });
-  app.log.info(`Merkster listening on ${config.publicUrl} (AI ${config.aiConfigured ? 'on' : 'off'}, registration ${config.registrationOpen ? 'open' : 'closed'})`);
+  app.log.info(`Merkster listening on ${config.publicUrl} (AI ${config.aiConfigured ? 'on' : 'off'}, registration ${config.registrationOpen ? (config.signupCode ? 'open with codeword' : 'open') : 'closed'})`);
   const stop = async () => { await app.close(); await pool.end(); process.exit(0); };
   process.on('SIGTERM', stop); process.on('SIGINT', stop);
 }

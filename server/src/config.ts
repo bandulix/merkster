@@ -49,6 +49,9 @@ export const config = {
   databaseUrl: databaseUrl(),
   dbSsl: bool('DATABASE_SSL', false),
   registrationOpen: bool('REGISTRATION_OPEN', true),
+  // codeword needed to CREATE an account (empty = none). Server-side only: never logged, never sent to the browser.
+  signupCode: (process.env.SIGNUP_CODE || '').trim(),
+  signupCodeMaxAttempts: int('SIGNUP_CODE_MAX_ATTEMPTS', 10),   // wrong codewords per IP per 15 minutes
   sessionDays: int('SESSION_DAYS', 60),
   google: {
     clientId: env('GOOGLE_CLIENT_ID'),
@@ -106,7 +109,7 @@ export function validateConfig(log: { error: (m: string) => void; info: (m: stri
 export function publicConfig(): PublicConfig {
   return {
     ai: { configured: config.aiConfigured, model: config.aiConfigured ? config.llm.visionModel : null },
-    auth: { google: config.googleConfigured, testProvider: config.google.testIssuer },
+    auth: { google: config.googleConfigured, testProvider: config.google.testIssuer, signupCode: !!config.signupCode },
     registrationOpen: config.registrationOpen,
     maxUploadMB: config.maxUploadMB,
     maxUploadFiles: config.maxUploadFiles,

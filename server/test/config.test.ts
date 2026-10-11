@@ -30,3 +30,22 @@ describe('OIDC_TEST_ISSUER safety', () => {
     expect(log.info).toHaveBeenCalledWith(expect.stringMatching(/mock OpenID/));
   });
 });
+
+describe('SIGNUP_CODE', () => {
+  const saved = { ...process.env };
+  afterEach(() => { for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved); vi.resetModules(); });
+  it('the browser only learns that a code is required – never the code', async () => {
+    process.env.SIGNUP_CODE = '  Geheim-Wort-42 ';
+    const { config, publicConfig } = await import('../src/config');
+    expect(config.signupCode).toBe('Geheim-Wort-42');
+    const pub = JSON.stringify(publicConfig());
+    expect(publicConfig().auth.signupCode).toBe(true);
+    expect(pub).not.toMatch(/geheim/i);
+  });
+  it('empty or unset = no code required (backward compatible)', async () => {
+    process.env.SIGNUP_CODE = '';
+    const { config, publicConfig } = await import('../src/config');
+    expect(config.signupCode).toBe('');
+    expect(publicConfig().auth.signupCode).toBe(false);
+  });
+});

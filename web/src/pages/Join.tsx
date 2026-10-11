@@ -1,5 +1,5 @@
 /* Invite link landing page (/join#<token>): preview → sign in with Google → accept → "You're now cheering for …" */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { APP_NAME } from '../../../shared/brand';
@@ -9,12 +9,21 @@ import { api, ApiError } from '../lib/api';
 import { inviteToken, relName } from '../lib/supporters';
 import { confetti } from '../lib/util';
 import { GoogleButton, Logo } from '../components/ui';
+import { useConfig } from '../hooks';
 import { MiniAvatar } from '../components/Cheers';
 import { t, type Key } from '../i18n';
 
 export function Join({ user }: { user: User | null }) {
   const [token] = useState(() => inviteToken.capture());
-  const nav = useNavigate(), qc = useQueryClient();
+  const nav = useNavigate(), qc = useQueryClient(), cfg = useConfig();
+  const googleHref = '/api/auth/google?next=' + encodeURIComponent('/join');
+  /** with a sign-up codeword on the server, a valid invite link replaces it: get a short-lived pass, then go to Google */
+  const signInViaInvite = async (e: MouseEvent<HTMLAnchorElement>) => {
+    if (!token || cfg.data?.auth.signupCode === false) return;   // config not loaded yet → ask anyway (harmless without a code)
+    e.preventDefault();
+    try { await api('/api/auth/invite-pass', { body: { token } }); } catch { /* existing accounts don't need it; new ones get asked for the code */ }
+    location.assign(googleHref);
+  };
   const pv = useQuery({ queryKey: ['invite', token], queryFn: () => api<InvitePreview>('/api/invite/preview', { body: { token } }), enabled: !!token, retry: 0, staleTime: Infinity });
   const [done, setDone] = useState<{ name: string; avatar: string | null } | null>(null), [err, setErr] = useState<string | null>(null), [busy, setBusy] = useState(false);
   useEffect(() => { if (done) { confetti(); setTimeout(confetti, 600); } }, [done]);
@@ -57,7 +66,7 @@ export function Join({ user }: { user: User | null }) {
           {err && <p className="err" role="alert" data-testid="join-error">{t(errKey(err))}</p>}
           {user
             ? <button className="btn start big wide" data-testid="join-accept" disabled={busy || !pv.data?.valid} onClick={accept}>📣 {t('join_accept', { name })}</button>
-            : <><p className="muted small center">{t('join_signin')}</p><GoogleButton href={'/api/auth/google?next=' + encodeURIComponent('/join')} label={t('continue_google')} /></>}
+            : <><p className="muted small center">{t('join_signin')}</p><GoogleButton href={googleHref} label={t('continue_google')} onClick={signInViaInvite} />{cfg.data?.auth.signupCode && <p className="muted small center" data-testid="invite-no-code">🔑 {t('code_invite_free')}</p>}</>}
         </>}
         <p className="muted small center auth-legal">{t('login_privacy')}</p>
       </div>

@@ -40,9 +40,29 @@ HTTPS with Caddy: set `DOMAIN=…` and `PUBLIC_URL=https://…` in `.env`, then 
 1. Google Cloud console → *APIs & Services* → *OAuth consent screen* (External, scopes `openid email profile`).
 2. *Credentials* → *Create OAuth client ID* → *Web application*.
 3. Authorised redirect URI: `<PUBLIC_URL>/api/auth/google/callback`.
-4. Put the client ID/secret into `.env`. Optional: `ALLOWED_EMAIL_DOMAINS`, `REGISTRATION_OPEN=false` + `ALLOWLIST`, `ADMIN_EMAILS`.
+4. Put the client ID/secret into `.env`. Optional: `ALLOWED_EMAIL_DOMAINS`, `REGISTRATION_OPEN=false` + `ALLOWLIST`, `ADMIN_EMAILS`, `SIGNUP_CODE`.
 
 The flow is authorization code + PKCE, with `state` and `nonce`. Profile pictures (`picture` claim) are fetched at 256 px on each login, cached on our server and served same-origin (`/api/avatars/:id`, signed URL, long cache) – the browser never loads images from Google. Without a picture we show initials.
+
+### Who can sign up (registration codeword)
+
+| `.env` variable | effect |
+|---|---|
+| `SIGNUP_CODE` | Codeword needed to **create** an account. Empty/unset = no codeword. Compared in constant time, trimmed and case-insensitive; never logged and never sent to the browser (`/api/config` only says `auth.signupCode: true`). |
+| `SIGNUP_CODE_MAX_ATTEMPTS` | Wrong codewords per IP per 15 minutes before a short lock-out (default 10). |
+| `REGISTRATION_OPEN` | `false` = no new accounts at all (except `ADMIN_EMAILS`). |
+| `ALLOWED_EMAIL_DOMAINS` / `ALLOWLIST` | If set, only these e-mail domains / addresses may sign in – existing accounts included. |
+| `ADMIN_EMAILS` | Admin accounts; may always create their account. |
+
+**Precedence** (checked on every Google sign-in, first match wins):
+
+1. `ALLOWED_EMAIL_DOMAINS` / `ALLOWLIST` don't match → *not allowed* (applies to everyone).
+2. Existing account → signed in. **No codeword**, ever.
+3. E-mail in `ADMIN_EMAILS` → account created/signed in, no codeword (even with `REGISTRATION_OPEN=false`).
+4. `REGISTRATION_OPEN=false` → *sign-up closed* (a codeword or invite does not override this).
+5. `SIGNUP_CODE` set → a new account needs the right codeword **or** a valid invite link (supporters: the invite already proves trust).
+
+**How it looks:** with a codeword set, the login page shows a *Codewort / Codeword* field above *Continue with Google* ("New here? Enter the codeword … Already have an account? Leave it empty."). A correct code is checked *before* the redirect to Google and remembered for 15 minutes in a signed, httpOnly cookie. A new user who skipped the field (or typed it wrong) comes back from Google to a "Almost there, Anna! 👋" page: **no account is created** until they enter the right codeword there (their verified Google identity is parked for 10 minutes in a signed cookie), with a retry and *Use a different Google account*. Supporters opening an invite link see *No codeword needed – your invite link is enough*.
 
 ### AI extraction (optional)
 
@@ -60,7 +80,7 @@ npm run dev:web          # Vite on :5173 (proxy /api → :8080)
 
 | command | |
 |---|---|
-| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety) |
+| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate) |
 | `npm run typecheck` | TypeScript strict, web + server |
 | `npx playwright test` | end-to-end (needs app + mocks running; set `CHROME_PATH` to use a system Chrome) |
 | `make lint` | hadolint + `docker compose config` |
@@ -70,6 +90,7 @@ npm run dev:web          # Vite on :5173 (proxy /api → :8080)
 - `flow.spec.ts` – login → import (AI) → review → practice → level-up → result → dashboard → share → persistence → isolation → offline.
 - `supporters.spec.ts` – 3 accounts: invite → accept → cheer → privacy → revoke → removal; avatars; one supporter with several kids.
 - `rewards.spec.ts` – “5 € per 1” (rule → earned on both sides → mark paid → verified → grading-switch warning) and report cards with **three supporters** (mock AI extraction → review/match → confirm → unboxing → grand total per currency + per-supporter breakdown → simulator never creates rewards → supporters only see their own amounts until the student allows it → reactions on the report card → photo permission).
+- `signup.spec.ts` – registration codeword. Adapts to the server under test: without `SIGNUP_CODE` it checks "no field, normal sign-up"; started with `SIGNUP_CODE=…` (and `E2E_SIGNUP_CODE` set to the same value) it checks: new user without / with a wrong code → no account, right code → account (before and after Google), existing user and invited supporter need no code. The other specs create new accounts without a code, so run them against a server **without** `SIGNUP_CODE`.
 - `ocr.spec.ts` – on-device OCR accuracy against `tests/fixtures/truth.json` (report in `tests/output/ocr-report.json`).
 
 ## Architecture

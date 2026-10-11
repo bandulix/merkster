@@ -3,6 +3,7 @@
    - Session: random 256-bit token in an httpOnly, SameSite=Lax cookie (Secure on https). The DB stores only HMAC(APP_SECRET, token).
      SameSite=Lax + same-origin API means the cookie also works inside the installed PWA.
    - Admins come from ADMIN_EMAILS (verified e-mail). Optional ALLOWED_EMAIL_DOMAINS / ALLOWLIST restrict who may sign in.
+   - Optional SIGNUP_CODE: a codeword needed to create a NEW account (see signup.ts for the exact precedence).
    - CSRF: state-changing /api calls must send `X-Merkster: 1` (custom header => CORS preflight; CORS is never enabled). */
 import crypto from 'node:crypto';
 import * as oidc from 'openid-client';
@@ -12,11 +13,19 @@ import type { Config } from './config';
 import { limiter } from './ratelimit';
 import { APP_COOKIE, APP_CSRF_HEADER } from '../../shared/brand';
 import { avatarPath, refreshAvatar } from './avatars';
+import { codeMatches, failureLimiter, signer, signupGate } from './signup';
+import { inviteIsOpen } from './supporters';
 
 export const COOKIE = APP_COOKIE;
 /** user columns we load per request (never the picture bytes) */
 const USER_COLS = 'u.id, u.google_sub, u.email, u.name, u.avatar_url, u.avatar_etag, u.is_admin, u.is_supporter, u.created_at, u.last_login_at';
 const FLOW_COOKIE = APP_COOKIE + '_oauth';
+/** proof "entered the right codeword" / "came with a valid invite link" (signed, 15 min) */
+const PASS_COOKIE = APP_COOKIE + '_signup';
+/** a NEW Google account that still needs the codeword: verified identity parked for 10 min, no DB row yet */
+const PENDING_COOKIE = APP_COOKIE + '_pending';
+const PASS_TTL = 15 * 60e3, PENDING_TTL = 10 * 60e3;
+interface Pending { sub: string; email: string | null; verified: boolean; name: string; picture: string | null; next: string }
 
 export interface DbUser { id: number; google_sub: string; email: string | null; name: string; avatar_url: string | null; avatar_etag?: string | null; is_admin: boolean; is_supporter?: boolean; created_at: Date; last_login_at: Date | null; }
 declare module 'fastify' {
@@ -70,6 +79,19 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     await pool.query('INSERT INTO auth_sessions (token_hash, user_id, expires_at, user_agent) VALUES ($1, $2, now() + make_interval(days => $3), $4)',
       [hashToken(token), userId, config.sessionDays, String(req.headers['user-agent'] || '').slice(0, 200)]);
     reply.setCookie(COOKIE, token, { ...cookieBase, maxAge: config.sessionDays * 86400 });
+  }
+
+  const sign = signer(config.appSecret);
+  const isAdminEmail = (email: string | null, verified: boolean) => !!email && verified && config.adminEmails.includes(email.toLowerCase());
+  /** create or update the account from verified Google claims, refresh the avatar, start a session */
+  async function signIn(req: FastifyRequest, reply: FastifyReply, c: Omit<Pending, 'next'>, existing: boolean, isAdmin: boolean) {
+    const u: DbUser = (await pool.query(`INSERT INTO users (google_sub, email, name, avatar_url, is_admin, last_login_at) VALUES ($1,$2,$3,$4,$5, now())
+      ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url, is_admin = EXCLUDED.is_admin, last_login_at = now()
+      RETURNING id, google_sub, email, name, avatar_url, avatar_etag, is_admin, is_supporter, created_at, last_login_at`, [c.sub, c.email, c.name, safeAvatar(c.picture), isAdmin])).rows[0];
+    await refreshAvatar(pool, config, u.id, c.picture, req.log);   // re-downloaded on every sign-in
+    await startSession(reply, req, u.id);
+    if (!existing) req.log.info({ userId: String(u.id), admin: isAdmin }, 'new user');
+    reply.clearCookie(PASS_COOKIE, { path: '/api/auth/' }).clearCookie(PENDING_COOKIE, { path: '/api/auth/' });
   }
 
   app.decorateRequest('user', null);
@@ -126,19 +148,79 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     if (!claims?.sub) return fail(reply, 'failed');
     const email = typeof claims.email === 'string' ? claims.email.slice(0, 200) : null;
     const verified = claims.email_verified === true;
-    if (!emailAllowed(config, email, verified)) return fail(reply, 'not_allowed');
-    const isAdmin = !!email && verified && config.adminEmails.includes(email.toLowerCase());
+    const picture = typeof claims.picture === 'string' ? claims.picture.slice(0, 500) : null;
     const name = (typeof claims.name === 'string' ? claims.name : typeof claims.given_name === 'string' ? claims.given_name : '').slice(0, 100);
-    const existing = (await pool.query('SELECT id FROM users WHERE google_sub = $1', [claims.sub])).rows[0];
-    if (!existing && !config.registrationOpen && !isAdmin) return fail(reply, 'closed');
-    const u: DbUser = (await pool.query(`INSERT INTO users (google_sub, email, name, avatar_url, is_admin, last_login_at) VALUES ($1,$2,$3,$4,$5, now())
-      ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url, is_admin = EXCLUDED.is_admin, last_login_at = now()
-      RETURNING id, google_sub, email, name, avatar_url, avatar_etag, is_admin, is_supporter, created_at, last_login_at`, [String(claims.sub).slice(0, 255), email, name, safeAvatar(claims.picture), isAdmin])).rows[0];
-    await refreshAvatar(pool, config, u.id, typeof claims.picture === 'string' ? claims.picture.slice(0, 500) : null, req.log);   // re-downloaded on every sign-in
-    await startSession(reply, req, u.id);
-    if (!existing) req.log.info({ userId: String(u.id), admin: isAdmin }, 'new user');
+    const sub = String(claims.sub).slice(0, 255);
+    const existing = !!(await pool.query('SELECT id FROM users WHERE google_sub = $1', [sub])).rows[0];
+    const isAdmin = isAdminEmail(email, verified);
+    const pass = sign.unpack<{ k: string }>('signup', req.cookies?.[PASS_COOKIE]);
+    const gate = signupGate({ emailAllowed: emailAllowed(config, email, verified), existing, isAdmin, registrationOpen: config.registrationOpen,
+      codeRequired: !!config.signupCode, hasCodePass: pass?.k === 'code', hasInvitePass: pass?.k === 'invite' });
+    if (gate === 'code_required') {
+      // no account is created: park the verified identity in a signed cookie and ask for the codeword
+      reply.clearCookie(FLOW_COOKIE, { path: '/api/auth/' });
+      reply.setCookie(PENDING_COOKIE, sign.pack('pending', { sub, email, verified, name, picture, next: flow.next } satisfies Pending, PENDING_TTL), { ...cookieBase, path: '/api/auth/', maxAge: PENDING_TTL / 1000 });
+      return reply.redirect('/login?signup=code', 302);
+    }
+    if (gate !== 'allow') return fail(reply, gate);
+    await signIn(req, reply, { sub, email, verified, name, picture }, existing, isAdmin);
     reply.clearCookie(FLOW_COOKIE, { path: '/api/auth/' });
     return reply.redirect(flow.next, 302);
+  });
+
+  /* ---- registration codeword (only when SIGNUP_CODE is set) ---- */
+  const codeFail = failureLimiter(config.signupCodeMaxAttempts, 15 * 60e3), invitePassLimit = limiter(30, 10 * 60e3);
+  /** checks a codeword from the body; replies itself (429 / 400) when it is not accepted */
+  const checkCode = (req: FastifyRequest, reply: FastifyReply): boolean => {
+    const b = codeFail.blocked(req.ip);
+    if (b.blocked) { reply.header('Retry-After', String(b.retryAfter)).code(429).send({ error: 'rate_limited' }); return false; }
+    if (!codeMatches(config.signupCode, (req.body as { code?: unknown } | null)?.code)) {
+      codeFail.fail(req.ip);
+      req.log.warn('wrong sign-up codeword');   // never log what was typed
+      reply.code(400).send({ error: 'bad_code' }); return false;
+    }
+    return true;
+  };
+  const setPass = (reply: FastifyReply, k: 'code' | 'invite') =>
+    reply.setCookie(PASS_COOKIE, sign.pack('signup', { k }, PASS_TTL), { ...cookieBase, path: '/api/auth/', maxAge: PASS_TTL / 1000 });
+
+  /* a) typed on the login page BEFORE "Continue with Google" */
+  app.post('/api/auth/signup-code', async (req, reply) => {
+    if (!config.signupCode) return { ok: true, required: false };
+    if (!checkCode(req, reply)) return;
+    setPass(reply, 'code');
+    return { ok: true };
+  });
+  /* b) the invite page: a valid invite link replaces the codeword (supporters) */
+  app.post('/api/auth/invite-pass', async (req, reply) => {
+    if (!config.signupCode) return { ok: true, required: false };
+    const rl = invitePassLimit(req.ip);
+    if (!rl.ok) return reply.header('Retry-After', String(rl.retryAfter)).code(429).send({ error: 'rate_limited' });
+    if (!(await inviteIsOpen(pool, config.appSecret, (req.body as { token?: unknown } | null)?.token))) return reply.code(404).send({ error: 'not_found' });
+    setPass(reply, 'invite');
+    return { ok: true };
+  });
+  /* c) AFTER Google: a new account without a code was parked – show who it is and ask for the codeword */
+  app.get('/api/auth/signup/pending', async req => {
+    const p = sign.unpack<Pending>('pending', req.cookies?.[PENDING_COOKIE]);
+    return p ? { pending: true, name: (p.name || '').trim().split(/\s+/)[0] || null, email: p.email } : { pending: false };
+  });
+  app.post('/api/auth/signup/complete', async (req, reply) => {
+    const p = sign.unpack<Pending>('pending', req.cookies?.[PENDING_COOKIE]);
+    if (!p) return reply.code(400).send({ error: 'expired' });
+    if (config.signupCode && !checkCode(req, reply)) return;
+    // re-check everything else – settings may have changed, or the account was created meanwhile
+    const existing = !!(await pool.query('SELECT id FROM users WHERE google_sub = $1', [p.sub])).rows[0];
+    const isAdmin = isAdminEmail(p.email, p.verified);
+    const gate = signupGate({ emailAllowed: emailAllowed(config, p.email, p.verified), existing, isAdmin, registrationOpen: config.registrationOpen, codeRequired: false, hasCodePass: true, hasInvitePass: false });
+    if (gate !== 'allow') { reply.clearCookie(PENDING_COOKIE, { path: '/api/auth/' }); return reply.code(403).send({ error: gate }); }
+    await signIn(req, reply, p, existing, isAdmin);
+    reply.clearCookie(PENDING_COOKIE, { path: '/api/auth/' });
+    return { ok: true, next: safeNext(p.next) };
+  });
+  app.post('/api/auth/signup/cancel', async (_req, reply) => {
+    reply.clearCookie(PENDING_COOKIE, { path: '/api/auth/' }).clearCookie(PASS_COOKIE, { path: '/api/auth/' });
+    return { ok: true };
   });
 
   app.post('/api/auth/logout', async (req, reply) => {
