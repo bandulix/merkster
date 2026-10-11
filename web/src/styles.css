@@ -138,6 +138,7 @@ textarea { resize: vertical; }
 .auth .auth-code input.bad { border-color: var(--coral, #ff6b6b); animation: shake .35s; }
 .auth-code .hint { font-size: .8rem; color: #aab0cc; line-height: 1.35; margin: 0; }
 .auth-code-btn { margin-top: 4px; }
+.auth .auth-src { color: #aab0cc; }
 .auth-link { background: none; border: 0; color: #dfe3f5; text-decoration: underline; cursor: pointer; font: inherit; font-size: .9rem; margin-top: 12px; }
 .gsi-icon { display: grid; place-items: center; width: 20px; height: 20px; }
 

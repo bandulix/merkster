@@ -22,7 +22,7 @@
     "mock-llm": "node tools/mock-llm.mjs",
     "mock-oidc": "node tools/mock-oidc.mjs"
   },
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0-only",
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
     "@fastify/multipart": "^9.4.0",

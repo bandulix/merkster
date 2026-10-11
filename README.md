@@ -124,4 +124,10 @@ See [`.env.example`](.env.example) – every variable is documented there. `.env
 
 ## License
 
-Private / unreleased (UNLICENSED). Bundled third-party runtime files (Tesseract.js, PDF.js) keep their own licenses (copied to `web/public/vendor/*/LICENSE*`).
+Copyright (C) 2026 bandulix
+
+Merkster is free software: you can redistribute it and/or modify it under the terms of the **GNU Affero General Public License, version 3** (AGPL-3.0-only), see [`LICENSE`](LICENSE). It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
+
+**Running it as a service:** if you run a modified version of Merkster on a server that others use over a network, the AGPL (§13) requires you to offer those users the complete source code of your version. The app links to it on the login page and under *Settings → About*; set `SOURCE_CODE_URL` in `.env` to a public copy of the code you actually run (default: `https://github.com/bandulix/merkster`).
+
+Bundled third-party runtime files (Tesseract.js, PDF.js) keep their own licenses (copied to `web/public/vendor/*/LICENSE*`).

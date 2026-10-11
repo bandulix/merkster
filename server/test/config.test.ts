@@ -49,3 +49,19 @@ describe('SIGNUP_CODE', () => {
     expect(publicConfig().auth.signupCode).toBe(false);
   });
 });
+
+describe('SOURCE_CODE_URL (AGPL §13)', () => {
+  const saved = { ...process.env };
+  afterEach(() => { for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved); vi.resetModules(); });
+  it('defaults to the GitHub repo and is exposed to the browser', async () => {
+    delete process.env.SOURCE_CODE_URL;
+    const { publicConfig } = await import('../src/config');
+    expect(publicConfig().sourceCodeUrl).toBe('https://github.com/bandulix/merkster');
+  });
+  it('takes a custom http(s) URL, ignores anything else', async () => {
+    process.env.SOURCE_CODE_URL = 'https://git.example.org/me/merkster-fork';
+    expect((await import('../src/config')).publicConfig().sourceCodeUrl).toBe('https://git.example.org/me/merkster-fork');
+    vi.resetModules(); process.env.SOURCE_CODE_URL = 'javascript:alert(1)';
+    expect((await import('../src/config')).publicConfig().sourceCodeUrl).toBe('https://github.com/bandulix/merkster');
+  });
+});

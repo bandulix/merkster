@@ -94,6 +94,7 @@ export function Login() {
           </>}
         {cfg.data?.auth.testProvider && <p className="muted small center" data-testid="test-provider">🧪 {t('test_provider')}</p>}
         <p className="muted small center auth-legal">{t('login_privacy')}</p>
+        <p className="muted small center"><a className="auth-src" href={cfg.data?.sourceCodeUrl || 'https://github.com/bandulix/merkster'} target="_blank" rel="noopener noreferrer" data-testid="source-code">{t('source_code')} (AGPL-3.0)</a></p>
       </div>
     </div>
   );
