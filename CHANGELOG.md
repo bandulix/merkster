@@ -6,7 +6,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Changed
 
-- The repository is public. `ghcr.io/bandulix/merkster` stays private until its visibility is changed on the package settings page. GitHub does not provide an API for that change.
+- The repository is public. The previous container package was deleted and `ghcr.io/bandulix/merkster` is published again as `latest`, `1.0`, and `1.0.0`.
 
 ## [1.0.0] - 2026-10-17
 
