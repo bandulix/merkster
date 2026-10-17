@@ -1,11 +1,11 @@
-# Merkster – app + Postgres 16.   docker compose up -d --build
+# Merkster – published app image + Postgres 16.   docker compose up -d
 # Test/dev without Google or an LLM:  make mock   (adds the mock Google + mock LLM via the "mock" profile)
 name: merkster
 
 services:
   app:
-    build: .
-    image: merkster:latest
+    image: ghcr.io/bandulix/merkster:latest
+    pull_policy: always
     restart: unless-stopped
     env_file: .env
     environment:

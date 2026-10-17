@@ -29,7 +29,7 @@ Merkster is vibe coded: this app was written with AI coding agents.
 ```bash
 make env            # creates .env from .env.example with random APP_SECRET / POSTGRES_PASSWORD
 $EDITOR .env        # add GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (and optionally the LLM settings)
-make up             # docker compose up -d --build  →  http://localhost:8080
+make up             # pulls ghcr.io/bandulix/merkster:latest  →  http://localhost:8080
 make health
 ```
 
@@ -125,10 +125,10 @@ Merkster is used by school children. If you run it for others:
 The server image is published on GitHub Packages (GitHub Container Registry):
 
 ```bash
-docker pull ghcr.io/bandulix/merkster:1.0.0
+docker pull ghcr.io/bandulix/merkster:latest
 ```
 
-The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). This repository is private, so pull it with `docker login ghcr.io`. Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
+`docker-compose.yml` sets the app service to `ghcr.io/bandulix/merkster:latest`. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). This repository is private, so pull it with `docker login ghcr.io`. Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md). The `1.0.0` tag is the same image as `latest` until the next release.
 
 ## Configuration reference
 

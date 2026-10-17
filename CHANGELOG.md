@@ -2,6 +2,12 @@
 
 All notable changes to Merkster are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [semantic versions](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `docker-compose.yml` runs the published image `ghcr.io/bandulix/merkster:latest` instead of building a local `merkster:latest`.
+
 ## [1.0.0] - 2026-10-17
 
 First published version. The container image is `ghcr.io/bandulix/merkster:1.0.0`.
