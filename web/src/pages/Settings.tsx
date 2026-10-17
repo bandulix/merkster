@@ -86,6 +86,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
       </div>
 
       <div className="card"><h3>{t('s_about')}</h3><p className="small">{t('s_method')}</p><p className="muted small">{APP_NAME} {APP_VERSION}{cfg.data ? ` · server ${cfg.data.version}` : ''}</p>
+        <p className="muted small">{t('vibe_note')}</p>
         <p className="muted small">{t('license_note')} <a href={cfg.data?.sourceCodeUrl || 'https://github.com/bandulix/merkster'} target="_blank" rel="noopener noreferrer" data-testid="source-code">{t('source_code')} ↗</a></p></div>
     </section>
   );
