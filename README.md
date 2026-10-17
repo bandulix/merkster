@@ -128,7 +128,7 @@ The server image is published on GitHub Packages (GitHub Container Registry):
 docker pull ghcr.io/bandulix/merkster:latest
 ```
 
-The same image is tagged `1.0.0` and `1.0`. The repository is public. The package stays private until its own visibility is changed, so this pull still needs `docker login ghcr.io` until then. Open [the repository packages page](https://github.com/bandulix/merkster/packages), then **Package settings → Change visibility → Public**. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
+The same image is tagged `1.0.0` and `1.0`. The repository is public. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration reference
 
