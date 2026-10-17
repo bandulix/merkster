@@ -1,0 +1,9 @@
+{
+  "name": "Merkster",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "npm ci",
+  "start": "bash .cursor/start.sh"
+}
