@@ -17,38 +17,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show packages visible to this token
+      - name: Delete the existing package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set +e
-          echo "user packages"
-          gh api "/user/packages?package_type=container"
-          echo "owner packages"
-          gh api "/users/${{ github.repository_owner }}/packages?package_type=container"
-          echo "owner package versions"
-          gh api "/users/${{ github.repository_owner }}/packages/container/merkster/versions"
-
-      - name: Delete existing package versions
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: merkster
-          package-type: container
-          min-versions-to-keep: 0
-          num-old-versions-to-delete: 100
-
-      - name: Delete the package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set +e
-          for path in \
-            "/users/${{ github.repository_owner }}/packages/container/merkster" \
-            "/user/packages/container/merkster"
-          do
-            echo "DELETE $path"
-            gh api --method DELETE -H "Accept: application/vnd.github+json" "$path"
+          set -euo pipefail
+          base="/users/${{ github.repository_owner }}/packages/container/merkster"
+          ids="$(gh api --paginate "${base}/versions" --jq '.[].id')"
+          if [ -z "$ids" ]; then
+            echo "No package versions found"
+            exit 1
+          fi
+          for id in $ids; do
+            echo "Deleting version ${id}"
+            gh api --method DELETE "${base}/versions/${id}"
           done
+          echo "Deleting package"
+          gh api --method DELETE "$base" || echo "Package record was already removed with its versions"
 
       - name: Wait for the package name to be free
         run: sleep 20
@@ -76,3 +61,16 @@ jobs:
             sleep 30
           done
           exit 1
+
+      - name: Check whether an anonymous pull works
+        run: |
+          set +e
+          token="$(curl -fsS "https://ghcr.io/token?service=ghcr.io&scope=repository:bandulix/merkster:pull" | jq -r '.token // empty')"
+          code="$(curl -sS -o /tmp/manifest.json -w '%{http_code}' -H "Authorization: Bearer ${token}" -H "Accept: application/vnd.oci.image.index.v1+json" https://ghcr.io/v2/bandulix/merkster/manifests/latest)"
+          echo "anonymous manifest status: ${code}"
+          if [ "$code" = "200" ]; then
+            echo "Package is public"
+          else
+            echo "Package is not anonymously readable"
+            head -c 300 /tmp/manifest.json || true
+          fi
