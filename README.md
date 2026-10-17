@@ -4,6 +4,8 @@
 
 **Snap it. Drill it. Own the test.** – Merkster is an exam-prep PWA for students. Take a photo of a worksheet, a vocabulary list or a PDF (or paste text), and Merkster turns it into cards. You then practise with *successive relearning* (retry until correct, spaced over the days until the test), see how practice relates to your grades, and family members can cheer you on and promise rewards.
 
+Merkster is vibe coded: this app was written with AI coding agents.
+
 ![Screens](brand/brand-sheet.png)
 
 ## Features
@@ -117,6 +119,16 @@ Merkster is used by school children. If you run it for others:
 - **Rewards are promises:** Merkster only keeps track; it never handles money. Results are *self-reported* unless a supporter marks them *verified*.
 - **Export & delete:** *Settings → Your data* downloads everything as JSON (incl. rewards and report cards) or deletes the account and all data (including supporter links, reactions, rewards, photos).
 - AI extraction sends the photo to the LLM endpoint you configure – choose a provider with an appropriate data-processing agreement, or leave AI off.
+
+## Container package
+
+The server image is published on GitHub Packages (GitHub Container Registry):
+
+```bash
+docker pull ghcr.io/bandulix/merkster:1.0.0
+```
+
+The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). This repository is private, so pull it with `docker login ghcr.io`. Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration reference
 
