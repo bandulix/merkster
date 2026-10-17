@@ -84,7 +84,7 @@ export const config = {
   migrationsDir: firstExisting(path.resolve(__dirname, 'migrations'), path.resolve(__dirname, '../migrations'), path.resolve(process.cwd(), 'server/migrations')),
   // AGPL-3.0 §13: users interacting over the network must be offered the source of the version they use
   sourceCodeUrl: /^https?:\/\/\S+$/.test(env('SOURCE_CODE_URL')) ? env('SOURCE_CODE_URL') : 'https://github.com/bandulix/merkster',
-  version: '1.0.0',
+  version: '0.1.0',
   aiConfigured: false,
   googleConfigured: false
 };

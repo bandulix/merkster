@@ -24,7 +24,7 @@ Local development without Google or a real LLM is in the README (`make mock-env 
 
 ## Version numbers
 
-The published version is `1.0.0` until the next release. When you cut a release, keep these in step and add a [CHANGELOG.md](CHANGELOG.md) entry:
+The published version is `0.1.0` until the next release. Before you tag a release, update [CHANGELOG.md](CHANGELOG.md) and the version named in [README.md](README.md) (the container pull command and any other version the README states). Then keep these in step:
 
 - `package.json` (`version`)
 - `shared/brand.ts` (`APP_VERSION`)

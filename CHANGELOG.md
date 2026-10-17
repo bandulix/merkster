@@ -2,9 +2,9 @@
 
 All notable changes to Merkster are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [semantic versions](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-10-17
+## [0.1.0] - 2026-10-17
 
-First published version. The container image is `ghcr.io/bandulix/merkster:1.0.0`.
+First public alpha. The container image is `ghcr.io/bandulix/merkster:0.1.0`.
 
 ### Added
 
@@ -17,4 +17,4 @@ First published version. The container image is `ghcr.io/bandulix/merkster:1.0.0
 - Community docs: contributing guide, code of conduct, issue templates, and pull request template.
 - GitHub Actions publishes the server image to GitHub Container Registry when a `vX.Y.Z` tag is pushed.
 
-[1.0.0]: https://github.com/bandulix/merkster/releases/tag/v1.0.0
+[0.1.0]: https://github.com/bandulix/merkster/releases/tag/v0.1.0

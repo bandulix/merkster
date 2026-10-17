@@ -10,4 +10,4 @@ export const APP_TAGLINE_DE = 'Knipsen. Draufhaben. Test rocken.';
 export const APP_COOKIE = 'mk_sid';          // rename with APP_SLUG if you want (must match server auth)
 export const APP_CSRF_HEADER = 'x-merkster'; // custom header; change with APP_SLUG
 export const APP_DB = 'merkster';            // IndexedDB database name
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '0.1.0';
