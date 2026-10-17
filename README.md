@@ -125,10 +125,10 @@ Merkster is used by school children. If you run it for others:
 The server image is published on GitHub Packages (GitHub Container Registry):
 
 ```bash
-docker pull ghcr.io/bandulix/merkster:1.0.0
+docker pull ghcr.io/bandulix/merkster:latest
 ```
 
-The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). This repository is private, so pull it with `docker login ghcr.io`. Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
+The same image is tagged `1.0.0`. The package is public, so this pull does not need `docker login`. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration reference
 
