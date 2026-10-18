@@ -13,6 +13,7 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
         xz-utils \
         sudo \
         tmux \
+        openssl \
         postgresql \
         postgresql-contrib \
     && rm -rf /var/lib/apt/lists/* \
@@ -24,5 +25,11 @@ RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-l
 
 RUN echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
     && chmod 440 /etc/sudoers.d/ubuntu
+
+# Browser for Playwright and in-VM UI checks. The deb pulls its library dependencies.
+RUN curl -fsSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends /tmp/chrome.deb \
+    && rm -rf /var/lib/apt/lists/* /tmp/chrome.deb
 
 USER ubuntu
