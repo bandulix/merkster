@@ -7,6 +7,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 ### Added
 
 - Photo and PDF uploads are checked before AI extraction. Merkster only reads worksheets, notes, vocabulary, textbook pages, and report cards. Other pictures are refused, and they are not turned into cards on the device either. If the check itself does not clearly say yes, the upload is refused.
+- Profile pictures can be chosen, replaced, and removed. The picture is stored and shown the same way as the cached Google picture. A later Google login leaves a picture the student set, or the choice to show initials, as it is.
 
 ### Changed
 

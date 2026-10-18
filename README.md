@@ -44,7 +44,7 @@ HTTPS with Caddy: set `DOMAIN=…` and `PUBLIC_URL=https://…` in `.env`, then 
 3. Authorised redirect URI: `<PUBLIC_URL>/api/auth/google/callback`.
 4. Put the client ID/secret into `.env`. Optional: `ALLOWED_EMAIL_DOMAINS`, `REGISTRATION_OPEN=false` + `ALLOWLIST`, `ADMIN_EMAILS`, `SIGNUP_CODE`.
 
-The flow is authorization code + PKCE, with `state` and `nonce`. Profile pictures (`picture` claim) are fetched at 256 px on each login, cached on our server and served same-origin (`/api/avatars/:id`, signed URL, long cache) – the browser never loads images from Google. Without a picture we show initials.
+The flow is authorization code + PKCE, with `state` and `nonce`. Profile pictures (`picture` claim) are fetched at 256 px on each login, cached on our server and served same-origin (`/api/avatars/:id`, signed URL, long cache) – the browser never loads images from Google. A student can choose, replace, or remove that picture in Settings and on the Me page. The chosen picture is stored and served the same way. A later Google login does not replace a picture the student set, and it does not bring a removed picture back. Without a picture we show initials.
 
 ### Who can sign up (registration codeword)
 
@@ -82,7 +82,7 @@ npm run dev:web          # Vite on :5173 (proxy /api → :8080)
 
 | command | |
 |---|---|
-| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate, school-material upload gate) |
+| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate, school-material upload gate, profile-picture upload) |
 | `npm run typecheck` | TypeScript strict, web + server |
 | `npx playwright test` | end-to-end (needs app + mocks running; set `CHROME_PATH` to use a system Chrome) |
 | `make lint` | hadolint + `docker compose config` |

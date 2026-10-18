@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BADGES, RANKS, XP } from '../../../shared/gamification';
 import { useMe, useStore } from '../hooks';
 import { store } from '../lib/store';
+import { AvatarEdit } from '../components/AvatarEdit';
 import { Avatar, RankBadge } from '../components/ui';
 import { ShareSheet, type ShareWhat } from '../components/Share';
 import { t, uiLang } from '../i18n';
@@ -25,7 +26,7 @@ export function Me() {
     <section className="me page">
       <div className="me-hero pop-in" style={{ ['--c1' as string]: p.rank.c1, ['--c2' as string]: p.rank.c2, ['--glow' as string]: p.rank.glow }}>
         <div className="me-top">
-          <Avatar user={user} rank={p.rank} size={76} />
+          {user ? <AvatarEdit user={user} rank={p.rank} size={76} /> : <Avatar user={null} rank={p.rank} size={76} />}
           <div><h1>{user?.name?.split(/\s+/)[0] || t('tab_me')}</h1><p className="me-rank"><RankBadge rank={p.rank} size={26} /> {p.rank.name[L]}</p></div>
           <button className="icon-btn light" aria-label={t('share')} data-testid="share-level" onClick={() => setShare({ kind: 'level' })}>📤</button>
         </div>
