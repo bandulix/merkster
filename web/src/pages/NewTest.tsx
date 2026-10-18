@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { TESTS_PER_24H, recentTestCount } from '../../../shared/limits';
 import type { Format, Lang, Subject } from '../../../shared/types';
 import { useStore } from '../hooks';
+import { api } from '../lib/api';
 import { store } from '../lib/store';
 import * as S from '../lib/schedule';
 import { now } from '../lib/util';
@@ -21,11 +23,27 @@ export function NewTest() {
     if (n.subject && !n.nameTouched) n.name = n.subject === 'languages' ? t('auto_name_lang', { lang: langName(n.foreign) }) : t('auto_name', { subject: SUBJECTS[n.subject].name[uiLang()] });
     return n;
   });
+  const [blocked, setBlocked] = useState(() => recentTestCount(store.data.tests, now()) >= TESTS_PER_24H);
+  const [busy, setBusy] = useState(false);
+  const overLimit = async () => {
+    const local = recentTestCount(store.data.tests, now());
+    let serverUsed = 0;
+    try { serverUsed = (await api<{ used: number }>('/api/tests/quota')).used; } catch { /* offline: the tests on this device still count */ }
+    return Math.max(local, serverUsed) >= TESTS_PER_24H;
+  };
+  useEffect(() => { let cancel = false; void overLimit().then(hit => { if (!cancel) setBlocked(hit); }); return () => { cancel = true; }; }, [d.tests.length]);
   const canNext = w.step === 1 ? !!w.subject && !!w.name.trim() : w.step === 2 ? !!w.testDate : !!w.format;
-  const next = () => {
+  const next = async () => {
+    if (busy) return;
     if (w.step < 3) return up({ step: w.step + 1 });
-    const test = store.createTest({ name: w.name.trim(), subject: w.subject!, foreign: w.subject === 'languages' ? w.foreign : null, native: w.native, testDate: w.testDate, format: w.format, articles: w.articles });
-    nav('/test/' + test.id + '/import', { replace: true });
+    setBusy(true);
+    try {
+      const hit = await overLimit();
+      setBlocked(hit);
+      if (hit) return;
+      const test = store.createTest({ name: w.name.trim(), subject: w.subject!, foreign: w.subject === 'languages' ? w.foreign : null, native: w.native, testDate: w.testDate, format: w.format, articles: w.articles });
+      nav('/test/' + test.id + '/import', { replace: true });
+    } finally { setBusy(false); }
   };
   let body;
   if (w.step === 1) body = (<>
@@ -58,8 +76,9 @@ export function NewTest() {
     <section className="wizard page narrow">
       <TopBar title={t('new_test')} back={() => (w.step > 1 ? up({ step: w.step - 1 }) : nav(-1))} />
       <div className="wiz-prog">{[1, 2, 3].map(i => <i key={i} className={i <= w.step ? 'on' : ''} />)}</div>
+      {blocked && <p className="ai-banner" data-testid="test-limit" role="status">{t('test_limit')}</p>}
       <div className="wiz-body pop-in" key={w.step}>{body}</div>
-      <div className="wiz-foot"><button className="btn primary big wide" data-testid="wiz-next" disabled={!canNext} onClick={next}>{w.step < 3 ? t('next') : '📸 ' + t('wiz_create')}</button></div>
+      <div className="wiz-foot"><button className="btn primary big wide" data-testid="wiz-next" disabled={!canNext || busy || (w.step === 3 && blocked)} onClick={next}>{w.step < 3 ? t('next') : '📸 ' + t('wiz_create')}</button></div>
     </section>
   );
 }
