@@ -14,6 +14,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Changed
 
+- The login page, intro, invites, share cards, and README pitch a promised reward with the same weight as practice. English and German both name the parent reward and the extra report-card reward beside snap-and-drill.
 - A page load no longer asks the database who is signed in for every font, script and icon. The class leaderboard and a sync of practice sessions each use one query for the whole group.
 - Exam-grade rewards and report-card rewards are separate. A Klausur pays only an exam rule. A report-card reward is extra, and it can apply to every report card or only the end-of-year report.
 - Every page sends `noindex`, in the HTML shell and on each response, so the app stays out of search engines.

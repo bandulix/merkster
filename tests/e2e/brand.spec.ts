@@ -36,9 +36,9 @@ test('brand sheet + logo PNGs', async ({ browser }) => {
     figure{margin:0;text-align:center} figure img{width:220px;height:476px;object-fit:cover;object-position:top;border-radius:30px;box-shadow:0 20px 50px rgba(0,0,0,.5);border:3px solid #262a47} figcaption{margin-top:12px;font-size:22px;font-weight:700;color:#c6f432}
   </style></head><body>
     <div>${logo.replace('<svg ', '<svg width="200" height="200" ')}
-      <h1>Merkster</h1><p class="tag">Snap it. Drill it. Own the test.</p>
+      <h1>Merkster</h1><p class="tag">Snap it. Drill it. Own the test. Earn the reward.</p>
       <div class="sws">${sw('#0d0f1e', 'Ink')}${sw('#c6f432', 'Acid lime')}${sw('#ff5a36', 'Coral')}${sw('#3d5afe', 'Blue')}${sw('#00c2a8', 'Teal')}${sw('#ffd23f', 'Sun')}</div>
-      <div class="type"><b>Plus Jakarta Sans</b> 200–800<br>Aa Bb Cc · Knipsen. Draufhaben. Test rocken.</div>
+      <div class="type"><b>Plus Jakarta Sans</b> 200–800<br>Aa Bb Cc · Knipsen. Draufhaben. Test rocken. Belohnung holen.</div>
       <div class="marks"><div>${logo.replace('<svg ', '<svg width="96" height="96" ')}</div><div>${logo.replace('<svg ', '<svg width="48" height="48" ')}</div><div>${logo.replace('<svg ', '<svg width="24" height="24" ')}</div></div>
     </div>
     <div class="shots">${shots.map(([s, l]) => `<figure><img src="${s}"><figcaption>${l}</figcaption></figure>`).join('')}</div>
