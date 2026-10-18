@@ -4,6 +4,15 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-18
+
+Patch release. The container image is `ghcr.io/bandulix/merkster:0.1.1` (also `latest` and `0.1`).
+
+### Changed
+
+- README is shorter and leads with real app screenshots from `screenshots/` instead of the brand sheet.
+- UX polish from the design review: toast queue, New Test wizard layout, localized OCR notes, invite loopback gating, primary Cheer CTA, Profile social-first with collapsed badges, progressive Results charts, locked taglines, Extrarunde contrast, desktop Today layout, pluralization, multi-currency expander, simulator unlock chips, and modal focus trap with skip link.
+
 ## [0.1.0] - 2026-10-18
 
 First published version. The container image is `ghcr.io/bandulix/merkster:0.1.0`.
