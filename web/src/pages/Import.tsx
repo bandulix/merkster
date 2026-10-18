@@ -5,6 +5,7 @@ import { useConfig, useStore } from '../hooks';
 import { store } from '../lib/store';
 import { processFiles, type ImportResult, type Status } from '../lib/ocr';
 import { orient, parseGeneral, parseText } from '../lib/parse';
+import { ApiError } from '../lib/api';
 import { toast } from '../lib/util';
 import { Logo, TopBar } from '../components/ui';
 import { demoRows, t } from '../i18n';
@@ -36,7 +37,10 @@ export function ImportPage() {
       if (res.aiError) toast(res.aiError === 'ai_rate_limited' ? t('ai_rate_limited') : t('ai_failed'), 'bad');
       toReview(test, res, merge);
       nav('/test/' + test.id + '/review', { replace: true });
-    } catch (e) { console.error('import failed', (e as Error).message); setError((e as Error).message || ''); setStatus(null); }
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'not_school_material') { setError('not_school_material'); setStatus(null); return; }
+      console.error('import failed', (e as Error).message); setError((e as Error).message || ''); setStatus(null);
+    }
   };
   const pct = status ? Math.round((((status.page || 1) - 1) + (status.progress || 0)) / (status.of || 1) * 100) : 0;
   const label = status && ({ ai: t('st_ai'), load: t('st_load'), pdf: t('st_pdf'), prep: t('st_prep'), ocr: t('st_ocr') } as const)[status.stage];
@@ -46,7 +50,7 @@ export function ImportPage() {
       <p className="lead">{t('import_lead', { name: '' })}<b>{test.name}</b></p>
       {ai ? <div className="ai-banner on" data-testid="ai-on">✨ <span>{t('ai_on')}</span></div>
         : <div className={'ai-banner' + (isLang ? '' : ' strong')} data-testid="ai-off">{isLang ? '💡' : '✨'} <span>{isLang ? t('ai_tip_lang') : t('ai_tip_general')} {t('ai_tip_admin')}</span></div>}
-      {error != null && <div className="proc"><b>😕 {t('import_failed')}</b><p className="muted">{error}</p><button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
+      {error != null && <div className="proc" data-testid={error === 'not_school_material' ? 'import-refused' : 'import-error'}><b>😕 {error === 'not_school_material' ? t('not_school_material') : t('import_failed')}</b>{error !== 'not_school_material' && <p className="muted">{error}</p>}<button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
       {status ? (
         <div className="proc pop-in" data-testid="progress">
           <div className="scan"><Logo size={64} /><i /></div>

@@ -68,7 +68,7 @@ The flow is authorization code + PKCE, with `state` and `nonce`. Profile picture
 
 ### AI extraction (optional)
 
-Any OpenAI-compatible endpoint with vision: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_VISION_MODEL`. Keys stay on the server – they are never logged and never reach the client. Per-user rate limits: `AI_RATE_LIMIT_PER_HOUR` / `_PER_DAY`. Without AI the app uses on-device OCR and the manual report-card form.
+Any OpenAI-compatible endpoint with vision: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_VISION_MODEL`. Keys stay on the server – they are never logged and never reach the client. Per-user rate limits: `AI_RATE_LIMIT_PER_HOUR` / `_PER_DAY`. Before it extracts cards, the server asks the model whether the upload is serious school material: a worksheet, notes, vocabulary, a textbook page, or a report card. Anything else is refused, and it is not read on the device either. If that check does not clearly say yes, the upload is refused. The photo is still not stored. Without AI the app uses on-device OCR and the manual report-card form.
 
 ## Development
 
@@ -82,7 +82,7 @@ npm run dev:web          # Vite on :5173 (proxy /api → :8080)
 
 | command | |
 |---|---|
-| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate) |
+| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate, school-material upload gate) |
 | `npm run typecheck` | TypeScript strict, web + server |
 | `npx playwright test` | end-to-end (needs app + mocks running; set `CHROME_PATH` to use a system Chrome) |
 | `make lint` | hadolint + `docker compose config` |
@@ -118,7 +118,7 @@ Merkster is used by school children. If you run it for others:
 - **Supporters see only what the student shares:** results and practice can be switched off per supporter; photos of graded tests/report cards only if the student allows it; other supporters' rules and amounts are hidden unless the student switches on *Supporters can see each other*. Supporters can never change the student's data.
 - **Rewards are promises:** Merkster only keeps track; it never handles money. Results are *self-reported* unless a supporter marks them *verified*.
 - **Export & delete:** *Settings → Your data* downloads everything as JSON (incl. rewards and report cards) or deletes the account and all data (including supporter links, reactions, rewards, photos).
-- AI extraction sends the photo to the LLM endpoint you configure – choose a provider with an appropriate data-processing agreement, or leave AI off.
+- AI extraction sends the photo to the LLM endpoint you configure – choose a provider with an appropriate data-processing agreement, or leave AI off. Pictures that are not school material are refused before they are turned into cards.
 
 ## Container package
 

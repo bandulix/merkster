@@ -245,6 +245,8 @@ export async function processFiles(files: File[], test: Test, useAI: boolean, on
         rows = r.rows; result.unreadable.push(...r.unreadable);
         ps('ai', 1);
       } catch (e) {
+        // A refused upload must not be read on the device either, or the gate would not hold.
+        if (e instanceof ApiError && e.code === 'not_school_material') throw e;
         result.aiError = e instanceof ApiError ? e.code : 'ai_failed'; result.method = 'ocr';
       }
     }
