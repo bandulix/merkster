@@ -78,7 +78,7 @@ export function NewTest() {
       <div className="wiz-prog">{[1, 2, 3].map(i => <i key={i} className={i <= w.step ? 'on' : ''} />)}</div>
       {blocked && <p className="ai-banner" data-testid="test-limit" role="status">{t('test_limit')}</p>}
       <div className="wiz-body pop-in" key={w.step}>{body}</div>
-      <div className="wiz-foot"><button className="btn primary big wide" data-testid="wiz-next" disabled={!canNext || busy} onClick={next}>{w.step < 3 ? t('next') : '📸 ' + t('wiz_create')}</button></div>
+      <div className="wiz-foot"><button className="btn primary big wide" data-testid="wiz-next" disabled={!canNext || busy || (w.step === 3 && blocked)} onClick={next}>{w.step < 3 ? t('next') : '📸 ' + t('wiz_create')}</button></div>
     </section>
   );
 }
