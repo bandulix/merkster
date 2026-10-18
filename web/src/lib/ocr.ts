@@ -11,18 +11,17 @@ import { APP_SLUG } from '../../../shared/brand';
 declare global { interface Window { Tesseract?: any } }
 type PdfJs = { getDocument: (src: object) => { promise: Promise<any> }; GlobalWorkerOptions: { workerSrc: string } };
 let pdfJsPromise: Promise<PdfJs> | null = null;
-/** PDF.js 4 as a same-origin module. JavaScript inside a PDF stays disabled. */
+/** PDF.js 4 as a same-origin module. JavaScript inside a PDF stays disabled.
+ *  The file lives in web/public. A literal import() of that path is rejected by Vite 8, so the URL is built at runtime. */
 function loadPdfJs(): Promise<PdfJs> {
-  if (!pdfJsPromise) pdfJsPromise = import(
-    /* @vite-ignore */
-    // The file is copied into web/public/vendor by scripts/vendor.mjs. It is not a TypeScript module.
-    // @ts-expect-error vendor asset
-    '/vendor/pdfjs/pdf.min.mjs'
-  ).then(mod => {
-    const lib = (mod as { getDocument?: PdfJs['getDocument'] }).getDocument ? mod as PdfJs : (mod as { default: PdfJs }).default;
-    lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
-    return lib;
-  });
+  if (!pdfJsPromise) {
+    const url = new URL('/vendor/pdfjs/pdf.min.mjs', location.origin).href;
+    pdfJsPromise = import(/* @vite-ignore */ url).then(mod => {
+      const lib = (mod as { getDocument?: PdfJs['getDocument'] }).getDocument ? mod as PdfJs : (mod as { default: PdfJs }).default;
+      lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+      return lib;
+    });
+  }
   return pdfJsPromise;
 }
 type Src = ImageBitmap | HTMLImageElement | HTMLCanvasElement;

@@ -4,8 +4,20 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-18
+
+First published version. The container image is `ghcr.io/bandulix/merkster:0.1.0`.
+
 ### Added
 
+- Exam-prep PWA: photo, PDF, and paste import, review before save, successive-relearning practice, and EN/DE UI.
+- Tests with dates and formats, self-reported results in eight grading systems, and report cards.
+- Supporters, cheers, reward promises, and a clearly labelled simulator. Merkster records promises and does not move money.
+- Offline-first sync, Google sign-in, optional signup codeword, and GDPR export and delete.
+- Docker Compose for the app and Postgres 16, plus mock Google and mock vision services for local tests.
+- AGPL-3.0-only license, with a source-code link for network use.
+- Community docs: contributing guide, code of conduct, issue templates, and pull request template.
+- GitHub Actions publishes the server image to GitHub Container Registry when a `vX.Y.Z` tag is pushed.
 - Parents, grandparents, aunts and uncles can share one reward for the same student, or share every reward so the set stays the same when either person adds a new one. An invite link can do either. The student still sees each promise once.
 - Photo and PDF uploads are checked before AI extraction. Merkster only reads worksheets, notes, vocabulary, textbook pages, and report cards. Other pictures are refused, and they are not turned into cards on the device either. If the check itself does not clearly say yes, the upload is refused.
 - Profile pictures can be chosen, replaced, and removed. The picture is stored and shown the same way as the cached Google picture. A later Google login leaves a picture the student set, or the choice to show initials, as it is.
@@ -19,7 +31,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 - A page load no longer asks the database who is signed in for every font, script and icon. The class leaderboard and a sync of practice sessions each use one query for the whole group.
 - Exam-grade rewards and report-card rewards are separate. A Klausur pays only an exam rule. A report-card reward is extra, and it can apply to every report card or only the end-of-year report.
 - Every page sends `noindex`, in the HTML shell and on each response, so the app stays out of search engines.
-- The repository is public. The previous container package was deleted and `ghcr.io/bandulix/merkster` is published again as `latest`, `1.0`, and `1.0.0`. The new package is public and can be pulled without logging in.
+- The repository is public. The container package is `ghcr.io/bandulix/merkster`, tagged `latest`, `0.1`, and `0.1.0`. The package is public and can be pulled without logging in.
 - Docker Compose publishes `PORT` from `.env` on the host and inside the container.
 - `docker-compose.yml` runs the published image `ghcr.io/bandulix/merkster:latest` instead of building a local `merkster:latest`.
 
@@ -29,22 +41,8 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Fixed
 
+- PDF.js loads from the vendored file while developing. The app starts again, and JavaScript inside a worksheet stays switched off.
 - The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
 - The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
-## [1.0.0] - 2026-10-17
-
-First published version. The container image is `ghcr.io/bandulix/merkster:1.0.0`.
-
-### Added
-
-- Exam-prep PWA: photo, PDF, and paste import, review before save, successive-relearning practice, and EN/DE UI.
-- Tests with dates and formats, self-reported results in eight grading systems, and report cards.
-- Supporters, cheers, reward promises, and a clearly labelled simulator. Merkster records promises and does not move money.
-- Offline-first sync, Google sign-in, optional signup codeword, and GDPR export and delete.
-- Docker Compose for the app and Postgres 16, plus mock Google and mock vision services for local tests.
-- AGPL-3.0-only license, with a source-code link for network use.
-- Community docs: contributing guide, code of conduct, issue templates, and pull request template.
-- GitHub Actions publishes the server image to GitHub Container Registry when a `vX.Y.Z` tag is pushed.
-
-[1.0.0]: https://github.com/bandulix/merkster/releases/tag/v1.0.0
+[0.1.0]: https://github.com/bandulix/merkster/releases/tag/v0.1.0
