@@ -10,7 +10,14 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Changed
 
+- Exam-grade rewards and report-card rewards are separate. A Klausur pays only an exam rule. A report-card reward is extra, and it can apply to every report card or only the end-of-year report.
 - The repository is public. The previous container package was deleted and `ghcr.io/bandulix/merkster` is published again as `latest`, `1.0`, and `1.0.0`. The new package is public and can be pulled without logging in.
+- Docker Compose publishes `PORT` from `.env` on the host and inside the container.
+
+### Fixed
+
+- The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
+- The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
 ## [1.0.0] - 2026-10-17
 

@@ -23,6 +23,8 @@ describe('cleanTrigger', () => {
     expect(t).toMatchObject({ kind: 'rc_avg', system: 'de_grade', value: 2 });
     expect((t as { min: number }).min).toBeCloseTo(73.33, 1);
     expect(cleanTrigger({ kind: 'rc_subject', subjectId: 'math', system: 'de_grade', value: 1, mode: 'at_least' })).toMatchObject({ kind: 'rc_subject', subjectId: 'math' });
+    expect(cleanTrigger({ kind: 'rc_each', system: 'de_grade', value: 1, when: 'final' })).toMatchObject({ kind: 'rc_each', when: 'final' });
+    expect(cleanTrigger({ kind: 'rc_floor', system: 'de_grade', value: 3, when: 'semester' })).not.toHaveProperty('when');
     expect(cleanTrigger({ kind: 'nope' })).toBeNull();
   });
 });
