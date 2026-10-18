@@ -5,5 +5,10 @@
     "dockerfile": "Dockerfile"
   },
   "install": "npm ci",
-  "start": "bash .cursor/start.sh"
+  "start": "bash .cursor/start.sh",
+  "chromeExecutablePath": "/usr/bin/google-chrome",
+  "ports": [
+    { "name": "web", "port": 5173 },
+    { "name": "api", "port": 8080 }
+  ]
 }
