@@ -13,7 +13,8 @@ import type { Config } from './config';
 import type { HistoryEntry, Test } from '../../shared/types';
 import { computeProgress, practiceBefore, xpToReach, type CheerLite, type Progress } from '../../shared/gamification';
 import {
-  INVITE_DAYS_DEFAULT, INVITE_DAYS_MAX, INVITE_USES_MAX, MAX_OPEN_INVITES, MAX_SUPPORTERS, REACTIONS, RELATIONS, TARGET_KINDS, isFamilyRelation,
+  FAMILY_RELATIONS, INVITE_DAYS_DEFAULT, INVITE_DAYS_MAX, INVITE_SHARE_DEFAULTS, INVITE_USES_MAX, MAX_OPEN_INVITES, MAX_SUPPORTERS,
+  REACTIONS, RELATIONS, TARGET_KINDS, familyNeedsStudentStats, isFamilyRelation,
   targetKey, type Cheer, type Invite, type KidMilestone, type KidResult, type KidSummary, type ReactionCount, type Relation, type Supporter, type TargetKind
 } from '../../shared/supporters';
 import { tx } from './db';
@@ -49,18 +50,28 @@ const inviteRow = (r: Record<string, any>): Invite => ({
   ...(r.rule_id ? { ruleId: String(r.rule_id) } : {}),
   ...(r.share_all ? { shareAll: true } : {})
 });
+/** Parents/relatives who join via invite must see grades and practice stats (the promise is about those). */
+export async function ensureFamilySeesStats(c: Q, studentId: unknown, supporterId: number): Promise<void> {
+  await c.query(
+    `UPDATE supporter_links SET show_results = TRUE, show_practice = TRUE
+     WHERE student_id = $1 AND supporter_id = $2 AND relation = ANY($3::text[])`,
+    [studentId, supporterId, [...FAMILY_RELATIONS]]
+  );
+}
 /** accepting a family invite puts that person on one reward, or on every reward when the link says so */
 async function joinInvitedRule(c: Q, inv: { rule_id?: unknown; student_id: unknown; share_all?: unknown; inviter_id?: unknown }, supporterId: number): Promise<boolean> {
   const link = (await c.query('SELECT relation FROM supporter_links WHERE student_id = $1 AND supporter_id = $2', [inv.student_id, supporterId])).rows[0];
   if (!link || !isFamilyRelation(link.relation)) return false;
   if (inv.share_all) {
     await joinInvitedShare(c, Number(inv.student_id), supporterId, inv.inviter_id);
+    await ensureFamilySeesStats(c, inv.student_id, supporterId);
     return true;
   }
   if (!inv.rule_id) return false;
   const rule = (await c.query('SELECT id FROM reward_rules WHERE id = $1 AND student_id = $2 AND active', [inv.rule_id, inv.student_id])).rows[0];
   if (!rule) return false;
   await expandRewardSync(c, String(rule.id), Number(inv.student_id), [String(supporterId)]);
+  await ensureFamilySeesStats(c, inv.student_id, supporterId);
   return true;
 }
 
@@ -301,16 +312,27 @@ export async function supportersPlugin(app: FastifyInstance, { pool, config }: {
       const existing = (await c.query('SELECT 1 FROM supporter_links WHERE student_id = $1 AND supporter_id = $2', [inv.student_id, me])).rows[0];
       const st = inviteRow(inv).status;
       if (existing) {
-        if (st === 'open') await joinInvitedRule(c, inv, me);   // already family: the link can still add them to the reward, and does not burn a use
+        if (st === 'open') {
+          await joinInvitedRule(c, inv, me);   // already family: the link can still add them to the reward, and does not burn a use
+          // Re-accepting a parent/relative invite restores grades + practice (privacy can still be turned off later).
+          if (familyNeedsStudentStats(cleanRelation(inv.relation))) await ensureFamilySeesStats(c, inv.student_id, me);
+        }
         return { code: 200, body: { ok: true, already: true, student: who } };
       }
       if (st !== 'open') return { code: 410, body: { error: st } };
       const n = Number((await c.query('SELECT count(*) FROM supporter_links WHERE student_id = $1', [inv.student_id])).rows[0].count);
       if (n >= MAX_SUPPORTERS) return { code: 409, body: { error: 'too_many_supporters' } };
       await c.query('UPDATE invites SET uses = uses + 1 WHERE id = $1', [inv.id]);
-      await c.query('INSERT INTO supporter_links (student_id, supporter_id, relation, label, invite_id) VALUES ($1,$2,$3,$4,$5)', [inv.student_id, me, inv.relation, inv.label, inv.id]);
+      // Explicit share flags (do not rely on DB defaults alone): join promises results + practice.
+      await c.query(
+        `INSERT INTO supporter_links (student_id, supporter_id, relation, label, invite_id, show_results, show_practice, show_photos)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [inv.student_id, me, inv.relation, inv.label, inv.id,
+          INVITE_SHARE_DEFAULTS.showResults, INVITE_SHARE_DEFAULTS.showPractice, INVITE_SHARE_DEFAULTS.showPhotos]);
       await c.query('UPDATE users SET is_supporter = TRUE WHERE id = $1', [me]);
       await joinInvitedRule(c, inv, me);
+      // Parents/relatives always keep grades + practice stats after an invite (even if join was reward-only).
+      if (familyNeedsStudentStats(cleanRelation(inv.relation))) await ensureFamilySeesStats(c, inv.student_id, me);
       return { code: 200, body: { ok: true, student: who } };
     });
     if (res.code === 200 && !(res.body as { already?: boolean }).already) req.log.info({ supporterId: String(me) }, 'supporter linked');
