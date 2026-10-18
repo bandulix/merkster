@@ -1,6 +1,6 @@
 /* Server-side sanitising of reward rules: what the client sends is never trusted. */
 import { describe, expect, it } from 'vitest';
-import { cleanMemberIds, cleanReward, cleanTrigger, syncPair } from '../src/rewards';
+import { cleanMemberIds, cleanReward, cleanTrigger, cleanValidAsOf, syncPair } from '../src/rewards';
 import { cleanCard } from '../src/reportcards';
 
 describe('cleanReward', () => {
@@ -30,6 +30,20 @@ describe('syncPair', () => {
     expect(syncPair('3', '20')).toEqual(['3', '20']);
     expect(syncPair('4', '4')).toBeNull();
     expect(syncPair('x', '4')).toBeNull();
+  });
+});
+describe('cleanValidAsOf', () => {
+  const now = Date.UTC(2026, 2, 15, 12); // mid-day so "tomorrow" is still in range
+  it('accepts ms and YYYY-MM-DD; omitted means default to now on insert', () => {
+    expect(cleanValidAsOf(undefined, now)).toBeNull();
+    expect(cleanValidAsOf('', now)).toBeNull();
+    expect(cleanValidAsOf(now, now)).toBe(now);
+    expect(cleanValidAsOf('2026-03-01', now)).toBe(Date.UTC(2026, 2, 1));
+  });
+  it('rejects dates before 2000 and more than a day ahead', () => {
+    expect(cleanValidAsOf('1999-12-31', now)).toBeUndefined();
+    expect(cleanValidAsOf(now + 3 * 864e5, now)).toBeUndefined();
+    expect(cleanValidAsOf('not-a-date', now)).toBeUndefined();
   });
 });
 describe('cleanTrigger', () => {

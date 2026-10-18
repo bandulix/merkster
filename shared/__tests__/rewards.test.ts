@@ -9,7 +9,8 @@ const input = (results: [string, string, number][], extra: Partial<EvalInput> = 
   results: results.map(([testId, subject, score], i) => ({ testId, subject: subject as never, score, testDate: `2026-03-${String(i + 2).padStart(2, '0')}`, enteredAt: T0 + (i + 1) * H })),
   practiceDays: [], levelUps: [], ...extra
 });
-const rule = (trigger: RewardRule['trigger'], createdAt = T0): Pick<RewardRule, 'trigger' | 'createdAt'> => ({ trigger, createdAt });
+const rule = (trigger: RewardRule['trigger'], createdAt = T0, validAsOf?: number): Pick<RewardRule, 'trigger' | 'createdAt' | 'validAsOf'> =>
+  ({ trigger, createdAt, ...(validAsOf !== undefined ? { validAsOf } : {}) });
 
 describe('grade conversion – all systems', () => {
   it('every system has a sane spec and every option round-trips', () => {
@@ -98,6 +99,21 @@ describe('reward rules', () => {
     const inp = input([['a', 'math', 90], ['b', 'biology', 90], ['c', 'math', 90]]);
     expect(matches(rule(tr), inp).map(x => x.testId)).toEqual(['a', 'c']);
     expect(matches(rule(tr, T0 + 2.5 * H), inp).map(x => x.testId)).toEqual(['c']);
+  });
+  it('validAsOf gates past entries even when the rule was created earlier', () => {
+    const tr = gradeTrigger('de_grade', 2, 'at_least')!;
+    const inp = input([['a', 'math', 90], ['b', 'math', 90], ['c', 'math', 90]]);
+    // created at T0, but only valid from the third entry onward
+    expect(matches(rule(tr, T0, T0 + 2.5 * H), inp).map(x => x.testId)).toEqual(['c']);
+    // validAsOf wins over a later createdAt when set earlier (school-year start)
+    expect(matches(rule(tr, T0 + 10 * H, T0 + H), inp).map(x => x.testId)).toEqual(['a', 'b', 'c']);
+    // report cards confirmed before validAsOf do not earn
+    const cards = [
+      { id: 'c1', issuedOn: '2026-01-30', createdAt: T0 - H, lines: [{ subjectId: 'math', score: 95 }], avgScore: 95, term: 'h1' as const },
+      { id: 'c2', issuedOn: '2026-07-15', createdAt: T0 + H, lines: [{ subjectId: 'math', score: 95 }], avgScore: 95, term: 'final' as const }
+    ];
+    const rc = matches(rule({ kind: 'rc_avg', system: 'de_grade', value: 2, min: 70 }, T0 - 2 * H, T0), input([], { reportCards: cards }));
+    expect(rc.map(x => x.cardId)).toEqual(['c2']);
   });
   it('thresholds survive a grading-system switch (converted + flagged)', () => {
     const tr = gradeTrigger('de_grade', 1, 'at_least')! as Extract<RewardRule['trigger'], { kind: 'grade' }>;
