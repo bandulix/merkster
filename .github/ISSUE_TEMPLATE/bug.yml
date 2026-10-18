@@ -24,8 +24,8 @@ body:
     id: version
     attributes:
       label: Version
-      description: App version from Settings, or the image tag (for example 1.0.0).
-      placeholder: "1.0.0"
+      description: App version from Settings, or the image tag (for example 0.1.0).
+      placeholder: "0.1.0"
     validations:
       required: true
   - type: dropdown

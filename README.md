@@ -133,7 +133,7 @@ The server image is published on GitHub Packages (GitHub Container Registry):
 docker pull ghcr.io/bandulix/merkster:latest
 ```
 
-`docker-compose.yml` sets the app service to `ghcr.io/bandulix/merkster:latest`. The same image is tagged `1.0.0` and `1.0`. The package is public, so this pull does not need `docker login`. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
+`docker-compose.yml` sets the app service to `ghcr.io/bandulix/merkster:latest`. The same image is tagged `0.1.0` and `0.1`. The package is public, so this pull does not need `docker login`. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration reference
 
