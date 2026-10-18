@@ -73,6 +73,22 @@ export function cleanReward(v: unknown): Reward | null {
   return null;
 }
 const cleanCap = (v: unknown) => { const n = Math.round(Number(v)); return v === null || v === undefined || v === '' || !n ? null : n >= 1 && n <= 100 ? n : undefined; };
+const MIN_VALID_AS_OF = Date.UTC(2000, 0, 1);
+/** Earliest earnable moment. Accepts ms since epoch or `YYYY-MM-DD` (UTC midnight). Omitted → null (DB/now). Invalid → undefined. */
+export function cleanValidAsOf(v: unknown, now = Date.now()): number | null | undefined {
+  if (v === null || v === undefined || v === '') return null;
+  let ts: number;
+  if (typeof v === 'number') ts = v;
+  else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const [y, m, d] = v.split('-').map(Number);
+    ts = Date.UTC(y, m - 1, d);
+  } else if (typeof v === 'string' && v.trim()) ts = Date.parse(v);
+  else return undefined;
+  if (!Number.isFinite(ts)) return undefined;
+  const max = now + 864e5; // allow "tomorrow" for timezone skew
+  if (ts < MIN_VALID_AS_OF || ts > max) return undefined;
+  return Math.round(ts);
+}
 /** ordered pair for reward_sync (the smaller id first). Same id, or anything that is not an id, is not a pair. */
 export function syncPair(left: string, right: string): [string, string] | null {
   if (!ID_NUM.test(left) || !ID_NUM.test(right) || left === right) return null;
@@ -188,7 +204,11 @@ export async function evaluateRewards(pool: pg.Pool, studentId: number): Promise
       const trigger = r.trigger as RewardTrigger;
       // only evaluate what the student currently shares with this supporter
       if (RESULT_KINDS.includes(trigger.kind) || isRcKind(trigger.kind) ? !r.show_results : !r.show_practice) continue;
-      const rule = { trigger, createdAt: new Date(r.created_at).getTime(), capPerMonth: r.cap_per_month as number | null };
+      const rule = {
+        trigger, createdAt: new Date(r.created_at).getTime(),
+        validAsOf: r.valid_as_of ? new Date(r.valid_as_of).getTime() : undefined,
+        capPerMonth: r.cap_per_month as number | null
+      };
       const srcs = evaluateRule({ ...rule, capPerMonth: null }, input);
       const keys = new Set(srcs.map(s => s.key));
       const mine = earned.filter(e => String(e.rule_id) === String(r.id));
@@ -216,7 +236,9 @@ export function evaluateSoon(pool: pg.Pool, studentId: number, log: { warn: (o: 
 const person = (id: unknown, name: string, etag: string | null, relation = '', label = ''): PersonLite => ({ id: String(id), name: firstName(name), avatar: avatarPath(id as string, etag), relation, label });
 const ruleView = (r: Record<string, any>, monthCount = 0): RuleView => ({
   id: String(r.id), supporterId: String(r.supporter_id), trigger: r.trigger, reward: r.reward, capPerMonth: r.cap_per_month, active: r.active,
-  createdAt: new Date(r.created_at).getTime(), earnedThisMonth: monthCount
+  createdAt: new Date(r.created_at).getTime(),
+  validAsOf: r.valid_as_of ? new Date(r.valid_as_of).getTime() : new Date(r.created_at).getTime(),
+  earnedThisMonth: monthCount
 });
 const earnedView = (r: Record<string, any>, showTest: boolean, seenCol: 'seen_student_at' | 'seen_supporter_at'): EarnedView => ({
   id: String(r.id), ruleId: r.rule_id ? String(r.rule_id) : null, trigger: r.trigger, reward: r.reward, status: r.status, earnedAt: ms(r.earned_at)!, paidAt: ms(r.paid_at),
@@ -324,12 +346,15 @@ export async function rewardsPlugin(app: FastifyInstance, { pool, config }: { po
     if (!link) return reply.code(403).send({ error: 'not_linked' });
     const b = (req.body || {}) as Record<string, unknown>;
     const trigger = cleanTrigger(b.trigger), reward = cleanReward(b.reward), cap = cleanCap(b.capPerMonth);
-    if (!trigger || !reward || cap === undefined) return reply.code(400).send({ error: 'invalid' });
+    const validAsOf = cleanValidAsOf(b.validAsOf);
+    if (!trigger || !reward || cap === undefined || validAsOf === undefined) return reply.code(400).send({ error: 'invalid' });
     const n = Number((await pool.query('SELECT count(*) FROM reward_rules WHERE student_id = $1 AND supporter_id = $2', [link.student_id, uidOf(req)])).rows[0].count);
     if (n >= MAX_RULES_PER_LINK) return reply.code(409).send({ error: 'too_many_rules' });
     const row = await tx(pool, async c => {
-      const r = await c.query('INSERT INTO reward_rules (student_id, supporter_id, trigger, reward, cap_per_month) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-        [link.student_id, uidOf(req), JSON.stringify(trigger), JSON.stringify(reward), cap]);
+      const r = await c.query(
+        `INSERT INTO reward_rules (student_id, supporter_id, trigger, reward, cap_per_month, valid_as_of)
+         VALUES ($1,$2,$3,$4,$5, coalesce(to_timestamp($6::double precision / 1000.0), now())) RETURNING *`,
+        [link.student_id, uidOf(req), JSON.stringify(trigger), JSON.stringify(reward), cap, validAsOf]);
       const rule = r.rows[0];
       await c.query('INSERT INTO reward_rule_members (rule_id, student_id, supporter_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [rule.id, link.student_id, uidOf(req)]);
       await expandRewardSync(c, String(rule.id), link.student_id, [String(uidOf(req)), ...cleanMemberIds(b.memberIds)]);
@@ -397,10 +422,13 @@ export async function rewardsPlugin(app: FastifyInstance, { pool, config }: { po
     if (!ID_NUM.test(req.params.rid)) return reply.code(404).send({ error: 'not_found' });
     const b = (req.body || {}) as Record<string, unknown>;
     const reward = b.reward !== undefined ? cleanReward(b.reward) : null, cap = b.capPerMonth !== undefined ? cleanCap(b.capPerMonth) : null;
-    if ((b.reward !== undefined && !reward) || cap === undefined) return reply.code(400).send({ error: 'invalid' });
-    const r = await pool.query(`UPDATE reward_rules r SET active = coalesce($4, active), reward = coalesce($5, reward), cap_per_month = CASE WHEN $6 THEN $7 ELSE cap_per_month END
+    const validAsOf = b.validAsOf !== undefined ? cleanValidAsOf(b.validAsOf) : null;
+    if ((b.reward !== undefined && !reward) || cap === undefined || (b.validAsOf !== undefined && (validAsOf === undefined || validAsOf === null))) return reply.code(400).send({ error: 'invalid' });
+    const r = await pool.query(`UPDATE reward_rules r SET active = coalesce($4, active), reward = coalesce($5, reward),
+        cap_per_month = CASE WHEN $6 THEN $7 ELSE cap_per_month END,
+        valid_as_of = CASE WHEN $8 THEN to_timestamp($9::double precision / 1000.0) ELSE valid_as_of END
         WHERE r.id = $1 AND r.student_id = $2 AND (r.supporter_id = $3 OR EXISTS (SELECT 1 FROM reward_rule_members m WHERE m.rule_id = r.id AND m.supporter_id = $3)) RETURNING *`,
-      [req.params.rid, link.student_id, uidOf(req), typeof b.active === 'boolean' ? b.active : null, reward ? JSON.stringify(reward) : null, b.capPerMonth !== undefined, cap]);
+      [req.params.rid, link.student_id, uidOf(req), typeof b.active === 'boolean' ? b.active : null, reward ? JSON.stringify(reward) : null, b.capPerMonth !== undefined, cap, b.validAsOf !== undefined, validAsOf]);
     if (!r.rowCount) return reply.code(404).send({ error: 'not_found' });
     const mem = await membersOf(pool, [req.params.rid]);
     return { rule: { ...ruleView(r.rows[0]), members: mem.get(req.params.rid) || [] } };

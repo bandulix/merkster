@@ -29,7 +29,16 @@ export type RewardTrigger =
   | { kind: 'rc_avg_improved'; minDelta: number; when?: 'final' }
   | { kind: 'rc_floor'; system: GradeSystem; value: number; min: number; when?: 'final' };
 export type Reward = { type: 'money'; amount: number; currency: Currency } | { type: 'other'; text: string };
-export interface RewardRule { id: string; supporterId: string; trigger: RewardTrigger; reward: Reward; capPerMonth: number | null; active: boolean; createdAt: number; members?: PersonLite[] }
+export interface RewardRule {
+  id: string; supporterId: string; trigger: RewardTrigger; reward: Reward; capPerMonth: number | null; active: boolean;
+  createdAt: number;
+  /** Earliest event time that may earn. Defaults to createdAt when omitted (legacy rules). */
+  validAsOf?: number;
+  members?: PersonLite[];
+}
+/** Effective gate for earning: validAsOf if set, otherwise createdAt. */
+export const effectiveFrom = (rule: Pick<RewardRule, 'createdAt' | 'validAsOf'>) =>
+  (typeof rule.validAsOf === 'number' && Number.isFinite(rule.validAsOf) ? rule.validAsOf : rule.createdAt);
 
 /** input for evaluation: all results of the student + practice facts */
 export interface EvalResult { testId: string; subject: Subject; score: number; testDate: string; enteredAt: number }
@@ -51,11 +60,12 @@ const dayOf = (ts: number) => { const d = new Date(ts); return `${d.getFullYear(
 const addDays = (iso: string, n: number) => { const [y, m, d] = iso.split('-').map(Number); return dayOf(new Date(y, m - 1, d + n).getTime()); };
 const byTime = (a: EvalResult, b: EvalResult) => a.testDate.localeCompare(b.testDate) || a.enteredAt - b.enteredAt;
 
-/** every source that satisfies a rule (uncapped). Only things that happened after the rule was created count. */
-export function matches(rule: Pick<RewardRule, 'trigger' | 'createdAt'>, input: EvalInput): EarnSource[] {
+/** every source that satisfies a rule (uncapped). Only events on/after validAsOf (or createdAt) count. */
+export function matches(rule: Pick<RewardRule, 'trigger' | 'createdAt' | 'validAsOf'>, input: EvalInput): EarnSource[] {
   const tr = rule.trigger, out: EarnSource[] = [];
+  const from = effectiveFrom(rule);
   const results = [...input.results].sort(byTime);
-  const fresh = (r: EvalResult) => r.enteredAt >= rule.createdAt - 1000;
+  const fresh = (r: EvalResult) => r.enteredAt >= from - 1000;
   const subjOk = (r: EvalResult, s?: Subject | null) => !s || r.subject === s;
   switch (tr.kind) {
     case 'grade':
@@ -75,23 +85,23 @@ export function matches(rule: Pick<RewardRule, 'trigger' | 'createdAt'>, input: 
       });
       break;
     case 'streak': {
-      const days = [...new Set(input.practiceDays)].sort(), created = dayOf(rule.createdAt);
+      const days = [...new Set(input.practiceDays)].sort(), startDay = dayOf(from);
       let start = '', prev = '', len = 0;
       for (const d of days) {
         if (prev && addDays(prev, 1) === d) len++; else { start = d; len = 1; }
         prev = d;
-        if (len === tr.days && d >= created) out.push({ key: `streak:${tr.days}:${start}`, at: new Date(d + 'T18:00:00').getTime() });
+        if (len === tr.days && d >= startDay) out.push({ key: `streak:${tr.days}:${start}`, at: new Date(d + 'T18:00:00').getTime() });
       }
       break;
     }
     case 'level':
-      for (const l of input.levelUps) if (l.level === tr.level && l.at >= rule.createdAt - 1000) out.push({ key: 'level:' + l.level, at: l.at });
+      for (const l of input.levelUps) if (l.level === tr.level && l.at >= from - 1000) out.push({ key: 'level:' + l.level, at: l.at });
       break;
     default: {
-      // report cards – only cards confirmed after the rule was created
+      // report cards – only cards confirmed on/after validAsOf
       const cards = [...(input.reportCards || [])].sort((a, b) => a.issuedOn.localeCompare(b.issuedOn) || a.createdAt - b.createdAt);
       cards.forEach((c, i) => {
-        if (c.createdAt < rule.createdAt - 1000) return;
+        if (c.createdAt < from - 1000) return;
         if ('when' in tr && tr.when === 'final' && c.term !== 'final') return;   // extra reward: end-of-year report only
         const prev = i > 0 ? cards[i - 1] : null;
         const src = (suffix: string, subjectId?: string): EarnSource => ({ key: `rc:${c.id}:${suffix}`, at: c.createdAt, cardId: c.id, ...(subjectId ? { subjectId } : {}) });
@@ -167,7 +177,7 @@ export const MAX_RULES_PER_LINK = 20;
 export const REWARD_TEXT_MAX = 60;
 
 /** one rule against an input: everything it earns, after the monthly cap (already-earned entries count) */
-export function evaluateRule(rule: Pick<RewardRule, 'trigger' | 'createdAt' | 'capPerMonth'>, input: EvalInput, earned: { key: string; at: number }[] = []): EarnSource[] {
+export function evaluateRule(rule: Pick<RewardRule, 'trigger' | 'createdAt' | 'validAsOf' | 'capPerMonth'>, input: EvalInput, earned: { key: string; at: number }[] = []): EarnSource[] {
   return applyCap(matches(rule, input), rule.capPerMonth, earned);
 }
 
@@ -225,7 +235,7 @@ export function simulateReportCard<P>(rules: SimRule<P>[], card: Omit<EvalCard, 
   for (const r of rules) {
     if (!isRcKind(r.trigger.kind)) continue;
     // the rule "exists" before the simulated card; only sources from the simulated card count
-    const got = evaluateRule({ trigger: r.trigger, createdAt: nowTs, capPerMonth: r.capPerMonth }, input, earned.filter(e => e.ruleId === r.id)).filter(s => s.cardId === SIM_CARD_ID);
+    const got = evaluateRule({ trigger: r.trigger, createdAt: nowTs, validAsOf: nowTs, capPerMonth: r.capPerMonth }, input, earned.filter(e => e.ruleId === r.id)).filter(s => s.cardId === SIM_CARD_ID);
     for (const s of got) entries.push({ supporterId: r.supporterId, supporter: r.supporter, ruleId: r.id, trigger: r.trigger, reward: r.reward, source: s });
   }
   return breakdown(entries);

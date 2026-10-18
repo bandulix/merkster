@@ -11,7 +11,8 @@ import { FAMILY_RELATIONS, INVITE_DAYS_DEFAULT, MAX_JOINT_MEMBERS, type FamilyRe
 import { api, ApiError } from '../lib/api';
 import { peopleNames, rewardText, ruleConverted, ruleWhen, useKidRewards } from '../lib/rewards';
 import { relName, whoName } from '../lib/supporters';
-import { confetti, toast } from '../lib/util';
+import { dayISO, parseDay } from '../lib/schedule';
+import { confetti, fmtDay, now, toast } from '../lib/util';
 import { subjectName, t, uiLang, type Key } from '../i18n';
 import { Modal } from './ui';
 
@@ -52,6 +53,7 @@ export function RulesPanel({ kidId, kidName, grading, subjects = [], canSync = f
               <li key={r.id} className={'rule-row' + (r.active ? '' : ' paused')} data-testid="rule-row" data-active={r.active ? '1' : '0'}>
                 <div><b data-testid="rule-preview">{rewardText(r.reward)}</b> <span>{ruleWhen(r.trigger, sys)}</span>
                   {r.capPerMonth != null && <small className="chip xs">{t('rule_cap', { n: r.capPerMonth })} · {r.earnedThisMonth}/{r.capPerMonth}</small>}
+                  {r.validAsOf != null && <small className="chip xs" data-testid="rule-valid-as-of">{t('rule_valid_from', { date: fmtDay(dayISO(r.validAsOf)) })}</small>}
                   {r.members && r.members.length > 1 && <small className="chip xs" data-testid="joint-members">{t('joint_members', { names: peopleNames(r.members) })}</small>}
                   {!r.active && <small className="chip xs">{t('rule_paused')}</small>}
                   {conv && <small className="warn-line" data-testid="rule-converted">⚠️ {conv}</small>}</div>
@@ -64,7 +66,7 @@ export function RulesPanel({ kidId, kidName, grading, subjects = [], canSync = f
           })}</ul>
         </div>))}
       {open && <RuleEditor kidId={kidId} kidName={kidName} grading={sys} subjects={subjects} family={family} busy={busy} onClose={() => setOpen(false)}
-        onSave={async (trigger, reward, cap, memberIds) => { await act(`/api/kids/${kidId}/rules`, { trigger, reward, capPerMonth: cap, memberIds }); confetti(); toast(t('rule_saved'), 'ok'); setOpen(false); }} />}
+        onSave={async (trigger, reward, cap, memberIds, validAsOf) => { await act(`/api/kids/${kidId}/rules`, { trigger, reward, capPerMonth: cap, memberIds, validAsOf }); confetti(); toast(t('rule_saved'), 'ok'); setOpen(false); }} />}
       {inviteFor && <RuleInvite kidId={kidId} ruleId={inviteFor} onClose={() => setInviteFor(null)} />}
     </div>
   );
@@ -110,7 +112,7 @@ function RuleInvite({ kidId, ruleId, onClose }: { kidId: string; ruleId: string;
 
 function RuleEditor({ kidId: _kidId, kidName, grading, subjects, family, busy, onClose, onSave }: {
   kidId: string; kidName: string; grading: GradeSystem; subjects: { id: string; name: string }[]; family: PersonLite[]; busy: boolean; onClose: () => void;
-  onSave: (trigger: RewardTrigger, reward: Reward, cap: number | null, memberIds: string[]) => Promise<void>;
+  onSave: (trigger: RewardTrigger, reward: Reward, cap: number | null, memberIds: string[], validAsOf: number) => Promise<void>;
 }) {
   const fam = families(grading), opts = GRADE_SPECS[grading].options;
   const [kind, setKind] = useState<TriggerKind>('grade');
@@ -122,6 +124,7 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, family, busy, o
   const [rcWhen, setRcWhen] = useState<'any' | 'final'>('final');
   const [amount, setAmount] = useState('5'), [currency, setCurrency] = useState<Currency>('EUR'), [text, setText] = useState('');
   const [cap, setCap] = useState('');
+  const [validAsOf, setValidAsOf] = useState(() => dayISO(now()));
   const [picked, setPicked] = useState<string[]>([]);
   const toggleMember = (id: string) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : p.length >= MAX_JOINT_MEMBERS - 1 ? p : [...p, id]);
   const allSubjects = [...subjects, ...CANON_SUBJECTS.filter(c => !subjects.some(x => x.id === c.id)).map(c => ({ id: c.id, name: c.name[uiLang()] }))];
@@ -152,7 +155,10 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, family, busy, o
     const t0 = text.trim().slice(0, 60); return t0 ? { type: 'other', text: t0 } : null;
   };
   const tr = trigger(), rw = reward();
-  const save = async () => { if (!tr || !rw) return; await onSave(tr, rw, cap === '' ? null : Math.max(1, Math.min(100, Math.round(Number(cap)) || 1)), picked).catch(() => undefined); };
+  const save = async () => {
+    if (!tr || !rw || !validAsOf) return;
+    await onSave(tr, rw, cap === '' ? null : Math.max(1, Math.min(100, Math.round(Number(cap)) || 1)), picked, parseDay(validAsOf)).catch(() => undefined);
+  };
   // Preview uses a temporary trigger rebuilt client-side for grade
   const previewTr: RewardTrigger | null = tr;
   return (
@@ -210,6 +216,10 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, family, busy, o
             <select data-testid="rule-currency" value={currency} onChange={e => setCurrency(e.target.value as Currency)}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
         : <input data-testid="rule-text" maxLength={60} value={text} onChange={e => setText(e.target.value)} placeholder={t('rule_text_ph')} />}
       <label className="field"><span>{t('rule_cap_label')}</span><input type="number" data-testid="rule-cap" min={1} max={100} value={cap} onChange={e => setCap(e.target.value)} placeholder="–" /></label>
+      <label className="field"><span>{t('rule_valid_as_of')}</span>
+        <input type="date" data-testid="rule-valid-as-of" max={dayISO(now() + 864e5)} value={validAsOf} onChange={e => e.target.value && setValidAsOf(e.target.value)} />
+        <small className="muted">{t('rule_valid_as_of_sub')}</small>
+      </label>
       <div className="joint-box" data-testid="joint-with">
         <b>{t('joint_with')}</b>
         <p className="muted small">{t('joint_with_sub')}</p>
