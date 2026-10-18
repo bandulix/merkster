@@ -45,6 +45,7 @@ export function Join({ user }: { user: User | null }) {
         <div className="join-avatars"><MiniAvatar src={user?.avatar || null} name={user?.name || ''} size={64} /><span className="join-heart">📣</span><MiniAvatar src={done.avatar} name={done.name} size={64} /></div>
         <h1 className="auth-title sm">{t('join_done_title', { name: done.name })}</h1>
         <p className="auth-claim">{t('join_done_sub')}</p>
+        {pv.data?.jointWith && <p className="auth-claim" data-testid="join-joint">{t('join_joint', { names: pv.data.jointWith })}</p>}
         <button className="btn start big wide" data-testid="join-go" onClick={() => nav('/cheer', { replace: true })}>{t('join_go')} →</button>
       </div>
     </div>);
@@ -62,6 +63,7 @@ export function Join({ user }: { user: User | null }) {
           <h1 className="auth-title sm" data-testid="join-title">{t('join_title', { name })}</h1>
           {pv.data?.relation && pv.data.relation !== 'other' && <p className="chip">{relName(pv.data.relation)}</p>}
           <p className="auth-claim">{t('join_sub', { name })}</p>
+          {pv.data?.jointWith && <p className="auth-claim" data-testid="join-joint">{t('join_joint', { names: pv.data.jointWith })}</p>}
           <ul className="auth-points"><li>📈 {t('sees_practice')}</li><li>📝 {t('sees_results')}</li><li>🔒 {t('join_privacy', { name })}</li></ul>
           {err && <p className="err" role="alert" data-testid="join-error">{t(errKey(err))}</p>}
           {user

@@ -4,6 +4,11 @@ import type { ReportCard } from './reportcards';
 
 export const RELATIONS = ['mum', 'dad', 'grandma', 'grandpa', 'aunt', 'uncle', 'coach', 'other'] as const;
 export type Relation = (typeof RELATIONS)[number];
+/** relatives who can share one reward for the same student */
+export const FAMILY_RELATIONS = ['mum', 'dad', 'grandma', 'grandpa', 'aunt', 'uncle'] as const;
+export type FamilyRelation = (typeof FAMILY_RELATIONS)[number];
+export const isFamilyRelation = (r: string): r is FamilyRelation => (FAMILY_RELATIONS as readonly string[]).includes(r);
+export const MAX_JOINT_MEMBERS = 8;
 export const REACTION_EMOJI = ['👍', '❤️', '🎉', '🔥', '💪', '👏', '⭐', '🤩'] as const;
 /** preset messages (no free text in v1 – nothing to moderate); stored as 'msg:<key>' */
 export const PRESET_MESSAGES = ['proud', 'keep_going', 'well_done', 'you_got_this', 'great_effort'] as const;
@@ -13,9 +18,9 @@ export const TARGET_KINDS = ['result', 'level', 'badge', 'report'] as const;   /
 export type TargetKind = (typeof TARGET_KINDS)[number];
 export const INVITE_DAYS_DEFAULT = 7, INVITE_DAYS_MAX = 14, INVITE_USES_MAX = 5, MAX_OPEN_INVITES = 10, MAX_SUPPORTERS = 20;
 
-export interface Invite { id: string; relation: Relation; label: string; maxUses: number; uses: number; expiresAt: string; createdAt: string; status: 'open' | 'used' | 'expired' | 'revoked' }
+export interface Invite { id: string; relation: Relation; label: string; maxUses: number; uses: number; expiresAt: string; createdAt: string; status: 'open' | 'used' | 'expired' | 'revoked'; ruleId?: string }
 export interface CreatedInvite extends Invite { token: string; url: string }
-export interface InvitePreview { valid: boolean; reason?: 'expired' | 'used' | 'revoked' | 'not_found'; studentName?: string; studentAvatar?: string | null; relation?: Relation }
+export interface InvitePreview { valid: boolean; reason?: 'expired' | 'used' | 'revoked' | 'not_found'; studentName?: string; studentAvatar?: string | null; relation?: Relation; jointWith?: string }
 export interface Supporter { id: string; name: string; avatar: string | null; relation: Relation; label: string; showResults: boolean; showPractice: boolean; showPhotos: boolean; since: string }
 /** a reaction as the student sees it */
 export interface Cheer { id: string; from: { id: string; name: string; avatar: string | null; relation: Relation; label: string }; targetKind: TargetKind; targetId: string; reaction: string; at: number; seen: boolean }

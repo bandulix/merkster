@@ -16,7 +16,7 @@ export const useMyRewards = (enabled = true) => useQuery({ queryKey: ['rewards']
 export interface GivenRewards { rewards: (EarnedView & { kid: PersonLite })[]; unseen: number; open: number }
 export const useGivenRewards = (enabled = true) => useQuery({ queryKey: ['rewards-given'], queryFn: () => api<GivenRewards>('/api/rewards/given'), enabled, refetchInterval: 60_000, refetchOnWindowFocus: true, retry: 0, staleTime: 10_000 });
 export interface OtherSupporter { supporter: PersonLite; rules: RuleView[]; open: { type: 'money'; currency: string; amount: number }[]; paid: { type: 'money'; currency: string; amount: number }[]; otherOpen: number; otherPaid: number }
-export interface KidRewards { grading: GradeSystem; seeEachOther: boolean; rules: RuleView[]; earned: EarnedView[]; others?: OtherSupporter[] }
+export interface KidRewards { grading: GradeSystem; seeEachOther: boolean; family: PersonLite[]; rules: RuleView[]; earned: EarnedView[]; others?: OtherSupporter[] }
 export const useKidRewards = (id: string) => useQuery({ queryKey: ['kid-rewards', id], queryFn: () => api<KidRewards>(`/api/kids/${id}/rewards`), retry: 0 });
 
 /** after the student saved a result: push it now, let the server evaluate the rules, refresh the rewards */
@@ -53,8 +53,19 @@ export function ruleConverted(tr: RewardTrigger, kidSystem: GradeSystem, kidName
   const orig = tr.kind === 'rc_avg' ? fmtAvg(tr.system, tr.min, LOCALE()) : thresholdIn({ kind: 'grade', system: tr.system, value: tr.value, mode: 'at_least', min: tr.min, max: 100 }, tr.system).label;
   return t('rule_converted', { orig, sys: sysName(tr.system), name: kidName, cur: sysName(kidSystem) });
 }
+/** one person, or "Mum & Grandma" when several relatives share the promise */
+export function peopleNames(members: PersonLite[] | undefined): string {
+  return (members || []).map(m => whoName(m)).filter(Boolean).join(' & ');
+}
+/** the line a student sees: a joint reward stays one person-shaped row, named for everyone on it */
+export function rewardPeople(e: { supporter: PersonLite; members?: PersonLite[] }): PersonLite {
+  const members = (e.members || []).filter(m => m.id);
+  if (members.length < 2) return e.supporter;
+  const names = peopleNames(members);
+  return { ...members[0], id: members.map(m => m.id).sort().join('+'), name: names, label: names, relation: '' };
+}
 export function earnedLine(e: EarnedView & { supporter: PersonLite }) {
-  const name = whoName(e.supporter), reward = rewardText(e.reward);
+  const name = whoName(rewardPeople(e)), reward = rewardText(e.reward);
   if (e.status === 'paid') return t('paid_you', { name, reward });
   return t(e.reward.type === 'money' ? 'owes_you' : 'promised_you', { name, reward });
 }

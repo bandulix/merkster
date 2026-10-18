@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { store } from '../lib/store';
-import { earnedWhat, moneyList, periodTotals, rewardText, useMyRewards } from '../lib/rewards';
+import { earnedWhat, moneyList, periodTotals, rewardPeople, rewardText, useMyRewards } from '../lib/rewards';
 import { whoName } from '../lib/supporters';
 import { dayISO } from '../lib/schedule';
 import { now } from '../lib/util';
@@ -23,12 +23,13 @@ export default function Rewards() {
   const [status, setStatus] = useState<Status>('all'), [range, setRange] = useState<Range>('all'), [sup, setSup] = useState('all');
   const today = dayISO(now()), term = termOf(today, termStarts());
   const inRange = (ts: number) => { const d = dayISO(ts); return range === 'all' ? true : range === 'year' ? d.slice(0, 4) === today.slice(0, 4) : d >= term.start && d <= term.end; };
-  const earned = all.filter(e => (status === 'all' || e.status === status) && (sup === 'all' || e.supporter.id === sup) && inRange(e.earnedAt));
+  const onIt = (e: (typeof all)[number]) => sup === 'all' || e.supporter.id === sup || (e.members || []).some(m => m.id === sup);
+  const earned = all.filter(e => (status === 'all' || e.status === status) && onIt(e) && inRange(e.earnedAt));
   const b = earnedBreakdown(earned);
   const month = periodTotals(all, 'month'), year = periodTotals(all, 'year');
-  const sups = [...new Map(all.map(e => [e.supporter.id, e.supporter])).values()];
+  const sups = [...new Map(all.flatMap(e => (e.members && e.members.length > 1 ? e.members : [e.supporter]).map(p => [p.id, p] as const))).values()];
   const bySup = new Map<string, typeof earned>();
-  for (const e of earned) bySup.set(e.supporter.id, [...(bySup.get(e.supporter.id) || []), e]);
+  for (const e of earned) { const p = rewardPeople(e); bySup.set(p.id, [...(bySup.get(p.id) || []), e]); }
   const sys = store.data.settings.grading;
   const Tot = ({ p, tid, label }: { p: ReturnType<typeof periodTotals>; tid: string; label: string }) => (
     <div className="tile-stat rw-total" data-testid={tid}><span>{label}</span>
@@ -49,7 +50,7 @@ export default function Rewards() {
       <div className="tiles two"><Tot p={month} tid="rw-total-month" label={t('rw_this_month')} /><Tot p={year} tid="rw-total-year" label={t('rw_this_year')} /></div>
       {!all.length && <div className="empty-hero"><div className="empty-emoji">🎁</div><p>{t('rw_none_yet')}</p><ParentInvite /></div>}
       {[...bySup.values()].map(list => {
-        const s = list[0].supporter, open = list.filter(e => e.status === 'open'), paid = list.filter(e => e.status === 'paid');
+        const s = rewardPeople(list[0]), open = list.filter(e => e.status === 'open'), paid = list.filter(e => e.status === 'paid');
         return (
           <div key={s.id} className="card rw-sup" data-testid="rw-sup" data-name={whoName(s)}>
             <div className="rw-sup-head"><MiniAvatar src={s.avatar} name={s.name} size={40} /><b>{whoName(s)}</b><span className="chip warm">{t('open_rewards_n', { n: open.length })}</span></div>

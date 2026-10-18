@@ -6,7 +6,7 @@ import { isRcKind } from '../../../shared/rewards';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Subject, Test } from '../../../shared/types';
 import { api, ApiError } from '../lib/api';
-import { earnedLine, rewardText, ruleWhen, useMyRewards, type MyRewards } from '../lib/rewards';
+import { earnedLine, peopleNames, rewardText, ruleWhen, useMyRewards, type MyRewards } from '../lib/rewards';
 import { runSync } from '../lib/sync';
 import { store } from '../lib/store';
 import { whoName } from '../lib/supporters';
@@ -33,7 +33,7 @@ export function EarnCards({ subject, test }: { subject?: Subject; test?: Test })
           <div key={r.id} className={'earn-card' + (full ? ' full' : '')} data-testid="earn-card">
             <MiniAvatar src={r.supporter.avatar} name={r.supporter.name} size={34} />
             <div><b className="earn-reward">{rewardText(r.reward)}</b><span>{ruleWhen(r.trigger, sys)}</span>
-              <small className="muted">{t('rw_from', { name: whoName(r.supporter) })}{r.capPerMonth != null ? ' · ' + (full ? t('rw_cap_full') : t('rw_cap_left', { n: r.capPerMonth - r.earnedThisMonth, cap: r.capPerMonth })) : ''}</small></div>
+              <small className="muted" data-testid="earn-from">{t('rw_from', { name: r.members && r.members.length > 1 ? peopleNames(r.members) : whoName(r.supporter) })}{r.capPerMonth != null ? ' · ' + (full ? t('rw_cap_full') : t('rw_cap_left', { n: r.capPerMonth - r.earnedThisMonth, cap: r.capPerMonth })) : ''}</small></div>
           </div>);
       })}</div>
       {rules.some(r => isRcKind(r.trigger.kind)) && <Link className="btn link sm" to="/reports/simulate" data-testid="earn-sim">🧮 {t('sim_open')} →</Link>}

@@ -13,7 +13,7 @@ import type { Config } from './config';
 import type { HistoryEntry, Test } from '../../shared/types';
 import { computeProgress, practiceBefore, xpToReach, type CheerLite, type Progress } from '../../shared/gamification';
 import {
-  INVITE_DAYS_DEFAULT, INVITE_DAYS_MAX, INVITE_USES_MAX, MAX_OPEN_INVITES, MAX_SUPPORTERS, REACTIONS, RELATIONS, TARGET_KINDS,
+  INVITE_DAYS_DEFAULT, INVITE_DAYS_MAX, INVITE_USES_MAX, MAX_JOINT_MEMBERS, MAX_OPEN_INVITES, MAX_SUPPORTERS, REACTIONS, RELATIONS, TARGET_KINDS, isFamilyRelation,
   targetKey, type Cheer, type Invite, type KidMilestone, type KidResult, type KidSummary, type ReactionCount, type Relation, type Supporter, type TargetKind
 } from '../../shared/supporters';
 import { tx } from './db';
@@ -45,8 +45,22 @@ export async function inviteIsOpen(q: Q, secret: string, token: unknown): Promis
 const inviteRow = (r: Record<string, any>): Invite => ({
   id: String(r.id), relation: cleanRelation(r.relation), label: r.label, maxUses: r.max_uses, uses: r.uses,
   expiresAt: new Date(r.expires_at).toISOString(), createdAt: new Date(r.created_at).toISOString(),
-  status: r.revoked_at ? 'revoked' : r.uses >= r.max_uses ? 'used' : new Date(r.expires_at).getTime() < Date.now() ? 'expired' : 'open'
+  status: r.revoked_at ? 'revoked' : r.uses >= r.max_uses ? 'used' : new Date(r.expires_at).getTime() < Date.now() ? 'expired' : 'open',
+  ...(r.rule_id ? { ruleId: String(r.rule_id) } : {})
 });
+/** accepting a family invite that names a reward puts that person on the reward. One promise, not one per person. */
+async function joinInvitedRule(c: Q, inv: { rule_id?: unknown; student_id: unknown }, supporterId: number): Promise<boolean> {
+  if (!inv.rule_id) return false;
+  const link = (await c.query('SELECT relation FROM supporter_links WHERE student_id = $1 AND supporter_id = $2', [inv.student_id, supporterId])).rows[0];
+  if (!link || !isFamilyRelation(link.relation)) return false;
+  const rule = (await c.query('SELECT id FROM reward_rules WHERE id = $1 AND student_id = $2 AND active', [inv.rule_id, inv.student_id])).rows[0];
+  if (!rule) return false;
+  const n = Number((await c.query('SELECT count(*)::int AS n FROM reward_rule_members WHERE rule_id = $1', [rule.id])).rows[0].n);
+  const already = (await c.query('SELECT 1 FROM reward_rule_members WHERE rule_id = $1 AND supporter_id = $2', [rule.id, supporterId])).rows[0];
+  if (!already && n >= MAX_JOINT_MEMBERS) return false;
+  await c.query('INSERT INTO reward_rule_members (rule_id, student_id, supporter_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [rule.id, inv.student_id, supporterId]);
+  return true;
+}
 
 /* ---------- a student's progress, recomputed on the server from the same data + the same code as the app ---------- */
 export async function loadStudent(q: Q, studentId: number) {
@@ -145,9 +159,17 @@ export async function supportersPlugin(app: FastifyInstance, { pool, config }: {
     const maxUses = Math.min(INVITE_USES_MAX, Math.max(1, Math.round(Number(b.maxUses) || 1)));
     const open = Number((await pool.query(`SELECT count(*) FROM invites WHERE student_id = $1 AND revoked_at IS NULL AND uses < max_uses AND expires_at > now()`, [uidOf(req)])).rows[0].count);
     if (open >= MAX_OPEN_INVITES) return reply.code(409).send({ error: 'too_many_invites' });
+    const relation = cleanRelation(b.relation);
+    let ruleId: string | null = null;
+    if (b.ruleId != null && b.ruleId !== '') {
+      if (!ID_NUM.test(String(b.ruleId)) || !isFamilyRelation(relation)) return reply.code(400).send({ error: 'not_family' });
+      const rule = (await pool.query('SELECT id FROM reward_rules WHERE id = $1 AND student_id = $2 AND active', [b.ruleId, uidOf(req)])).rows[0];
+      if (!rule) return reply.code(400).send({ error: 'not_found' });
+      ruleId = String(rule.id);
+    }
     const token = crypto.randomBytes(24).toString('base64url');
-    const r = await pool.query(`INSERT INTO invites (student_id, token_hash, relation, label, max_uses, expires_at) VALUES ($1,$2,$3,$4,$5, now() + make_interval(days => $6)) RETURNING *`,
-      [uidOf(req), hashToken(token), cleanRelation(b.relation), cleanLabel(b.label), maxUses, days]);
+    const r = await pool.query(`INSERT INTO invites (student_id, token_hash, relation, label, max_uses, expires_at, rule_id) VALUES ($1,$2,$3,$4,$5, now() + make_interval(days => $6), $7) RETURNING *`,
+      [uidOf(req), hashToken(token), relation, cleanLabel(b.label), maxUses, days, ruleId]);
     return reply.code(201).send({ invite: { ...inviteRow(r.rows[0]), token, url: `${config.publicUrl}/join#${token}` } });
   });
   app.get('/api/invites', auth, async req => {
@@ -182,7 +204,16 @@ export async function supportersPlugin(app: FastifyInstance, { pool, config }: {
   });
   app.delete<{ Params: { id: string } }>('/api/supporters/:id', auth, async (req, reply) => {
     if (!ID_NUM.test(req.params.id)) return reply.code(404).send({ error: 'not_found' });
-    const r = await pool.query('DELETE FROM supporter_links WHERE student_id = $1 AND supporter_id = $2', [uidOf(req), req.params.id]);   // their reactions, reward rules, earned rewards and verifications go too (FK cascade)
+    // a shared reward stays with the relatives who remain. Their reactions and solo rewards still go.
+    const r = await tx(pool, async c => {
+      await c.query(`UPDATE reward_rules r SET supporter_id = m.supporter_id FROM (
+          SELECT DISTINCT ON (rule_id) rule_id, supporter_id FROM reward_rule_members
+          WHERE student_id = $1 AND supporter_id <> $2 ORDER BY rule_id, joined_at) m
+        WHERE r.id = m.rule_id AND r.student_id = $1 AND r.supporter_id = $2`, [uidOf(req), req.params.id]);
+      await c.query(`UPDATE rewards_earned e SET supporter_id = r.supporter_id FROM reward_rules r
+        WHERE e.rule_id = r.id AND e.student_id = $1 AND e.supporter_id = $2 AND r.supporter_id <> $2`, [uidOf(req), req.params.id]);
+      return c.query('DELETE FROM supporter_links WHERE student_id = $1 AND supporter_id = $2', [uidOf(req), req.params.id]);
+    });
     if (r.rowCount) req.log.info({ studentId: String(uidOf(req)) }, 'supporter removed');
     return r.rowCount ? { ok: true } : reply.code(404).send({ error: 'not_found' });
   });
@@ -208,7 +239,15 @@ export async function supportersPlugin(app: FastifyInstance, { pool, config }: {
     if (!r) return { valid: false, reason: 'not_found' };
     const st = inviteRow(r).status;
     if (st !== 'open') return { valid: false, reason: st };
-    return { valid: true, studentName: firstName(r.name), studentAvatar: avatarPath(r.student_id, r.avatar_etag), relation: cleanRelation(r.relation) };
+    let jointWith: string | undefined;
+    if (r.rule_id && isFamilyRelation(cleanRelation(r.relation))) {
+      const names = (await pool.query(`SELECT coalesce(nullif(l.label, ''), split_part(u.name, ' ', 1)) AS name
+          FROM reward_rule_members m JOIN users u ON u.id = m.supporter_id
+          JOIN supporter_links l ON l.student_id = m.student_id AND l.supporter_id = m.supporter_id
+          WHERE m.rule_id = $1 ORDER BY m.joined_at`, [r.rule_id])).rows.map(x => x.name).filter(Boolean);
+      if (names.length) jointWith = names.join(', ');
+    }
+    return { valid: true, studentName: firstName(r.name), studentAvatar: avatarPath(r.student_id, r.avatar_etag), relation: cleanRelation(r.relation), ...(jointWith ? { jointWith } : {}) };
   });
   app.post('/api/invite/accept', auth, async (req, reply) => {
     if (limited(reply, inviteLimit(req.ip))) return;
@@ -221,14 +260,18 @@ export async function supportersPlugin(app: FastifyInstance, { pool, config }: {
       const who = { id: String(student.id), name: firstName(student.name), avatar: avatarPath(student.id, student.avatar_etag) };
       if (Number(inv.student_id) === Number(me)) return { code: 400, body: { error: 'own_invite' } };
       const existing = (await c.query('SELECT 1 FROM supporter_links WHERE student_id = $1 AND supporter_id = $2', [inv.student_id, me])).rows[0];
-      if (existing) return { code: 200, body: { ok: true, already: true, student: who } };   // re-opening the link doesn't burn a use
       const st = inviteRow(inv).status;
+      if (existing) {
+        if (st === 'open') await joinInvitedRule(c, inv, me);   // already family: the link can still add them to the reward, and does not burn a use
+        return { code: 200, body: { ok: true, already: true, student: who } };
+      }
       if (st !== 'open') return { code: 410, body: { error: st } };
       const n = Number((await c.query('SELECT count(*) FROM supporter_links WHERE student_id = $1', [inv.student_id])).rows[0].count);
       if (n >= MAX_SUPPORTERS) return { code: 409, body: { error: 'too_many_supporters' } };
       await c.query('UPDATE invites SET uses = uses + 1 WHERE id = $1', [inv.id]);
       await c.query('INSERT INTO supporter_links (student_id, supporter_id, relation, label, invite_id) VALUES ($1,$2,$3,$4,$5)', [inv.student_id, me, inv.relation, inv.label, inv.id]);
       await c.query('UPDATE users SET is_supporter = TRUE WHERE id = $1', [me]);
+      await joinInvitedRule(c, inv, me);
       return { code: 200, body: { ok: true, student: who } };
     });
     if (res.code === 200 && !(res.body as { already?: boolean }).already) req.log.info({ supporterId: String(me) }, 'supporter linked');
