@@ -29,6 +29,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Fixed
 
+- PDF.js loads from the vendored file while developing. The app starts again, and JavaScript inside a worksheet stays switched off.
 - The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
 - The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
