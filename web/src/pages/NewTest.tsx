@@ -16,11 +16,12 @@ export function NewTest() {
   const today = S.dayISO(now());
   const [sp] = useSearchParams();
   const preSubj = (sp.get('subject') && sp.get('subject')! in SUBJECTS ? sp.get('subject') : null) as Subject | null, preLang = sp.get('foreign') as Lang | null;
-  const [w, setW] = useState(() => ({ step: 1, subject: preSubj, foreign: (preLang || (d.settings.uiLang === 'de' ? 'en' : 'de')) as Lang, native: (d.settings.uiLang === 'de' ? 'de' : 'en') as Lang, name: preSubj ? (preSubj === 'languages' ? t('auto_name_lang', { lang: langName((preLang || 'en') as Lang) }) : t('auto_name', { subject: SUBJECTS[preSubj].name[uiLang()] })) : '', nameTouched: false, testDate: S.addDays(today, 7), format: 'mixed' as Format, articles: false }));
+  const [w, setW] = useState(() => ({ step: 1, subject: preSubj as Subject | null, foreign: (preLang || (d.settings.uiLang === 'de' ? 'en' : 'de')) as Lang, native: (d.settings.uiLang === 'de' ? 'de' : 'en') as Lang, name: preSubj ? (preSubj === 'languages' ? t('auto_name_lang', { lang: langName((preLang || 'en') as Lang) }) : t('auto_name', { subject: SUBJECTS[preSubj].name[uiLang()] })) : '', nameTouched: false, testDate: S.addDays(today, 7), format: 'mixed' as Format, articles: false }));
   const up = (p: Partial<typeof w>) => setW(x => {
     const n = { ...x, ...p };
     if (n.subject === 'languages' && n.foreign === n.native) n.foreign = n.native === 'de' ? 'en' : 'de';
     if (n.subject && !n.nameTouched) n.name = n.subject === 'languages' ? t('auto_name_lang', { lang: langName(n.foreign) }) : t('auto_name', { subject: SUBJECTS[n.subject].name[uiLang()] });
+    if (!n.subject) { n.name = n.nameTouched ? n.name : ''; }
     return n;
   });
   const [blocked, setBlocked] = useState(() => recentTestCount(store.data.tests, now()) >= TESTS_PER_24H);
@@ -48,7 +49,14 @@ export function NewTest() {
   let body;
   if (w.step === 1) body = (<>
     <h2 className="q">{t('wiz_subject')}</h2>
-    <div className="subject-grid">{(Object.keys(SUBJECTS) as Subject[]).map(k => <button key={k} data-testid={'subj-' + k} className={'subj' + (w.subject === k ? ' on' : '')} onClick={() => up({ subject: k, format: k === 'languages' ? w.format : 'mixed', native: k !== 'languages' && !['de', 'en', 'fr', 'es'].includes(w.native) ? 'de' : w.native })}><span>{SUBJECTS[k].icon}</span>{SUBJECTS[k].name[uiLang()]}</button>)}</div>
+    {!w.subject ? (
+      <div className="subject-grid">{(Object.keys(SUBJECTS) as Subject[]).map(k => <button key={k} data-testid={'subj-' + k} className={'subj' + (w.subject === k ? ' on' : '')} onClick={() => up({ subject: k, format: k === 'languages' ? w.format : 'mixed', native: k !== 'languages' && !['de', 'en', 'fr', 'es'].includes(w.native) ? 'de' : w.native })}><span>{SUBJECTS[k].icon}</span>{SUBJECTS[k].name[uiLang()]}</button>)}</div>
+    ) : (
+      <button type="button" className="subj on wiz-picked" data-testid={'subj-' + w.subject} onClick={() => up({ subject: null, name: '', nameTouched: false })}>
+        <span>{SUBJECTS[w.subject].icon}</span>{SUBJECTS[w.subject].name[uiLang()]}
+      </button>
+    )}
+    {w.subject && <label className="field wiz-name"><span>{t('wiz_name')}</span><input data-testid="test-name" value={w.name} maxLength={60} onChange={e => up({ name: e.target.value, nameTouched: true })} /></label>}
     {w.subject === 'languages' && <>
       <h3 className="q2">{t('wiz_which_lang')}</h3>
       <div className="chips">{(['en', 'fr', 'es', 'la', 'de'] as Lang[]).filter(l => l !== w.native).map(l => <button key={l} data-testid={'foreign-' + l} className={'pill' + (w.foreign === l ? ' on' : '')} onClick={() => up({ foreign: l, articles: l === 'de' })}>{flag(l)} {langName(l)}</button>)}</div>
@@ -59,7 +67,6 @@ export function NewTest() {
       <h3 className="q2">{t('wiz_material_lang')}</h3>
       <div className="chips">{(['de', 'en', 'fr', 'es'] as Lang[]).map(l => <button key={l} data-testid={'native-' + l} className={'pill' + (w.native === l ? ' on' : '')} onClick={() => up({ native: l })}>{flag(l)} {langName(l)}</button>)}</div>
     </>}
-    {w.subject && <label className="field"><span>{t('wiz_name')}</span><input data-testid="test-name" value={w.name} maxLength={60} onChange={e => up({ name: e.target.value, nameTouched: true })} /></label>}
   </>);
   else if (w.step === 2) body = (<>
     <h2 className="q">{t('wiz_when')}</h2>

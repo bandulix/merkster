@@ -40,7 +40,7 @@ function KidCard({ k }: { k: KidSummary }) {
             {r.reactions.length > 0 && <small>{r.reactions.filter(x => !x.reaction.startsWith('msg:')).map(x => x.reaction).join('')}</small>}</span>))}</div></>}
       {p && p.milestones.length > 0 && <><h4>{t('kid_milestones')}</h4>
         <div className="kid-ms">{p.milestones.map(m => <span key={m.kind + m.id} className="ms-chip">{milestoneIcon(m.kind, m.id)} {milestoneName(m.kind, m.id)}</span>)}</div></>}
-      <span className="kid-go">{t('react')} →</span>
+      <span className="btn primary big wide kid-go" data-testid="cheer-cta">{t('cheer_kid', { name: kidName(k) })}</span>
     </button>
   );
 }

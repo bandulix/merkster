@@ -109,8 +109,8 @@ export default function KidDetail() {
       {items.length > 0 && <><h2 className="sec-title">📊 {t('results_dash')}</h2>
         <ResultsDashboard items={items} sys={k.grading || d.settings.grading} rowActions={x => resActions(k.results!.find(r => r.testId === x.id))} rowExtra={x => x.id === latest?.testId ? null : <ReactionBar counts={k.results!.find(r => r.testId === x.id)!.reactions} busy={busy} onToggle={(r, on) => react('result', x.id, r, on)} />} /></>}
       <p className="muted small center">🔒 {t('readonly_note')}</p>
-      {rcPhoto && <Modal onClose={() => setRcPhoto(null)} label={t('rc_photo')} className="photo-modal"><img className="test-photo" data-testid="kid-rc-photo" src={`/api/kids/${k.id}/report-cards/${rcPhoto}/photo`} alt={t('rc_photo')} /><div className="row-btns"><button className="btn primary" onClick={() => setRcPhoto(null)}>OK</button></div></Modal>}
-      {photo && <Modal onClose={() => setPhoto(null)} label={t('photo_view')} className="photo-modal"><img className="test-photo" data-testid="kid-photo" src={`/api/kids/${k.id}/photo/${photo}`} alt={t('photo_view')} /><div className="row-btns"><button className="btn primary" onClick={() => setPhoto(null)}>OK</button></div></Modal>}
+      {rcPhoto && <Modal onClose={() => setRcPhoto(null)} label={t('rc_photo')} className="photo-modal"><img className="test-photo" data-testid="kid-rc-photo" src={`/api/kids/${k.id}/report-cards/${rcPhoto}/photo`} alt={t('rc_photo')} /><div className="row-btns"><button className="btn primary" onClick={() => setRcPhoto(null)}>{t('ok')}</button></div></Modal>}
+      {photo && <Modal onClose={() => setPhoto(null)} label={t('photo_view')} className="photo-modal"><img className="test-photo" data-testid="kid-photo" src={`/api/kids/${k.id}/photo/${photo}`} alt={t('photo_view')} /><div className="row-btns"><button className="btn primary" onClick={() => setPhoto(null)}>{t('ok')}</button></div></Modal>}
     </section>
   );
 }

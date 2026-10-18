@@ -4,6 +4,7 @@ import type { DraftRow, ExtractResult, Test } from '../../../shared/types';
 import { LANGS } from '../i18n';
 import { api, ApiError } from './api';
 import { linesText, orient, parseGeneral, parseWords, type Header, type OcrWord } from './parse';
+import { store } from './store';
 import { loadScript } from './util';
 import { APP_SLUG } from '../../../shared/brand';
 
@@ -230,7 +231,7 @@ export function ocrLangs(test: Pick<Test, 'subject' | 'foreign' | 'native'>) {
 
 async function extractViaServer(test: Test, images: Blob[], text?: string): Promise<ExtractResult> {
   const fd = new FormData();
-  fd.append('meta', JSON.stringify({ testId: test.id, subject: test.subject, format: test.format, foreign: test.foreign, native: test.native }));
+  fd.append('meta', JSON.stringify({ testId: test.id, subject: test.subject, format: test.format, foreign: test.foreign, native: test.native, uiLang: store.data.settings.uiLang }));
   if (text) fd.append('text', text);
   images.forEach((b, i) => fd.append('image', b, `page-${i + 1}.jpg`));
   return api<ExtractResult>('/api/ai/extract', { form: fd });

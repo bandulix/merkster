@@ -33,10 +33,17 @@ function Counter({ m }: { m: MoneyTotal }) {
 }
 export function GrandTotal({ b, label, testid = 'grand-total', big = true }: { b: Breakdown; label?: string; testid?: string; big?: boolean }) {
   const other = b.perSupporter.flatMap(s => s.other);
+  const [open, setOpen] = useState(false);
+  const primary = b.grand[0], rest = b.grand.slice(1);
   return (
     <div className={'grand-total' + (big ? ' big' : '')} data-testid={testid}>
       <span className="gt-label">{label || t('grand_total')}</span>
-      <div className="gt-money">{b.grand.length ? b.grand.map((m, i) => <span key={m.currency}>{i > 0 && <i className="gt-plus"> + </i>}<Counter m={m} /></span>) : !other.length ? <span className="money-n zero" data-testid="grand-money" data-amount="0">–</span> : null}</div>
+      <div className="gt-money">{primary ? <Counter m={primary} /> : !other.length ? <span className="money-n zero" data-testid="grand-money" data-amount="0">–</span> : null}</div>
+      {rest.length > 0 && (
+        <button type="button" className="btn link sm gt-more" data-testid="more-currencies" onClick={() => setOpen(v => !v)}>
+          {open ? rest.map((m, i) => <span key={m.currency}>{i > 0 ? ' + ' : ''}<Counter m={m} /></span>) : t('more_currencies', { n: b.grand.length })}
+        </button>
+      )}
       {other.length > 0 && <div className="gt-other" data-testid="grand-other">{b.grand.length ? '+ ' : ''}{other.map((x, i) => <span key={i} className="chip warm">🎁 {x}</span>)}</div>}
     </div>);
 }

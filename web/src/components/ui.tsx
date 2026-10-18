@@ -10,7 +10,7 @@ import { store } from '../lib/store';
 import { useMe, useStore, useSyncStatus, useToasts } from '../hooks';
 
 export function Logo({ size = 32, className = '' }: { size?: number; className?: string }) {
-  return <img src="/icons/logo.svg" width={size} height={size} alt="" className={'logo ' + className} />;
+  return <img src="/icons/logo.svg" width={size} height={size} alt={APP_NAME} className={'logo ' + className} />;
 }
 export function Brand() { return <span className="brand"><Logo size={30} /><b>{APP_NAME}</b></span>; }
 
@@ -61,7 +61,7 @@ const IconMe = () => <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden
 export function Nav({ mode = 'student', unseen = 0, rewardDot = 0 }: { mode?: 'student' | 'supporter' | 'both'; unseen?: number; rewardDot?: number }) {
   const student = mode !== 'supporter';
   return (
-    <nav className={'nav nav-' + mode} aria-label="Main">
+    <nav className={'nav nav-' + mode} aria-label={t('nav_main')}>
       <div className="nav-brand"><Brand /></div>
       {student && <NavLink to="/" end className="nav-item" data-testid="nav-today"><IconToday /><span>{t('tab_today')}</span></NavLink>}
       {student && <NavLink to="/results" className="nav-item" data-testid="nav-results"><IconResults /><span>{t('tab_results')}</span></NavLink>}
@@ -118,12 +118,31 @@ export function GoogleButton({ href, label, onClick }: { href: string; label: st
     </a>
   );
 }
-/** modal sheet (bottom sheet on phones, centred dialog on desktop) */
+/** modal sheet (bottom sheet on phones, centred dialog on desktop) – focus trap + restore */
 export function Modal({ children, onClose, className = '', label }: { children: React.ReactNode; onClose: () => void; className?: string; label?: string }) {
-  React.useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k); }, [onClose]);
+  const panel = React.useRef<HTMLDivElement>(null);
+  const prev = React.useRef<HTMLElement | null>(null);
+  React.useEffect(() => {
+    prev.current = document.activeElement as HTMLElement | null;
+    const root = panel.current;
+    const focusables = () => [...(root?.querySelectorAll<HTMLElement>('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])') || [])].filter(el => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+    const first = focusables()[0] || root;
+    first?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+      if (e.key !== 'Tab' || !root) return;
+      const list = focusables();
+      if (!list.length) { e.preventDefault(); root.focus(); return; }
+      const i = list.indexOf(document.activeElement as HTMLElement);
+      if (e.shiftKey && (i <= 0)) { e.preventDefault(); list[list.length - 1].focus(); }
+      else if (!e.shiftKey && (i === list.length - 1 || i < 0)) { e.preventDefault(); list[0].focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); prev.current?.focus?.(); };
+  }, [onClose]);
   return (
     <div className="modal-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={'modal pop-in ' + className} role="dialog" aria-modal="true" aria-label={label}>
+      <div ref={panel} className={'modal pop-in ' + className} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
         <button className="icon-btn modal-x" aria-label={t('close')} onClick={onClose}>✕</button>
         {children}
       </div>

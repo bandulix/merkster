@@ -7,6 +7,7 @@ import { startSync, stopSync } from './lib/sync';
 import { Logo, Nav, Toasts } from './components/ui';
 import { UpdatePrompt } from './pwa';
 import { t } from './i18n';
+import { clearToasts } from './lib/util';
 import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
 import { Home } from './pages/Home';
@@ -44,6 +45,7 @@ export function App() {
   const user = me.data?.user || null;
   const [openFor, setOpenFor] = useState<string | null>(null);
   useTheme(data.settings.theme);
+  useEffect(() => { clearToasts(); }, [loc.pathname]);
   const cheers = useCheers(!!user && !me.data?.offline);
   const myRewards = useMyRewards(!!user && !me.data?.offline);
   const given = useGivenRewards(!!user?.isSupporter && !me.data?.offline);
@@ -78,8 +80,9 @@ export function App() {
   const rewardDot = given.data?.unseen || 0;
   return (
     <div className={'app' + (chrome ? ' with-nav' : '')}>
+      <a className="skip-link" href="#main">{t('skip_to_main')}</a>
       {chrome && <Nav mode={mode} unseen={unseen} rewardDot={rewardDot} />}
-      <main className="main" id="main">
+      <main className="main" id="main" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Navigate to="/" replace />} />

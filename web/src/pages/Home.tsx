@@ -9,7 +9,7 @@ import * as S from '../lib/schedule';
 import { countdown, fmtTime, fmtWhen, now } from '../lib/util';
 import { extraEntries, startPractice } from '../lib/activeSession';
 import { LevelChip, Logo, Ring, SyncBadge } from '../components/ui';
-import { t, testIcon } from '../i18n';
+import { t, tp, testIcon } from '../i18n';
 import type { Test } from '../../../shared/types';
 
 export function Home() {
@@ -39,7 +39,7 @@ export function Home() {
     hero = (
       <div className="hero-card pop-in" data-testid="hero">
         <div className="hero-top"><span className="hero-k">{t('today')}</span>{streak > 0 && <span className="streak">🔥 {streak}</span>}</div>
-        <h2>{t('hero_ready', { n: sess.entries.length })}</h2>
+        <h2>{tp('hero_ready', sess.entries.length)}</h2>
         <p className="hero-sub">{t('hero_sub', { m: mins })}{rest > 0 ? ' · ' + t('hero_more', { n: rest }) : ''}</p>
         {night.length > 0 && <div className="hero-note">🌙 {t('night_note', { tests: night.join(', ') })}</div>}
         {morning.length > 0 && <div className="hero-note">☀️ {t('morning_note', { tests: morning.join(', ') })}</div>}
@@ -48,12 +48,18 @@ export function Home() {
   } else {
     const nexts = active.map(x => S.nextDueAt(x, ts)).filter((x): x is number => x != null).sort((a, b) => a - b);
     const later = active.reduce((n, x) => n + S.laterToday(x, ts).length, 0);
+    const extra = extraEntries(active, d.settings.sessionSize);
+    const extraMins = Math.max(2, Math.round(extra.length * 0.45));
     hero = (
       <div className="hero-card done pop-in" data-testid="hero-done">
         <div className="hero-top"><span className="hero-k">{t('today')}</span>{streak > 0 && <span className="streak">🔥 {streak}</span>}</div>
         <h2>{active.length ? t('all_done') : t('no_active')}</h2>
-        <p className="hero-sub">{later ? t('later_today', { n: later, time: fmtTime(nexts[0]) }) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('add_test_hint')}</p>
-        {active.some(x => x.items.length) && <button className="btn ghost-light" onClick={() => go(extraEntries(active, d.settings.sessionSize))}>{t('extra_round')}</button>}
+        <p className="hero-sub">{later ? tp('later_today', later, { time: fmtTime(nexts[0]) }) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('add_test_hint')}</p>
+        {active.some(x => x.items.length) && extra.length > 0 && (
+          <button className="btn start sm extra-cta" data-testid="extra-round" onClick={() => go(extra)}>
+            {t('extra_round')}<small>{t('extra_round_sub', { n: extra.length, m: extraMins })}</small>
+          </button>
+        )}
       </div>);
   }
   const card = (x: Test) => {
@@ -62,7 +68,7 @@ export function Home() {
       <button key={x.id} className="test-card" data-testid="test-card" onClick={() => nav('/test/' + x.id)}>
         <span className="tc-icon">{testIcon(x)}</span>
         <span className="tc-main"><b>{x.name}</b>
-          <span className="tc-sub">{x.items.length ? <>{t('n_cards', { n: x.items.length })}{due > 0 && <> · <em>{t('n_due', { n: due })}</em></>}</> : <em className="warn">{t('no_cards_yet')}</em>}</span></span>
+          <span className="tc-sub">{x.items.length ? <>{tp('n_cards', x.items.length)}{due > 0 && <> · <em>{tp('n_due', due)}</em></>}</> : <em className="warn">{t('no_cards_yet')}</em>}</span></span>
         <span className={'cd ' + cd.cls}>{cd.label}</span>
         <Ring pct={m} size={46} stroke={5} />
       </button>);
@@ -74,12 +80,12 @@ export function Home() {
         <div className="home-top-r only-mobile"><SyncBadge /><LevelChip /></div>
       </header>
       <div className="home-grid">
-        <div>{askable.map(x => (
+        <div className="home-main">{askable.map(x => (
           <button key={x.id} className="ask-card pop-in" data-testid="ask-result" onClick={() => setAsk(x)}>
             <span className="tc-icon">{testIcon(x)}</span><span><b>{t('how_did_it_go')}</b><small>{x.name}</small></span><span className="btn primary sm">{t('enter_result')}</span>
           </button>))}{hero}<ParentInvite /><EarnCards /></div>
-        {(active.length > 0 || past.length > 0) && <div>
-          <div className="sec-head"><h3>{t('your_tests')}</h3><button className="btn link" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
+        {(active.length > 0 || past.length > 0) && <div className="home-side">
+          <div className="sec-head"><h3>{t('your_tests')}</h3><button className="btn link only-mobile" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
           {active.length > 0 && <div className="test-list">{active.map(card)}</div>}
           {past.length > 0 && <details className="past"><summary>{t('past_tests', { n: past.length })}</summary><div className="test-list">{past.map(card)}</div></details>}
         </div>}
