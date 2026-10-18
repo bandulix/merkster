@@ -41,10 +41,12 @@ export function ImportPage() {
     try {
       const res = await processFiles(files, test, ai, s => setStatus(s));
       if (res.aiError) toast(res.aiError === 'ai_rate_limited' ? t('ai_rate_limited') : t('ai_failed'), 'bad');
+      if (res.pictureDropped) toast(t('picture_limit_left', { n: res.pictureDropped }), 'bad');
       toReview(test, res, merge);
       nav('/test/' + test.id + '/review', { replace: true });
     } catch (e) {
       if (e instanceof ApiError && e.code === 'not_school_material') { setError('not_school_material'); setStatus(null); return; }
+      if (e instanceof ApiError && e.code === 'picture_limit') { setError('picture_limit'); setStatus(null); return; }
       console.error('import failed', (e as Error).message); setError((e as Error).message || ''); setStatus(null);
     }
   };
@@ -56,7 +58,9 @@ export function ImportPage() {
       <ImportLead name={test.name} />
       {ai ? <div className="ai-banner on" data-testid="ai-on">✨ <span>{t('ai_on')}</span></div>
         : <div className={'ai-banner' + (isLang ? '' : ' strong')} data-testid="ai-off">{isLang ? '💡' : '✨'} <span>{isLang ? t('ai_tip_lang') : t('ai_tip_general')} {t('ai_tip_admin')}</span></div>}
-      {error != null && <div className="proc" data-testid={error === 'not_school_material' ? 'import-refused' : 'import-error'}><b>😕 {error === 'not_school_material' ? t('not_school_material') : t('import_failed')}</b>{error !== 'not_school_material' && <p className="muted">{error}</p>}<button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
+      {error === 'picture_limit' && <div className="proc" data-testid="import-picture-limit"><b>{t('picture_limit')}</b><p className="muted">{t('pictures_max')}</p><button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
+      {error === 'not_school_material' && <div className="proc" data-testid="import-refused"><b>😕 {t('not_school_material')}</b><button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
+      {error != null && error !== 'picture_limit' && error !== 'not_school_material' && <div className="proc" data-testid="import-error"><b>😕 {t('import_failed')}</b><p className="muted">{error}</p><button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
       {status ? (
         <div className="proc pop-in" data-testid="progress">
           <div className="scan"><Logo size={64} /><i /></div>
@@ -69,6 +73,7 @@ export function ImportPage() {
           <label className="tile"><input type="file" accept="image/*,application/pdf,.pdf" multiple hidden data-testid="file-input" onChange={e => onFiles([...(e.target.files || [])])} /><span className="ti">🖼️</span><b>{t('upload')}</b><small>{t('upload_sub')}</small></label>
           <button className="tile" data-testid="paste-tile" onClick={() => nav(`/test/${test.id}/paste${merge ? '?merge=1' : ''}`)}><span className="ti">⌨️</span><b>{t('type_paste')}</b><small>{t('type_paste_sub')}</small></button>
         </div>
+        <p className="muted" data-testid="pictures-max">{t('pictures_max')}</p>
         <details className="tips"><summary>📷 {t('photo_tips')}</summary><ul><li>{t('tip1')}</li><li>{t('tip2')}</li><li>{t('tip3')}</li></ul></details>
         <button className="btn link center-block" data-testid="use-demo" onClick={() => { toReview(test, { rows: demoRows(test), method: 'demo' }, merge); nav(`/test/${test.id}/review`, { replace: true }); }}>🎲 {t('use_demo')}</button>
       </>)}

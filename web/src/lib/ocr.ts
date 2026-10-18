@@ -11,7 +11,7 @@ import { APP_SLUG } from '../../../shared/brand';
 declare global { interface Window { Tesseract?: any; pdfjsLib?: any } }
 type Src = ImageBitmap | HTMLImageElement | HTMLCanvasElement;
 export interface Status { stage: 'load' | 'prep' | 'ocr' | 'ai' | 'pdf'; page?: number; of?: number; progress?: number; name?: string }
-export interface ImportResult { rows: DraftRow[]; thumbs: string[]; method: 'ai' | 'ocr'; unreadable: string[]; unused: number; swapped: boolean; aiError: string | null; header: Header | null; orientConfidence?: number }
+export interface ImportResult { rows: DraftRow[]; thumbs: string[]; method: 'ai' | 'ocr'; unreadable: string[]; unused: number; swapped: boolean; aiError: string | null; header: Header | null; orientConfidence?: number; pictureDropped?: number }
 type Page = { kind: 'photo'; src: Src } | { kind: 'text'; words: OcrWord[]; canvas: HTMLCanvasElement } | { kind: 'image'; canvas: HTMLCanvasElement };
 
 const abs = (p: string) => new URL(p, location.origin).href;
@@ -232,11 +232,52 @@ export async function processFiles(files: File[], test: Test, useAI: boolean, on
   }
   const isLang = test.subject === 'languages';
   const result: ImportResult = { rows: [], thumbs: [], method: useAI ? 'ai' : 'ocr', unreadable: [], unused: 0, swapped: false, aiError: null, header: null };
-  for (let i = 0; i < pages.length; i++) {
-    const pg = pages[i];
+  let work = pages;
+  if (pages.length) {
+    // The server counts every photo and every PDF page. If it cannot be asked, do not read the
+    // files on the device either — that path would skip the cap. Paste and the demo never get here.
+    const quota = await api<{ remaining: number }>(`/api/tests/${test.id}/pictures`);
+    if (quota.remaining <= 0) throw new ApiError(422, 'picture_limit');
+    let dropped = 0;
+    if (pages.length > quota.remaining) { dropped = pages.length - quota.remaining; work = pages.slice(0, quota.remaining); }
+    const reserve = async (count: number) => {
+      try {
+        const slot = await api<{ accepted: number }>(`/api/tests/${test.id}/pictures`, { body: { count } });
+        return slot.accepted;
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'picture_limit') return 0;
+        throw e;
+      }
+    };
+    if (!useAI) {
+      const accepted = await reserve(work.length);
+      if (accepted <= 0) throw new ApiError(422, 'picture_limit');
+      if (accepted < work.length) { dropped += work.length - accepted; work = work.slice(0, accepted); }
+    } else {
+      // Image pages are counted inside /api/ai/extract. Text-layer pages never send an image, so count them here.
+      const textCount = work.filter(p => p.kind === 'text').length;
+      if (textCount) {
+        const accepted = await reserve(textCount);
+        if (accepted < textCount) {
+          let keep = accepted;
+          const next: Page[] = [];
+          for (const p of work) {
+            if (p.kind !== 'text') next.push(p);
+            else if (keep > 0) { next.push(p); keep--; }
+            else dropped++;
+          }
+          work = next;
+        }
+      }
+      if (!work.length) throw new ApiError(422, 'picture_limit');
+    }
+    if (dropped) result.pictureDropped = dropped;
+  }
+  for (let i = 0; i < work.length; i++) {
+    const pg = work[i];
     const color = pg.kind === 'photo' ? pg.src : pg.canvas;
     result.thumbs.push(toDataURL(color, 360, 0.6));
-    const ps = (stage: Status['stage'], progress?: number) => onStatus({ stage, page: i + 1, of: pages.length, progress });
+    const ps = (stage: Status['stage'], progress?: number) => onStatus({ stage, page: i + 1, of: work.length, progress });
     let rows: DraftRow[] | null = null;
     if (useAI && !result.aiError) {
       try {
@@ -247,6 +288,12 @@ export async function processFiles(files: File[], test: Test, useAI: boolean, on
       } catch (e) {
         // A refused upload must not be read on the device either, or the gate would not hold.
         if (e instanceof ApiError && e.code === 'not_school_material') throw e;
+        if (e instanceof ApiError && e.code === 'picture_limit') {
+          result.thumbs.pop();
+          result.pictureDropped = (result.pictureDropped || 0) + (work.length - i);
+          if (!result.rows.length) throw e;
+          break;
+        }
         result.aiError = e instanceof ApiError ? e.code : 'ai_failed'; result.method = 'ocr';
       }
     }
