@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResultDialog } from '../components/ResultDialog';
+import { ParentInvite } from '../components/ParentInvite';
 import { EarnCards } from '../components/Rewards';
 import { useStore } from '../hooks';
 import { store } from '../lib/store';
@@ -76,7 +77,7 @@ export function Home() {
         <div>{askable.map(x => (
           <button key={x.id} className="ask-card pop-in" data-testid="ask-result" onClick={() => setAsk(x)}>
             <span className="tc-icon">{testIcon(x)}</span><span><b>{t('how_did_it_go')}</b><small>{x.name}</small></span><span className="btn primary sm">{t('enter_result')}</span>
-          </button>))}{hero}<EarnCards /></div>
+          </button>))}{hero}<ParentInvite /><EarnCards /></div>
         {(active.length > 0 || past.length > 0) && <div>
           <div className="sec-head"><h3>{t('your_tests')}</h3><button className="btn link" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
           {active.length > 0 && <div className="test-list">{active.map(card)}</div>}

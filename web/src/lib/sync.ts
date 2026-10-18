@@ -2,8 +2,10 @@
 import type { SyncResponse } from '../../../shared/types';
 import { api, ApiError } from './api';
 import { idbGet, idbSet } from './idb';
+import { t } from '../i18n';
 import { store } from './store';
-import { applyRemote, diff, emptySyncState, entities, hashes, settle, type SyncState } from './syncCore';
+import { applyRemote, diff, dropRejected, emptySyncState, entities, hashes, settle, type SyncState } from './syncCore';
+import { toast } from './util';
 
 export type SyncStatus = 'idle' | 'pending' | 'ok' | 'offline' | 'error';
 let state: SyncState = emptySyncState();
@@ -47,10 +49,16 @@ export async function runSync(): Promise<boolean> {
     const { req, snapshot, pushed, tombstones } = diff(store.data, state, startedAt);
     const res = await api<SyncResponse>('/api/sync', { body: req, keepalive: document.visibilityState === 'hidden' && JSON.stringify(req).length < 60000 });
     if (store.userId !== uid) return false; // logged out meanwhile
+    let kept = pushed;
+    if (res.rejectedTests?.length) {
+      kept = dropRejected(store.data, res.rejectedTests, pushed);
+      store.commit(undefined, { sync: false });
+      toast(t('test_limit'), 'bad');
+    }
     const cur = hashes(entities(store.data));
     const changed = (k: string) => cur[k] !== snapshot[k];
     const n = applyRemote(store.data, res, changed);
-    state = settle(state, store.data, res, snapshot, pushed, tombstones, changed);
+    state = settle(state, store.data, res, snapshot, kept, tombstones, changed);
     // data first, bookkeeping second: if the page dies in between, the next round simply re-pulls
     if (n) store.commit(undefined, { sync: false });
     await store.flush();
