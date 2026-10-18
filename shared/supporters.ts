@@ -8,6 +8,13 @@ export type Relation = (typeof RELATIONS)[number];
 export const FAMILY_RELATIONS = ['mum', 'dad', 'grandma', 'grandpa', 'aunt', 'uncle'] as const;
 export type FamilyRelation = (typeof FAMILY_RELATIONS)[number];
 export const isFamilyRelation = (r: string): r is FamilyRelation => (FAMILY_RELATIONS as readonly string[]).includes(r);
+/** Visibility granted when someone accepts an invite. Join promises results + practice; photos stay opt-in. */
+export const INVITE_SHARE_DEFAULTS = { showResults: true, showPractice: true, showPhotos: false } as const;
+/**
+ * Parents and relatives who join a reward (or share-all) need grades and practice stats so the promise
+ * makes sense. Coaches / "someone else" keep whatever the student already set on their link.
+ */
+export const familyNeedsStudentStats = (relation: string): boolean => isFamilyRelation(relation);
 export const MAX_JOINT_MEMBERS = 8;
 export const REACTION_EMOJI = ['👍', '❤️', '🎉', '🔥', '💪', '👏', '⭐', '🤩'] as const;
 /** preset messages (no free text in v1 – nothing to moderate); stored as 'msg:<key>' */
