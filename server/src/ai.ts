@@ -12,7 +12,7 @@ import { ID_RE } from './sanitize';
 export const SYSTEM_PROMPT = `You turn photos or text of school material (worksheets, textbook pages, notes, vocabulary lists) into study cards for a student preparing for a test.
 RULES
 - Use ONLY information that is visible in the material. Never add facts, translations, dates or answers that are not on the page.
-- If something is cut off, blurry or unreadable, do not guess: describe it in "unreadable" and set "unclear": true on any card that is affected.
+- If something is cut off, blurry or unreadable, do not guess: describe it in "unreadable" (short notes in the student's UI language when specified) and set "unclear": true on any card that is affected.
 - Keep spelling, umlauts, accents, articles, plural forms and notation exactly as printed.
 - Skip headings, page numbers, exercise instructions and decoration.
 - One fact per card. Keep answers short (ideally under 12 words). Cover everything learnable on the page.
@@ -35,6 +35,8 @@ export function userPrompt(m: ExtractMeta, text?: string) {
     const f = LANG_EN[m.foreign], n = LANG_EN[m.native];
     lines.push(`Vocabulary: the student learns ${f}; their own language is ${n}. Put the ${f} side in "front" and the ${n} side in "back".`);
   } else lines.push('Write the cards in the language of the material.');
+  const noteLang = m.uiLang === 'de' ? 'German' : m.uiLang === 'en' ? 'English' : (m.native === 'de' ? 'German' : 'English');
+  lines.push(`Write every "unreadable" note in ${noteLang} (UI language for the student).`);
   if (text) lines.push('Text of the material (from OCR or a PDF, may contain recognition errors):\n"""\n' + text.slice(0, 12000) + '\n"""');
   return lines.join('\n');
 }
@@ -156,9 +158,11 @@ function cleanMeta(raw: unknown): ExtractMeta {
   const o = (raw || {}) as Record<string, unknown>;
   const pick = <T extends string>(v: unknown, list: readonly T[], d: T) => (list.includes(v as T) ? (v as T) : d);
   const subject = pick(o.subject, SUBJECT_KEYS, 'other') as Subject;
+  const uiLang = o.uiLang === 'de' || o.uiLang === 'en' ? o.uiLang : undefined;
   return {
     testId: typeof o.testId === 'string' ? o.testId.slice(0, 64) : undefined, subject, format: pick(o.format, FORMATS, 'mixed'),
-    foreign: subject === 'languages' ? (pick(o.foreign, LANG_CODES, 'en') as Lang) : null, native: pick(o.native, LANG_CODES, 'de') as Lang
+    foreign: subject === 'languages' ? (pick(o.foreign, LANG_CODES, 'en') as Lang) : null, native: pick(o.native, LANG_CODES, 'de') as Lang,
+    uiLang
   };
 }
 

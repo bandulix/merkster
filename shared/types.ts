@@ -80,5 +80,5 @@ export interface SyncResponse { rev: number; profile: WireProfile | null; tests:
 export interface PublicConfig { ai: { configured: boolean; model: string | null }; auth: { google: boolean; testProvider: boolean; /** a codeword (SIGNUP_CODE) is needed to create a new account – the code itself is never sent */ signupCode?: boolean }; registrationOpen: boolean; maxUploadMB: number; maxUploadFiles: number; version: string; /** AGPL-3.0 §13 – where users get the source (SOURCE_CODE_URL) */ sourceCodeUrl?: string; }
 /** what the browser knows about the signed-in user (from Google: name, e-mail, avatar URL) */
 export interface User { id: string; name: string; email: string | null; avatar: string | null; isAdmin: boolean; createdAt?: string; isSupporter?: boolean; kids?: number; supporters?: number }
-export interface ExtractMeta { testId?: string; subject: Subject; format: Format; foreign: Lang | null; native: Lang; }
+export interface ExtractMeta { testId?: string; subject: Subject; format: Format; foreign: Lang | null; native: Lang; /** UI language for user-facing unreadable notes */ uiLang?: UiLang; }
 export interface ExtractResult { rows: DraftRow[]; unreadable: string[]; language: string; model?: string; }

@@ -77,7 +77,7 @@ export function ShareSheet({ what, onClose }: { what: ShareWhat; onClose: () => 
       <div className="row-btns wrap">
         <button className="btn primary big" disabled={!blob || !!busy} data-testid="share-png" onClick={() => blob && doShare(blob, 'png')}>📤 {t('share_image')}</button>
         {videoMime() && <button className="btn ghost" disabled={!!busy} data-testid="share-video" onClick={anim}>{busy === 'video' ? '⏳ ' + t('share_rendering') : '🎬 ' + t('share_video')}</button>}
-        <a className="btn ghost" href={whatsappLink(text)} target="_blank" rel="noopener noreferrer">💬 WhatsApp</a>
+        <a className="btn ghost" href={whatsappLink(text)} target="_blank" rel="noopener noreferrer">💬 {t('share_whatsapp')}</a>
       </div>
     </Modal>
   );

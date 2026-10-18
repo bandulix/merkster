@@ -78,7 +78,7 @@ export function ResultExtras({ test }: { test: Test }) {
       {store.userId && <p className="muted xsmall">🔒 {t('photo_hint')}</p>}
       {view && <Modal onClose={() => setView(false)} label={t('photo_view')} className="photo-modal">
         <img className="test-photo" src={`/api/tests/${test.id}/photo?v=${v}`} alt={t('photo_view')} />
-        <div className="row-btns"><button className="btn link bad" onClick={remove}>{t('photo_remove')}</button><button className="btn primary" onClick={() => setView(false)}>OK</button></div>
+        <div className="row-btns"><button className="btn link bad" onClick={remove}>{t('photo_remove')}</button><button className="btn primary" onClick={() => setView(false)}>{t('ok')}</button></div>
       </Modal>}
     </div>
   );

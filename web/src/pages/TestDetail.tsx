@@ -17,7 +17,7 @@ import { ParentInvite } from '../components/ParentInvite';
 import { ShareWithClass } from '../components/ShareWithClass';
 import { EarnCards, ResultExtras } from '../components/Rewards';
 import { cheersFor, useCheers } from '../lib/supporters';
-import { formatsFor, t, testIcon, type Key } from '../i18n';
+import { formatsFor, t, tp, testIcon, type Key } from '../i18n';
 
 const PK: Record<string, Key> = { first: 'pk_first', next: 'pk_next', relearn: 'pk_relearn', night: 'pk_night', morning: 'pk_morning', 'first+night': 'pk_first' };
 
@@ -40,7 +40,7 @@ export function TestDetail() {
       <TopBar title={<span className="td-title">{testIcon(test)} {test.name}</span>} back="/" right={<button className="icon-btn" data-testid="td-settings" aria-label={t('settings_test')} onClick={() => setShowSettings(s => !s)}>⚙️</button>} />
       <div className="td-hero pop-in">
         <Ring pct={m} size={96} stroke={9} />
-        <div><span className={'cd ' + cd.cls}>{cd.label}</span><p className="muted">{fmtDay(test.testDate)} · {t('n_cards', { n: test.items.length })}</p>
+        <div><span className={'cd ' + cd.cls}>{cd.label}</span><p className="muted">{fmtDay(test.testDate)} · {tp('n_cards', test.items.length)}</p>
           <p className="small">{t('pb_line', { s: pb.sessions, d: pb.days, m: pb.minutes })}</p></div>
       </div>
       {fresh && <div className="fresh-card pop-in"><h2>🎉 {t('fresh_title', { n: test.items.length })}</h2><p>{t('fresh_text', { n: plan.length })}</p></div>}
@@ -69,7 +69,7 @@ export function TestDetail() {
           <li key={i} className={'tl ' + st}><i /><span><b>{p.day === today ? t('due_today') : fmtDay(p.day)}</b><small>{t(PK[p.kind])}</small></span>{st === 'done' && '✓'}</li>); })}</ol>
         <p className="muted small">{t('plan_hint', { g: S.gapDays(test) })}</p></div>}
       <div className="card">
-        <div className="sec-head"><h3>{t('n_cards', { n: test.items.length })}</h3>{test.items.length > 8 && <input className="search" placeholder={t('search')} value={q} onChange={e => setQ(e.target.value)} />}</div>
+        <div className="sec-head"><h3>{tp('n_cards', test.items.length)}</h3>{test.items.length > 8 && <input className="search" placeholder={t('search')} value={q} onChange={e => setQ(e.target.value)} />}</div>
         <ul className="card-list" data-testid="card-list">{items.map(c => <CardRow key={c.id} c={c} testId={test.id} lang={test.subject === 'languages' ? test.foreign : null} editing={edit === c.id} setEdit={setEdit} />)}</ul>
       </div>
       {result && <ResultDialog test={test} onClose={() => setResult(false)} onSaved={best => best && setShare({ kind: 'result', test: store.test(test.id)!, best })} />}

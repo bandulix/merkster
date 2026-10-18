@@ -15,6 +15,7 @@ export function Me() {
   useStore(); const me = useMe(); const L = uiLang();
   const p = store.progress(), have = new Map(p.badges.map(b => [b.id, b.at]));
   const [share, setShare] = useState<ShareWhat | null>(null);
+  const [showAllBadges, setShowAllBadges] = useState(false);
   const user = me.data?.user || null;
   const ri = RANKS.indexOf(p.rank), next = RANKS[ri + 1];
   const cheers = useCheers(), sup = useSupporters(), markSeen = useMarkCheersSeen();
@@ -55,23 +56,12 @@ export function Me() {
         </div>
       </div>
 
-      <div className="me-grid">
-        <Link to="/classes" className="card sup-card" data-testid="my-class">
-          <h3>🏫 {t('my_class')}</h3>
-          <p className="muted small">{t('my_class_sub')}</p>
-          <span className="btn ghost sm">{t('classes_title')} →</span>
-        </Link>
+      <div className="me-grid me-social">
         <Link to="/supporters" className="card sup-card" data-testid="my-supporters">
           <h3>📣 {t('my_supporters')}</h3>
           <div className="sup-avs">{(sup.data || []).slice(0, 6).map(s => <MiniAvatar key={s.id} src={s.avatar} name={whoName(s)} size={36} />)}{!sup.data?.length && <span className="muted small">{t('no_supporters')}</span>}</div>
-          <span className="btn ghost sm">{sup.data?.length ? t('fans_n', { n: sup.data.length }) : t('invite_supporter')} →</span>
+          <span className="btn primary sm">{sup.data?.length ? t('fans_n', { n: sup.data.length }) : t('invite_supporter')}</span>
         </Link>
-        <Link to="/reports" className="card sup-card" data-testid="me-reports"><h3>📜 {t('report_cards')}</h3><p className="muted small">{t('results_reports')} · {t('sim_title')}</p></Link>
-        {!!(rw.data?.rules.length || rw.data?.earned.length) && <Link to="/rewards" className="card sup-card" data-testid="me-rewards">
-          <h3>🎁 {t('my_rewards')}</h3>
-          <p><b>{rwOpen.length ? t('open_rewards_n', { n: rwOpen.length }) : t('rw_open') + ': –'}</b>{rwYear.paid.length ? <span className="muted small"> · {t('rw_this_year')}: {moneyList(rwYear.paid)} ✅</span> : null}</p>
-          <span className="btn ghost sm">{t('what_can_i_earn')} →</span>
-        </Link>}
         <div className="card feed-card" data-testid="cheer-feed">
           <h3>🎉 {t('cheers')} {unseen > 0 && <span className="chip hot">{t('cheers_new', { n: unseen })}</span>}</h3>
           {!cheers.data?.length ? <p className="muted small">{t('cheer_feed_empty')}</p> :
@@ -79,15 +69,31 @@ export function Me() {
               <li key={c.id} className={'feed-item' + (c.seen ? '' : ' new')} data-testid="cheer-item"><MiniAvatar src={c.from.avatar} name={c.from.name} size={30} />
                 <span className="grow"><span>{cheerLine(c, testName)}</span><small className="muted">{new Date(c.at).toLocaleDateString(L)}</small></span><b className="feed-r">{reactionText(c.reaction)}</b></li>))}</ul>}
         </div>
+        <Link to="/classes" className="card sup-card" data-testid="my-class">
+          <h3>🏫 {t('my_class')}</h3>
+          <p className="muted small">{t('my_class_sub')}</p>
+          <span className="btn ghost sm">{t('classes_title')} →</span>
+        </Link>
+        <Link to="/reports" className="card sup-card" data-testid="me-reports"><h3>📜 {t('report_cards')}</h3><p className="muted small">{t('results_reports')} · {t('sim_title')}</p></Link>
+        {!!(rw.data?.rules.length || rw.data?.earned.length) && <Link to="/rewards" className="card sup-card" data-testid="me-rewards">
+          <h3>🎁 {t('my_rewards')}</h3>
+          <p><b>{rwOpen.length ? t('open_rewards_n', { n: rwOpen.length }) : t('rw_open') + ': –'}</b>{rwYear.paid.length ? <span className="muted small"> · {t('rw_this_year')}: {moneyList(rwYear.paid)} ✅</span> : null}</p>
+          <span className="btn ghost sm">{t('what_can_i_earn')} →</span>
+        </Link>}
       </div>
 
       <h3 className="sec-title">{t('badges')} <span className="muted">{p.badges.length}/{BADGES.length}</span></h3>
       <div className="badge-grid" data-testid="badges">
-        {BADGES.map(b => { const at = have.get(b.id); return (
+        {(showAllBadges ? BADGES : [...BADGES.filter(b => have.has(b.id)), ...BADGES.filter(b => !have.has(b.id)).slice(0, 4)]).map(b => { const at = have.get(b.id); return (
           <button key={b.id} className={'badge-tile' + (at ? ' got' : '')} disabled={!at} title={b.desc[L]} onClick={() => at && setShare({ kind: 'badge', id: b.id })}>
             <span className="bi">{at ? b.icon : '🔒'}</span><b>{b.name[L]}</b><small>{b.desc[L]}</small>
           </button>); })}
       </div>
+      {BADGES.length > (p.badges.length + 4) && (
+        <button type="button" className="btn ghost sm" data-testid="badges-toggle" onClick={() => setShowAllBadges(v => !v)}>
+          {showAllBadges ? t('show_fewer_badges') : t('show_all_badges')}
+        </button>
+      )}
 
       <h3 className="sec-title">{t('ranks')}</h3>
       <div className="rank-ladder">

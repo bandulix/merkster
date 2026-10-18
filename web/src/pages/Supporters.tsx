@@ -9,20 +9,29 @@ import { rewardText, ruleWhen, useMyRewards } from '../lib/rewards';
 import { relName, useInvites, useSeeEachOther, useSupporters, whoName } from '../lib/supporters';
 import { store } from '../lib/store';
 import { toast } from '../lib/util';
-import { useMe } from '../hooks';
+import { useConfig, useMe } from '../hooks';
 import { Modal, TopBar } from '../components/ui';
 import { MiniAvatar } from '../components/Cheers';
 import { t, uiLang } from '../i18n';
 
+const isLoopbackUrl = (url: string) => {
+  try { const h = new URL(url).hostname; return h === 'localhost' || h === '127.0.0.1' || h === '::1'; } catch { return false; }
+};
+
 const REL_ICON: Record<Relation, string> = { mum: '👩', dad: '👨', grandma: '👵', grandpa: '👴', aunt: '🧑‍🦰', uncle: '🧔', coach: '🏅', other: '🙂' };
 
 function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; startAs?: Relation }) {
-  const me = useMe(), qc = useQueryClient(), rewards = useMyRewards();
+  const me = useMe(), cfg = useConfig(), qc = useQueryClient(), rewards = useMyRewards();
   const [rel, setRel] = useState<Relation>(startAs), [label, setLabel] = useState(''), [uses, setUses] = useState(1), [ruleId, setRuleId] = useState('');
   const [inv, setInv] = useState<CreatedInvite | null>(null), [qr, setQr] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const rules = rewards.data?.rules || [], family = isFamilyRelation(rel);
+  const allowLoopback = !!cfg.data?.auth.testProvider || import.meta.env.DEV;
+  const loopback = !!inv && isLoopbackUrl(inv.url) && !allowLoopback;
   useEffect(() => { if (!family) setRuleId(''); }, [family]);
-  useEffect(() => { if (!inv) return; import('qrcode').then(Q => Q.toDataURL(inv.url, { margin: 1, width: 360, color: { dark: '#0d0f1e', light: '#ffffff' }, errorCorrectionLevel: 'M' })).then(setQr).catch(() => setQr(null)); }, [inv]);
+  useEffect(() => {
+    if (!inv || loopback) { setQr(null); return; }
+    import('qrcode').then(Q => Q.toDataURL(inv.url, { margin: 1, width: 360, color: { dark: '#0d0f1e', light: '#ffffff' }, errorCorrectionLevel: 'M' })).then(setQr).catch(() => setQr(null));
+  }, [inv, loopback]);
   const create = async () => {
     setBusy(true);
     try { const r = await api<{ invite: CreatedInvite }>('/api/invites', { body: { relation: rel, label, maxUses: uses, days: INVITE_DAYS_DEFAULT, ...(ruleId === 'all' ? { shareAll: true } : ruleId ? { ruleId } : {}) } }); setInv(r.invite); qc.invalidateQueries({ queryKey: ['invites'] }); }
@@ -31,11 +40,11 @@ function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; st
   const first = me.data?.user?.name?.split(/\s+/)[0] || '';
   const text = t('invite_share_text', { name: first, app: APP_NAME });
   const share = async () => {
-    if (!inv) return;
+    if (!inv || loopback) return;
     if (navigator.share) { try { await navigator.share({ title: APP_NAME, text, url: inv.url }); return; } catch (e) { if ((e as Error).name === 'AbortError') return; } }
     window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + inv.url), '_blank', 'noopener');
   };
-  const copy = async () => { if (!inv) return; try { await navigator.clipboard.writeText(inv.url); toast(t('copied'), 'ok'); } catch { (document.querySelector('[data-testid="invite-url"]') as HTMLInputElement | null)?.select(); } };
+  const copy = async () => { if (!inv || loopback) return; try { await navigator.clipboard.writeText(inv.url); toast(t('copied'), 'ok'); } catch { (document.querySelector('[data-testid="invite-url"]') as HTMLInputElement | null)?.select(); } };
   return (
     <Modal onClose={onClose} label={t('invite_supporter')}>
       {!inv ? <>
@@ -55,9 +64,13 @@ function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; st
       </> : <>
         <h2>🔗 {t('invite_ready')}</h2>
         <p className="muted small">{REL_ICON[inv.relation]} {inv.label || relName(inv.relation)} · {t('invite_valid', { n: INVITE_DAYS_DEFAULT })}</p>
-        <div className="row-in"><input readOnly value={inv.url} data-testid="invite-url" onFocus={e => e.target.select()} /><button className="btn ghost" data-testid="invite-copy" onClick={copy}>{t('invite_copy')}</button></div>
-        <button className="btn primary big wide" data-testid="invite-share" onClick={share}>📤 {t('invite_share')}</button>
-        {qr && <div className="qr-box"><img src={qr} alt="QR" width={180} height={180} data-testid="invite-qr" /><small className="muted">{t('invite_qr')}</small></div>}
+        {loopback
+          ? <p className="ai-banner strong" data-testid="invite-loopback" role="alert">{t('invite_loopback')}</p>
+          : <>
+            <div className="row-in"><input readOnly value={inv.url} data-testid="invite-url" onFocus={e => e.target.select()} /><button className="btn ghost" data-testid="invite-copy" onClick={copy}>{t('invite_copy')}</button></div>
+            <button className="btn primary big wide" data-testid="invite-share" onClick={share}>📤 {t('invite_share')}</button>
+            {qr && <div className="qr-box"><img src={qr} alt={t('invite_qr')} width={180} height={180} data-testid="invite-qr" /><small className="muted">{t('invite_qr')}</small></div>}
+          </>}
         <p className="muted small">🔒 {t('invite_once_hint')}</p>
       </>}
     </Modal>

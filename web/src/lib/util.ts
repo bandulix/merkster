@@ -85,11 +85,26 @@ export function loadScript(src: string): Promise<void> {
   });
 }
 
-/* tiny toast bus */
-type Toast = { id: number; msg: string; kind: '' | 'ok' | 'bad' };
+/* tiny toast bus – single queue, dedupe by message+kind, clearable on route change */
+type Toast = { id: number; msg: string; kind: '' | 'ok' | 'bad'; timer?: ReturnType<typeof setTimeout> };
 let toasts: Toast[] = [], tid = 0; const tl = new Set<() => void>();
+const notify = () => tl.forEach(f => f());
 export const toastStore = { get: () => toasts, sub: (f: () => void) => { tl.add(f); return () => { tl.delete(f); }; } };
+export function clearToasts() {
+  for (const x of toasts) if (x.timer) clearTimeout(x.timer);
+  if (!toasts.length) return;
+  toasts = [];
+  notify();
+}
 export function toast(msg: string, kind: Toast['kind'] = '') {
-  const item = { id: ++tid, msg, kind }; toasts = [...toasts, item]; tl.forEach(f => f());
-  setTimeout(() => { toasts = toasts.filter(x => x.id !== item.id); tl.forEach(f => f()); }, 3000);
+  const dup = toasts.find(x => x.msg === msg && x.kind === kind);
+  if (dup) {
+    if (dup.timer) clearTimeout(dup.timer);
+    dup.timer = setTimeout(() => { toasts = toasts.filter(x => x.id !== dup.id); notify(); }, 3000);
+    return;
+  }
+  const item: Toast = { id: ++tid, msg, kind };
+  item.timer = setTimeout(() => { toasts = toasts.filter(x => x.id !== item.id); notify(); }, 3000);
+  toasts = [...toasts, item];
+  notify();
 }

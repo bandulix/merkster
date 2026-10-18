@@ -77,7 +77,16 @@ http.createServer((req, res) => {
       const school = !/NOT_SCHOOL/.test(text) && !/NOT_SCHOOL/.test(blobs);
       return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ school }) } }] });
     }
-    const payload = /REPORT_CARD/.test(sys) ? REPORT : /Vocabulary:/.test(text) ? VOCAB : BIO;
+    const deNotes = /unreadable.*German|UI language for the student\)\.|Write every "unreadable" note in German/i.test(text);
+    let payload = /REPORT_CARD/.test(sys) ? { ...REPORT } : /Vocabulary:/.test(text) ? { ...VOCAB } : { ...BIO };
+    if (deNotes && payload.unreadable?.length) {
+      payload = {
+        ...payload,
+        unreadable: payload.unreadable.map(u =>
+          u === 'last line is cut off at the bottom edge' ? 'Die letzte Zeile ist am unteren Rand abgeschnitten'
+            : u === 'Religion grade is covered by a stamp' ? 'Religionsnote ist von einem Stempel verdeckt' : u)
+      };
+    }
     setTimeout(() => send(200, { id: 'mock-' + count, object: 'chat.completion', model: j.model, choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(payload) }, finish_reason: 'stop' }] }), 400);
   });
 }).listen(PORT, () => console.log(`mock LLM on :${PORT}`));

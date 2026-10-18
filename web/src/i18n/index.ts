@@ -55,7 +55,25 @@ export function t(key: Key, vars?: Record<string, string | number>): string {
   const s = (STRINGS[current] as Record<string, string>)[key] ?? (STRINGS.en as Record<string, string>)[key] ?? key;
   return String(s).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] != null ? String(vars[k]) : ''));
 }
+/** Plural-aware t(): string forms use `one;;other` (double semicolon). Falls back to `t` when no split. */
+export function tp(key: Key, n: number, vars?: Record<string, string | number>): string {
+  const raw = (STRINGS[current] as Record<string, string>)[key] ?? (STRINGS.en as Record<string, string>)[key] ?? key;
+  const parts = String(raw).split(';;');
+  const s = parts.length >= 2 ? (n === 1 ? parts[0] : parts[1]) : raw;
+  const all: Record<string, string | number> = { n, ...vars };
+  return String(s).replace(/\{(\w+)\}/g, (_, k: string) => (all[k] != null ? String(all[k]) : ''));
+}
 export const pick = (key: Key) => { const p = t(key).split('|'); return p[Math.floor(Math.random() * p.length)]; };
+
+/** Map known English OCR/LLM notes into the active UI language. */
+const NOTE_MAP: Record<string, Key> = {
+  'last line is cut off at the bottom edge': 'note_cut_off',
+  'religion grade is covered by a stamp': 'note_stamp_cover',
+};
+export function localizeNote(note: string): string {
+  const key = NOTE_MAP[note.trim().toLowerCase()];
+  return key ? t(key) : note;
+}
 
 /* ---- languages ---- */
 export const LANGS: Record<Lang, { flag: string; tts: string; ocr: string; name: Record<UiLang, string>; chars: string }> = {

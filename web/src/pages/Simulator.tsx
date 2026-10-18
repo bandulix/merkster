@@ -10,6 +10,7 @@ import { useStore } from '../hooks';
 import { store } from '../lib/store';
 import { useMyRewards, rewardText } from '../lib/rewards';
 import { LOCALE, mySubjects, rcNearest, rcOptions, subjIcon, subjName, termStarts, useReportCards } from '../lib/reportcards';
+import { whoName } from '../lib/supporters';
 import { dayISO } from '../lib/schedule';
 import { now } from '../lib/util';
 const isoToday = () => dayISO(now());
@@ -76,6 +77,16 @@ export default function Simulator() {
         {!rules.length && <p className="muted small" data-testid="sim-none">{t('sim_none')}</p>}
         {hints.length > 0 && <ul className="sim-hints" data-testid="sim-hints">{hints.map(h => <li key={h.id} data-testid="sim-hint">💡 {t('sim_hint', { subject: subjName(h.id), from: h.from, to: h.to, amount: rewardText({ type: 'money', currency: cur, amount: h.gain }) })}</li>)}</ul>}
       </div>
+      {rules.length > 0 && <div className="sim-status" data-testid="sim-status">
+        {rules.map(r => {
+          const unlocked = b.perSupporter.some(s => s.supporter.id === r.supporterId && s.items.some(it => it.ruleId === r.id && it.count > 0));
+          return (
+            <span key={r.id} className={'chip sim-chip' + (unlocked ? ' good' : '')} data-testid="sim-rule-chip" data-unlocked={unlocked ? '1' : '0'} data-name={whoName(r.supporter)}>
+              {unlocked ? '✓ ' + t('sim_unlocked') : '· ' + t('sim_locked')}: {whoName(r.supporter)} · {rewardText(r.reward)}
+            </span>
+          );
+        })}
+      </div>}
       <SupporterBreakdownList b={b} sys={sys} testid="sim-breakdown" />
       <div className="card sim-controls">
         <div className="sim-row">

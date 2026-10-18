@@ -5,7 +5,7 @@ import { useConfig } from '../hooks';
 import { store } from '../lib/store';
 import { canSpeak, speak, toast } from '../lib/util';
 import { TopBar } from '../components/ui';
-import { flag, langName, t } from '../i18n';
+import { flag, langName, localizeNote, t } from '../i18n';
 import type { Draft } from './Import';
 
 function AutoText(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -32,7 +32,7 @@ export function Review() {
       <div className="rev-summary pop-in">
         <div><b className="big-num" data-testid="cards-found">{good}</b> {t('cards_found')}{low > 0 && <> · <span className="warn">{t('n_to_check', { n: low })}</span></>}</div>
         <div className="muted small">{draft.method === 'ai' ? '✨ ' + t('via_ai') : draft.method === 'ocr' ? '🔍 ' + t('via_ocr') : ''}{draft.swapped ? ' · ' + t('swapped_auto') : ''}</div>
-        {draft.unreadable.length > 0 && <div className="unread" data-testid="unreadable">⚠️ {t('unreadable')}: {draft.unreadable.join(' · ')}</div>}
+        {draft.unreadable.length > 0 && <div className="unread" data-testid="unreadable">⚠️ {t('unreadable')}: {draft.unreadable.map(localizeNote).join(' · ')}</div>}
         {draft.method === 'ocr' && !isLang && !cfg.data?.ai.configured && <div className="ai-banner strong small">✨ <span>{t('ai_better')} {t('ai_tip_admin')}</span></div>}
       </div>
       {draft.thumbs.length > 0 && <div className="thumbs">{draft.thumbs.map((src, i) => <img key={i} src={src} alt="" />)}</div>}
@@ -62,7 +62,7 @@ export function Review() {
       </div>
       <div className="sticky-foot">
         <button className="btn link" onClick={() => { if (confirm(t('discard_confirm'))) { store.setDraft(null); nav('/test/' + test.id, { replace: true }); } }}>{t('discard')}</button>
-        <button className="btn primary big" data-testid="save-cards" disabled={!good} onClick={() => { const n = store.addItems(test, rows); store.setDraft(null); toast(t('added_n', { n }), 'ok'); nav(`/test/${test.id}?fresh=1`, { replace: true }); }}>{t('save_n', { n: good })}</button>
+        <button className="btn primary big" data-testid="save-cards" disabled={!good} onClick={() => { store.addItems(test, rows); store.setDraft(null); nav(`/test/${test.id}?fresh=1`, { replace: true }); }}>{t('save_n', { n: good })}</button>
       </div>
     </section>
   );

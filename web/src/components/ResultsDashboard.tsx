@@ -28,6 +28,7 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
   const withPractice = shown.some(x => x.practice);
   const pvr = shown.map(x => ({ name: x.name.length > 14 ? x.name.slice(0, 13) + '…' : x.name, minutes: x.practice?.minutes ?? 0, sessions: x.practice?.sessions ?? 0, result: yv(toPct(x.result)) }));
   const perSubject = subjects.map(s => { const ps = done.filter(x => x.subject === s).map(x => toPct(x.result)); return { s, n: ps.length, avg: ps.reduce((a, b) => a + b, 0) / ps.length, best: Math.max(...ps) }; });
+  const chartsReady = shown.length >= 2;
   return (<>
     {subjects.length > 1 && <div className="chips">{(['all', ...subjects] as const).map(s => <button key={s} className={'pill sm' + (filter === s ? ' on' : '')} onClick={() => setFilter(s as Subject | 'all')}>{s === 'all' ? t('all_subjects') : subjectIcon(s as Subject) + ' ' + subjectName(s as Subject)}</button>)}</div>}
     <div className="tiles" data-testid="result-tiles">
@@ -36,7 +37,8 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
       <div className="tile-stat"><span>{t('trend')}</span><b className={'trend ' + (trend || '')}>{trend === 'up' ? '↗' : trend === 'down' ? '↘' : trend === 'flat' ? '→' : '–'}</b><small>{trend ? t(('trend_' + trend) as 'trend_up') : t('trend_need')}</small></div>
       <div className="tile-stat"><span>{t('results_n')}</span><b>{shown.length}</b></div>
     </div>
-    <div className="card chart-card"><h3>{t('over_time')}</h3>
+    {!chartsReady && <p className="muted small" data-testid="charts-locked">{t('charts_need_more', { n: Math.max(1, 2 - shown.length) })}</p>}
+    {chartsReady && <div className="card chart-card" data-testid="chart-over-time"><h3>{t('over_time')}</h3>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={timeline} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="grid" />
@@ -47,8 +49,8 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
           {subjects.map((s, i) => <Line key={s} type="monotone" dataKey={s} name={s} stroke={COLORS[i % COLORS.length]} strokeWidth={3} dot={{ r: 5 }} connectNulls isAnimationActive />)}
         </LineChart>
       </ResponsiveContainer>
-    </div>
-    {withPractice && <div className="card chart-card"><h3>{t('practice_vs_result')}</h3><p className="muted small">{t('practice_vs_result_sub')}</p>
+    </div>}
+    {chartsReady && withPractice && <div className="card chart-card" data-testid="chart-practice"><h3>{t('practice_vs_result')}</h3><p className="muted small">{t('practice_vs_result_sub')}</p>
       <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={pvr} margin={{ top: 10, right: 0, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="grid" />

@@ -14,7 +14,7 @@ import { dayISO } from '../lib/schedule';
 import { now, toast } from '../lib/util';
 import { shrink } from '../components/Rewards';
 import { TopBar } from '../components/ui';
-import { t, uiLang, type Key } from '../i18n';
+import { localizeNote, t, uiLang, type Key } from '../i18n';
 
 interface Line { key: number; raw: string; subjectId: string; name: string; value: number | null; confidence: number; ignore: boolean; unreadable: boolean }
 interface Extract { schoolYear: string; term: TermKind; termLabel: string; issuedOn: string; system: string; lines: { subject: string; grade: string; unreadable: boolean }[]; unreadable: string[] }
@@ -110,7 +110,7 @@ export default function ReportNew() {
         </div>
         {meta.term === 'custom' && <label className="field"><span>{t('rc_term_label')}</span><input data-testid="rc-term-label" value={meta.termLabel} maxLength={40} onChange={e => setMeta({ ...meta, termLabel: e.target.value })} /></label>}
       </div>
-      {notes.length > 0 && <p className="note warn" data-testid="rc-notes">⚠️ {t('rc_unread_note', { what: notes.join('; ') })}</p>}
+      {notes.length > 0 && <p className="note warn" data-testid="rc-notes">⚠️ {t('rc_unread_note', { what: notes.map(localizeNote).join('; ') })}</p>}
       <div className="rc-lines">{lines.map(l => {
         const lvl = confLevel(l.confidence);
         return (
