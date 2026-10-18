@@ -6,6 +6,8 @@ import type pg from 'pg';
 import { CARD_TYPES, FORMATS, LANG_CODES, SUBJECT_KEYS, type CardType, type DraftRow, type ExtractMeta, type ExtractResult, type Format, type Lang, type Subject } from '../../shared/types';
 import { FORMAT_DESC_EN, LANG_EN, SUBJECT_EN } from '../../shared/meta';
 import type { Config } from './config';
+import { reservePictures } from './limits';
+import { ID_RE } from './sanitize';
 
 export const SYSTEM_PROMPT = `You turn photos or text of school material (worksheets, textbook pages, notes, vocabulary lists) into study cards for a student preparing for a test.
 RULES
@@ -156,6 +158,14 @@ export async function aiPlugin(app: FastifyInstance, { pool, config }: { pool: p
     if (meta.testId) {
       const t = (await pool.query('SELECT subject, format, foreign_lang, native_lang FROM tests WHERE user_id = $1 AND id = $2 AND NOT deleted', [uid, meta.testId])).rows[0];
       if (t) meta = cleanMeta({ testId: meta.testId, subject: t.subject, format: t.format, foreign: t.foreign_lang, native: t.native_lang });
+    }
+    // Image bytes count against this test's picture cap. Text does not. A full test never reaches the model.
+    if (images.length) {
+      if (!meta.testId || !ID_RE.test(meta.testId)) return reply.code(400).send({ error: 'test_required' });
+      const slot = await reservePictures(pool, uid, meta.testId, images.length);
+      if (!slot.accepted) return reply.code(422).send({ error: 'picture_limit', max: slot.max, used: slot.used });
+      images.splice(slot.accepted);
+      mimes.splice(slot.accepted);
     }
     const started = Date.now();
     const log = await pool.query('INSERT INTO ai_requests (user_id, images) VALUES ($1, $2) RETURNING id', [uid, images.length]);

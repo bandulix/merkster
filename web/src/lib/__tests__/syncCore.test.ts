@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AppData, SyncResponse, WireCard, WireTest } from '../../../../shared/types';
-import { applyRemote, diff, emptySyncState, entities, hashes, settle } from '../syncCore';
+import { applyRemote, diff, dropRejected, emptySyncState, entities, hashes, settle } from '../syncCore';
 import { freshState } from '../schedule';
 
 const base = (): AppData => ({ v: 2, settings: { uiLang: 'en', theme: 'auto', sessionSize: 15, tts: true, onboarded: true, grading: 'de_grade', sound: false, ackLevel: 1, ackBadges: [] }, streak: { count: 0, best: 0, lastDay: null }, stats: { sessions: 0, answers: 0, firstTry: 0, ms: 0 }, history: [], tests: [] });
@@ -71,5 +71,26 @@ describe('sync protocol', () => {
     const cur = hashes(entities(d));
     applyRemote(d, { rev: 9, profile: null, sessions: [], tests: [], cards: [{ id: 'card01', testId: 'test01', position: 0, type: 'qa', term: 'Q1?', meaning: 'server value', example: '', distractors: [], st: freshState(), updatedAt: 1 }] }, k => cur[k] !== snapshot[k]);
     expect(d.tests[0].items[0].meaning).toBe('edited during flight');
+  });
+  it('keeps the server creation time and does not push it back', () => {
+    const d = withTest();
+    d.tests[0].createdAt = 111;
+    const wire: WireTest = { id: 'test01', name: 'Bio', subject: 'biology', foreign: null, native: 'de', testDate: '2026-10-20', format: 'mixed', articles: false, created: '2026-10-08', days: [], result: null, resultSkipped: false, updatedAt: 1, serverCreatedAt: 222 };
+    applyRemote(d, { rev: 1, profile: null, sessions: [], tests: [wire], cards: [] }, () => false);
+    expect(d.tests[0].createdAt).toBe(222);
+    const pushed = diff(d, emptySyncState(), 5).req.push.tests?.[0];
+    expect(pushed).not.toHaveProperty('createdAt');
+    expect(pushed).not.toHaveProperty('serverCreatedAt');
+    const keep: WireTest = { ...wire, serverCreatedAt: undefined };
+    applyRemote(d, { rev: 2, profile: null, sessions: [], tests: [keep], cards: [] }, () => false);
+    expect(d.tests[0].createdAt).toBe(222);
+  });
+  it('drops a refused test and its cards so they are not marked synced', () => {
+    const d = withTest();
+    d.tests.push({ id: 'test02', name: 'Extra', subject: 'biology', foreign: null, native: 'de', created: '2026-10-18', createdAt: 9, testDate: '2026-10-20', format: 'mixed', articles: false, days: [], items: [{ id: 'card03', type: 'qa', term: 'Q', meaning: 'A', example: '', st: freshState() }] });
+    const kept = dropRejected(d, ['test02'], ['t:test01', 'c:card01', 'c:card02', 't:test02', 'c:card03']);
+    expect(d.tests.map(t => t.id)).toEqual(['test01']);
+    expect(kept).toEqual(['t:test01', 'c:card01', 'c:card02']);
+    expect(dropRejected(d, [], kept)).toBe(kept);
   });
 });

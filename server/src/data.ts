@@ -9,13 +9,24 @@ import { tx } from './db';
 import { supporterExport } from './supporters';
 import { evaluateSoon, rewardsExport } from './rewards';
 import { reportCardsExport } from './reportcards';
+import { PICTURES_PER_TEST, TESTS_PER_24H, picturesUsed, reservePictures, testsInLast24h } from './limits';
 import { cleanCard, cleanProfile, cleanSession, cleanState, cleanTest, ID_RE } from './sanitize';
 
 type Q = pg.Pool | pg.PoolClient;
 const newId = () => crypto.randomBytes(9).toString('base64url');
 
 /* ---------- writes (all LWW, all scoped by user_id) ---------- */
-export async function upsertTest(q: Q, uid: number, t: WireTest) {
+/** Insert or update one test. Returns false when a brand-new test would pass the 24h cap.
+ *  A tombstone for an id this user never stored is ignored (it must not take a slot).
+ *  The caller has to run this inside a transaction: the user-row lock only helps then.
+ *  created_at is filled by the column default on insert and is never updated. */
+export async function upsertTest(q: Q, uid: number, t: WireTest): Promise<boolean> {
+  const existing = await q.query('SELECT 1 FROM tests WHERE user_id = $1 AND id = $2', [uid, t.id]);
+  if (!existing.rowCount) {
+    if (t.deleted) return true;
+    await q.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [uid]);
+    if (await testsInLast24h(q, uid) >= TESTS_PER_24H) return false;
+  }
   await q.query(`INSERT INTO tests (user_id, id, name, subject, foreign_lang, native_lang, test_date, format, articles, created_day, days, updated_at, deleted, result, result_skipped, grading)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
     ON CONFLICT (user_id, id) DO UPDATE SET name = EXCLUDED.name, subject = EXCLUDED.subject, foreign_lang = EXCLUDED.foreign_lang, native_lang = EXCLUDED.native_lang,
@@ -24,6 +35,7 @@ export async function upsertTest(q: Q, uid: number, t: WireTest) {
     WHERE tests.updated_at <= EXCLUDED.updated_at`,
     [uid, t.id, t.name, t.subject, t.foreign, t.native, t.testDate, t.format, t.articles, t.created, JSON.stringify(t.days), t.updatedAt, !!t.deleted, t.result ? JSON.stringify(t.result) : null, !!t.resultSkipped, t.grading || null]);
   if (t.deleted) await q.query(`UPDATE cards SET deleted = TRUE, updated_at = $3, rev = nextval('sync_rev') WHERE user_id = $1 AND test_id = $2 AND NOT deleted`, [uid, t.id, t.updatedAt]);
+  return true;
 }
 /** returns false when the card's test does not exist (or is deleted) for this user */
 export async function upsertCard(q: Q, uid: number, c: WireCard): Promise<boolean> {
@@ -48,7 +60,10 @@ export async function upsertProfile(q: Q, uid: number, p: WireProfile) {
 }
 
 /* ---------- reads ---------- */
-const testRow = (r: Record<string, any>): WireTest => ({ id: r.id, name: r.name, subject: r.subject, foreign: r.foreign_lang, native: r.native_lang, testDate: r.test_date, format: r.format, articles: r.articles, created: r.created_day, days: r.days, result: r.result || null, resultSkipped: !!r.result_skipped, grading: r.grading || null, updatedAt: r.updated_at, deleted: r.deleted || undefined });
+const testRow = (r: Record<string, any>): WireTest => {
+  const serverCreatedAt = r.created_at ? new Date(r.created_at).getTime() : undefined;
+  return { id: r.id, name: r.name, subject: r.subject, foreign: r.foreign_lang, native: r.native_lang, testDate: r.test_date, format: r.format, articles: r.articles, created: r.created_day, days: r.days, result: r.result || null, resultSkipped: !!r.result_skipped, grading: r.grading || null, updatedAt: r.updated_at, deleted: r.deleted || undefined, ...(Number.isFinite(serverCreatedAt) ? { serverCreatedAt } : {}) };
+};
 const cardRow = (r: Record<string, any>): WireCard => ({ id: r.id, testId: r.test_id, position: r.position, type: r.type, term: r.term, meaning: r.meaning, example: r.example, distractors: r.distractors, st: cleanState(r.state), updatedAt: r.updated_at, deleted: r.deleted || undefined });
 const sessionRow = (r: Record<string, any>): WireSession => ({ id: r.id, day: r.day, n: r.cards, firstTry: r.first_try, ms: r.ms, tests: r.test_ids, at: r.ended_at ?? null, correct: r.correct, activeMs: r.active_ms });
 
@@ -84,8 +99,9 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     if (tests.length > 500 || cards.length > 20000 || sessions.length > 2000) return reply.code(413).send({ error: 'too_much' });
     const profile = push.profile ? cleanProfile(push.profile) : null;
     let skipped = 0;
+    const rejectedTests: string[] = [];
     await tx(pool, async c => {
-      for (const t of tests) await upsertTest(c, uid, t);
+      for (const t of tests) if (!(await upsertTest(c, uid, t))) rejectedTests.push(t.id);
       for (const card of cards) if (!(await upsertCard(c, uid, card))) skipped++;
       for (const s of sessions) await insertSession(c, uid, s);
       if (profile) await upsertProfile(c, uid, profile);
@@ -93,7 +109,7 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     // supporter rewards depend on results / practice days / level → re-evaluate in the background
     if (tests.length || sessions.length) evaluateSoon(pool, uid, req.log);
     const out = await pull(pool, uid, since);
-    return { ...out, accepted: { tests: tests.length, cards: cards.length - skipped, sessions: sessions.length }, skippedCards: skipped };
+    return { ...out, accepted: { tests: tests.length - rejectedTests.length, cards: cards.length - skipped, sessions: sessions.length }, skippedCards: skipped, rejectedTests };
   });
 
   /* ---- REST: tests ---- */
@@ -102,10 +118,26 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
       FROM tests t WHERE t.user_id = $1 AND NOT t.deleted ORDER BY t.test_date`, [uidOf(req)]);
     return { tests: r.rows.map(row => ({ ...testRow(row), cardCount: Number(row.card_count) })) };
   });
+  app.get('/api/tests/quota', auth, async req => ({ used: await testsInLast24h(pool, uidOf(req)), max: TESTS_PER_24H }));
+  app.get<{ Params: { id: string } }>('/api/tests/:id/pictures', auth, async (req, reply) => {
+    if (!ID_RE.test(req.params.id)) return reply.code(400).send({ error: 'bad_id' });
+    const used = await picturesUsed(pool, uidOf(req), req.params.id);
+    return { used, max: PICTURES_PER_TEST, remaining: Math.max(0, PICTURES_PER_TEST - used) };
+  });
+  app.post<{ Params: { id: string } }>('/api/tests/:id/pictures', auth, async (req, reply) => {
+    if (!ID_RE.test(req.params.id)) return reply.code(400).send({ error: 'bad_id' });
+    const raw = (req.body as { count?: unknown } | null)?.count;
+    const count = typeof raw === 'number' ? Math.floor(raw) : NaN;
+    if (!Number.isInteger(count) || count < 1 || count > 30) return reply.code(400).send({ error: 'bad_count' });
+    const slot = await reservePictures(pool, uidOf(req), req.params.id, count);
+    if (!slot.accepted) return reply.code(422).send({ error: 'picture_limit', max: slot.max, used: slot.used });
+    return slot;
+  });
   app.post('/api/tests', auth, async (req, reply) => {
     const t = cleanTest({ id: newId(), created: new Date().toISOString().slice(0, 10), ...(req.body as object), updatedAt: Date.now(), deleted: false });
     if (!t) return reply.code(400).send({ error: 'invalid_test' });
-    await upsertTest(pool, uidOf(req), t);
+    const ok = await tx(pool, c => upsertTest(c, uidOf(req), t));
+    if (!ok) return reply.code(422).send({ error: 'test_limit', max: TESTS_PER_24H });
     return reply.code(201).send({ test: t });
   });
   app.get<{ Params: { id: string } }>('/api/tests/:id', auth, async (req, reply) => {
@@ -180,7 +212,8 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     const supporters = await supporterExport(pool, uid);
     const rewards = await rewardsExport(pool, uid);
     const reportCards = await reportCardsExport(pool, uid);
-    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards };
+    const pictureUses = (await pool.query('SELECT test_id, pictures FROM test_picture_uses WHERE user_id = $1 ORDER BY test_id', [uid])).rows.map(r => ({ testId: r.test_id, pictures: r.pictures }));
+    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards, pictureUses };
   });
 
   /* ---- delete all of my learning data (account stays) ---- */

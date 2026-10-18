@@ -13,7 +13,7 @@ Merkster is vibe coded: this app was written with AI coding agents.
 | | |
 |---|---|
 | **Import** | Photo / PDF / paste. On-device OCR (Tesseract, works offline) or – if configured – a server-side vision LLM. Always a review screen before anything is saved. |
-| **Tests** | Each test has a date and a format (vocab, Q&A, mixed, articles). The *Today* dashboard plans what to practise. |
+| **Tests** | Each test has a date and a format (vocab, Q&A, mixed, articles). A student can create 3 tests in 24 hours, and each test can include 10 pictures. The *Today* dashboard plans what to practise. |
 | **Practice** | Retry-until-correct sessions, tolerant answer checking (typos, articles, accents), text-to-speech, EN/DE UI. |
 | **Results** | Self-reported exam results in 8 grading systems (DE 1–6 ±, Oberstufe 0–15 P, AT 1–5, CH 6–1 with halves, US A–F ±, UK GCSE 9–1, percent, x of y). Original value + normalised score. Results dashboard (Recharts). |
 | **Report cards** | Photo of the *Zeugnis* → AI proposes subject lines (or a quick manual form) → review & match subjects (synonyms + fuzzy, confidence, one-tap new subject, ignore conduct lines) → confirm. Terms, report card vs. test average with a friendly gap explanation, trends, unboxing reveal, badges & XP, share card with *hide grades*. |
@@ -82,7 +82,7 @@ npm run dev:web          # Vite on :5173 (proxy /api → :8080)
 
 | command | |
 |---|---|
-| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate) |
+| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, picture and test limits, server sanitisers, config safety, sign-up codeword gate) |
 | `npm run typecheck` | TypeScript strict, web + server |
 | `npx playwright test` | end-to-end (needs app + mocks running; set `CHROME_PATH` to use a system Chrome) |
 | `make lint` | hadolint + `docker compose config` |
