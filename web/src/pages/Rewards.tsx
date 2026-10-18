@@ -10,6 +10,7 @@ import { now } from '../lib/util';
 import { termOf } from '../../../shared/reportcards';
 import { termStarts } from '../lib/reportcards';
 import { MiniAvatar } from '../components/Cheers';
+import { ParentInvite } from '../components/ParentInvite';
 import { EarnCards } from '../components/Rewards';
 import { earnedBreakdown, GrandTotal, SupporterBreakdownList } from '../components/Totals';
 import { TopBar } from '../components/ui';
@@ -46,7 +47,7 @@ export default function Rewards() {
       </div>}
       {all.length > 0 && <div className="card"><GrandTotal b={b} testid="rw-grand" /><h3 className="sec-title small">{t('per_supporter')}</h3><SupporterBreakdownList b={b} sys={sys} testid="rw-breakdown" /></div>}
       <div className="tiles two"><Tot p={month} tid="rw-total-month" label={t('rw_this_month')} /><Tot p={year} tid="rw-total-year" label={t('rw_this_year')} /></div>
-      {!all.length && <div className="empty-hero"><div className="empty-emoji">🎁</div><p>{t('rw_none_yet')}</p></div>}
+      {!all.length && <div className="empty-hero"><div className="empty-emoji">🎁</div><p>{t('rw_none_yet')}</p><ParentInvite /></div>}
       {[...bySup.values()].map(list => {
         const s = list[0].supporter, open = list.filter(e => e.status === 'open'), paid = list.filter(e => e.status === 'paid');
         return (
