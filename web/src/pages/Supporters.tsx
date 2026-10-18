@@ -25,7 +25,7 @@ function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; st
   useEffect(() => { if (!inv) return; import('qrcode').then(Q => Q.toDataURL(inv.url, { margin: 1, width: 360, color: { dark: '#0d0f1e', light: '#ffffff' }, errorCorrectionLevel: 'M' })).then(setQr).catch(() => setQr(null)); }, [inv]);
   const create = async () => {
     setBusy(true);
-    try { const r = await api<{ invite: CreatedInvite }>('/api/invites', { body: { relation: rel, label, maxUses: uses, days: INVITE_DAYS_DEFAULT, ...(ruleId ? { ruleId } : {}) } }); setInv(r.invite); qc.invalidateQueries({ queryKey: ['invites'] }); }
+    try { const r = await api<{ invite: CreatedInvite }>('/api/invites', { body: { relation: rel, label, maxUses: uses, days: INVITE_DAYS_DEFAULT, ...(ruleId === 'all' ? { shareAll: true } : ruleId ? { ruleId } : {}) } }); setInv(r.invite); qc.invalidateQueries({ queryKey: ['invites'] }); }
     catch { toast(t('err_unknown'), 'bad'); } finally { setBusy(false); }
   };
   const first = me.data?.user?.name?.split(/\s+/)[0] || '';
@@ -44,9 +44,10 @@ function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; st
         <div className="rel-grid">{RELATIONS.map(r => <button key={r} className={'rel' + (rel === r ? ' on' : '')} data-testid={'rel-' + r} onClick={() => setRel(r)}><span>{REL_ICON[r]}</span>{relName(r)}</button>)}</div>
         <label className="field"><span>{t('invite_label')}</span><input data-testid="inv-label" value={label} maxLength={40} placeholder={t('invite_label_ph')} onChange={e => setLabel(e.target.value)} /></label>
         <div className="field"><span>{t('invite_uses')}</span><div className="seg">{[1, 2, 5].map(n => <button key={n} className={'pill sm' + (uses === n ? ' on' : '')} data-testid={'inv-uses-' + n} onClick={() => setUses(n)}>{n === 1 ? t('uses_1') : t('uses_n', { n })}</button>)}</div></div>
-        {family && rules.length > 0 && <label className="field"><span>{t('invite_joint')}</span>
+        {family && <label className="field"><span>{t('invite_joint')}</span>
           <select data-testid="inv-rule" value={ruleId} onChange={e => setRuleId(e.target.value)}>
             <option value="">{t('invite_joint_none')}</option>
+            <option value="all">{t('invite_joint_all')}</option>
             {rules.map(r => <option key={r.id} value={r.id}>{rewardText(r.reward)} · {ruleWhen(r.trigger, store.data.settings.grading)}</option>)}
           </select></label>}
         <p className="muted small">⏳ {t('invite_valid', { n: INVITE_DAYS_DEFAULT })}</p>
@@ -119,7 +120,7 @@ export function Supporters() {
       {invites.length > 0 && <div className="card"><h3>{t('open_invites')}</h3>
         <ul className="inv-list">{invites.map(i => (
           <li key={i.id} className={'inv-row ' + i.status} data-testid="inv-row" data-status={i.status}>
-            <span className="grow"><b>{i.label || relName(i.relation)}</b>{i.ruleId && <small className="chip xs" data-testid="inv-on-reward">{t('invite_on_reward')}</small>}<small className="muted">{t(('inv_' + i.status) as 'inv_open')} · {t('inv_uses', { u: i.uses, m: i.maxUses })}{i.status === 'open' ? ' · ' + t('inv_until', { d: new Date(i.expiresAt).toLocaleDateString(uiLang()) }) : ''}</small></span>
+            <span className="grow"><b>{i.label || relName(i.relation)}</b>{i.shareAll ? <small className="chip xs" data-testid="inv-on-sync">{t('invite_on_sync')}</small> : i.ruleId ? <small className="chip xs" data-testid="inv-on-reward">{t('invite_on_reward')}</small> : null}<small className="muted">{t(('inv_' + i.status) as 'inv_open')} · {t('inv_uses', { u: i.uses, m: i.maxUses })}{i.status === 'open' ? ' · ' + t('inv_until', { d: new Date(i.expiresAt).toLocaleDateString(uiLang()) }) : ''}</small></span>
             {i.status === 'open' && <button className="btn ghost sm" data-testid="inv-revoke" onClick={() => revoke(i.id)}>{t('revoke')}</button>}
           </li>))}</ul></div>}
       {open && <InviteModal startAs={fromLink ? startAs : 'grandma'} onClose={closeInvite} />}

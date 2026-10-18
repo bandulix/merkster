@@ -16,7 +16,7 @@ export const useMyRewards = (enabled = true) => useQuery({ queryKey: ['rewards']
 export interface GivenRewards { rewards: (EarnedView & { kid: PersonLite })[]; unseen: number; open: number }
 export const useGivenRewards = (enabled = true) => useQuery({ queryKey: ['rewards-given'], queryFn: () => api<GivenRewards>('/api/rewards/given'), enabled, refetchInterval: 60_000, refetchOnWindowFocus: true, retry: 0, staleTime: 10_000 });
 export interface OtherSupporter { supporter: PersonLite; rules: RuleView[]; open: { type: 'money'; currency: string; amount: number }[]; paid: { type: 'money'; currency: string; amount: number }[]; otherOpen: number; otherPaid: number }
-export interface KidRewards { grading: GradeSystem; seeEachOther: boolean; family: PersonLite[]; rules: RuleView[]; earned: EarnedView[]; others?: OtherSupporter[] }
+export interface KidRewards { grading: GradeSystem; seeEachOther: boolean; family: PersonLite[]; syncWith: string[]; rules: RuleView[]; earned: EarnedView[]; others?: OtherSupporter[] }
 export const useKidRewards = (id: string) => useQuery({ queryKey: ['kid-rewards', id], queryFn: () => api<KidRewards>(`/api/kids/${id}/rewards`), retry: 0 });
 
 /** after the student saved a result: push it now, let the server evaluate the rules, refresh the rewards */

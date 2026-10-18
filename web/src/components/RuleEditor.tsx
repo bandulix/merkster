@@ -20,10 +20,10 @@ const PRACTICE: TriggerKind[] = ['streak', 'level'];
 const RC: TriggerKind[] = ['rc_each', 'rc_subject', 'rc_improved', 'rc_avg', 'rc_avg_improved', 'rc_floor'];
 const GRADE_KINDS: TriggerKind[] = ['grade', 'rc_each', 'rc_subject', 'rc_floor'];
 
-export function RulesPanel({ kidId, kidName, grading, subjects = [] }: { kidId: string; kidName: string; grading: GradeSystem; subjects?: { id: string; name: string }[] }) {
+export function RulesPanel({ kidId, kidName, grading, subjects = [], canSync = false }: { kidId: string; kidName: string; grading: GradeSystem; subjects?: { id: string; name: string }[]; canSync?: boolean }) {
   const q = useKidRewards(kidId), qc = useQueryClient();
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false);
-  const rules = q.data?.rules || [], sys = q.data?.grading || grading, family = q.data?.family || [];
+  const rules = q.data?.rules || [], sys = q.data?.grading || grading, family = q.data?.family || [], syncWith = q.data?.syncWith || [];
   const [inviteFor, setInviteFor] = useState<string | null>(null);
   const act = async (path: string, body?: object, method = 'POST') => {
     setBusy(true);
@@ -36,6 +36,12 @@ export function RulesPanel({ kidId, kidName, grading, subjects = [] }: { kidId: 
       <div className="sec-head"><h3>🎁 {t('kid_rewards', { name: kidName })}</h3>
         <button className="btn primary sm" data-testid="rule-new" onClick={() => setOpen(true)}>+ {t('rule_new')}</button></div>
       <p className="muted small">{t('rule_kid_system', { name: kidName, sys: t(('gs_' + sys) as Key) })} · 🤝 {t('rule_promise_note')}</p>
+      {canSync && <div className="joint-box" data-testid="sync-all">
+        <b>{t('sync_all')}</b>
+        <p className="muted small">{t('sync_all_sub')}</p>
+        {family.map(f => <label key={f.id} className="toggle"><input type="checkbox" data-testid={'sync-' + f.id} data-relation={f.relation} checked={syncWith.includes(f.id)} disabled={busy} onChange={e => { void act(`/api/kids/${kidId}/rewards/sync`, { peerId: f.id, on: e.target.checked }).catch(() => undefined); }} /><span>{whoName(f)}</span></label>)}
+        <button type="button" className="btn ghost sm" data-testid="sync-invite" disabled={busy} onClick={() => setInviteFor('all')}>{t('sync_invite')}</button>
+      </div>}
       {!rules.length && <p className="muted" data-testid="rule-none">{t('rule_none')}</p>}
       {([['exam', rules.filter(r => !isRcKind(r.trigger.kind))], ['report', rules.filter(r => isRcKind(r.trigger.kind))]] as const).map(([id, rows]) => rows.length > 0 && (
         <div key={id} className="rule-group" data-testid={'rule-group-' + id}>
@@ -67,26 +73,35 @@ export function RulesPanel({ kidId, kidName, grading, subjects = [] }: { kidId: 
 const REL_ICON: Record<FamilyRelation, string> = { mum: '👩', dad: '👨', grandma: '👵', grandpa: '👴', aunt: '🧑‍🦰', uncle: '🧔' };
 
 function RuleInvite({ kidId, ruleId, onClose }: { kidId: string; ruleId: string; onClose: () => void }) {
+  const oneOk = ruleId !== 'all';
   const [rel, setRel] = useState<FamilyRelation>('grandma'), [label, setLabel] = useState(''), [url, setUrl] = useState<string | null>(null), [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState<'one' | 'all'>(oneOk ? 'one' : 'all'), [sentAll, setSentAll] = useState(false);
   const create = async () => {
+    if (scope === 'one' && !oneOk) return;
+    const all = scope === 'all';
     setBusy(true);
     try {
-      const r = await api<{ invite: { url: string } }>(`/api/kids/${kidId}/rules/${ruleId}/invite`, { body: { relation: rel, label, days: INVITE_DAYS_DEFAULT } });
+      const r = await api<{ invite: { url: string } }>(all ? `/api/kids/${kidId}/rewards/invite` : `/api/kids/${kidId}/rules/${ruleId}/invite`, { body: { relation: rel, label, days: INVITE_DAYS_DEFAULT, ...(all ? { shareAll: true } : {}) } });
+      setSentAll(all);
       setUrl(r.invite.url);
     } catch (e) { toast((e as ApiError).message || t('err_unknown'), 'bad'); }
     finally { setBusy(false); }
   };
   const copy = async () => { if (!url) return; try { await navigator.clipboard.writeText(url); toast(t('copied'), 'ok'); } catch { (document.querySelector('[data-testid="rule-invite-url"]') as HTMLInputElement | null)?.select(); } };
   return (
-    <Modal onClose={onClose} label={t('joint_invite')}>
-      <h2>🎁 {t('joint_invite')}</h2>
+    <Modal onClose={onClose} label={t(oneOk ? 'joint_invite' : 'sync_invite')}>
+      <h2>🎁 {t(oneOk ? 'joint_invite' : 'sync_invite')}</h2>
       {!url ? <>
-        <p className="muted small">{t('joint_with_sub')}</p>
+        <div className="seg wrap" data-testid="rule-inv-scope">
+          <button type="button" className={'pill sm' + (scope === 'one' ? ' on' : '')} data-testid="rule-inv-one" disabled={!oneOk} onClick={() => setScope('one')}>{t('joint_invite_one')}</button>
+          <button type="button" className={'pill sm' + (scope === 'all' ? ' on' : '')} data-testid="rule-inv-all" onClick={() => setScope('all')}>{t('joint_invite_all')}</button>
+        </div>
+        <p className="muted small">{t(scope === 'all' ? 'sync_all_sub' : 'joint_with_sub')}</p>
         <div className="rel-grid">{FAMILY_RELATIONS.map(r => <button key={r} type="button" className={'rel' + (rel === r ? ' on' : '')} data-testid={'rule-rel-' + r} onClick={() => setRel(r)}><span>{REL_ICON[r]}</span>{relName(r)}</button>)}</div>
         <label className="field"><span>{t('invite_label')}</span><input data-testid="rule-inv-label" value={label} maxLength={40} placeholder={t('invite_label_ph')} onChange={e => setLabel(e.target.value)} /></label>
-        <button className="btn primary big wide" data-testid="rule-inv-create" disabled={busy} onClick={() => void create()}>🔗 {t('invite_create')}</button>
+        <button className="btn primary big wide" data-testid="rule-inv-create" disabled={busy || (scope === 'one' && !oneOk)} onClick={() => void create()}>🔗 {t('invite_create')}</button>
       </> : <>
-        <p data-testid="rule-inv-ready">{t('joint_link_ready')}</p>
+        <p data-testid="rule-inv-ready">{t(sentAll ? 'joint_link_all_ready' : 'joint_link_ready')}</p>
         <div className="row-in"><input readOnly value={url} data-testid="rule-invite-url" onFocus={e => e.target.select()} /><button className="btn ghost" data-testid="rule-inv-copy" onClick={() => void copy()}>{t('invite_copy')}</button></div>
       </>}
     </Modal>
