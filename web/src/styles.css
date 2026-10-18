@@ -165,6 +165,11 @@ textarea { resize: vertical; }
 .parent-nudge { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; text-decoration: none; color: inherit; border: 2px solid color-mix(in srgb, var(--lime) 70%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--lime) 28%, var(--card)), var(--card) 68%); border-radius: 20px; padding: 14px; margin: 12px 0; }
 .parent-nudge .pn-ic { font-size: 1.7rem; line-height: 1; } .parent-nudge .grow { flex: 1; display: grid; gap: 2px; } .parent-nudge small { color: var(--muted); }
 .parent-nudge.sent { border-style: dashed; background: var(--card); }
+@media (max-width: 700px) {
+  .parent-nudge { flex-wrap: wrap; align-items: flex-start; }
+  .parent-nudge .grow { flex: 1 1 calc(100% - 48px); }
+  .parent-nudge .btn { flex: 1 1 100%; }
+}
 .ask-card > span:nth-child(2) { flex: 1; display: grid; } .ask-card small { color: var(--muted); }
 .ring .ring-bg { fill: none; stroke: var(--card2); } .ring .ring-fg { fill: none; stroke: url(#ringg); stroke-linecap: round; animation: ring 1s ease-out; } .ring text { font-weight: 800; fill: var(--text); }
 
