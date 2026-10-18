@@ -153,9 +153,11 @@ export function ClassPage() {
         <li key={s.id} className="card share-row" data-testid="class-share" data-name={s.name}>
           <span className="tc-icon">{testIcon(s)}</span>
           <span className="grow"><b>{s.name}</b><small className="muted">{t('class_cards_n', { n: s.cards })} · {t('class_by', { name: s.author.name })}</small></span>
-          <button className="btn primary sm" data-testid={s.takenTestId && !s.newer ? 'class-taken' : s.newer ? 'class-newer' : 'class-take'} disabled={busy} onClick={() => void take(s)}>
-            {s.takenTestId && !s.newer ? t('class_taken') : s.newer ? t('class_newer') : t('class_take')}
-          </button>
+          {s.mine && !s.takenTestId
+            ? <span className="chip" data-testid="class-shared-mine">{t('class_mine')}</span>
+            : <button className="btn primary sm" data-testid={s.takenTestId && !s.newer ? 'class-taken' : s.newer ? 'class-newer' : 'class-take'} disabled={busy} onClick={() => void take(s)}>
+              {s.takenTestId && !s.newer ? t('class_taken') : s.newer ? t('class_newer') : t('class_take')}
+            </button>}
           {(s.mine || d.class.owner) && <button className="btn link bad sm" data-testid="class-unshare" onClick={() => void removeShare(s.id)}>{t('revoke')}</button>}
         </li>))}</ul>
       <button className="btn link bad" data-testid="class-leave" onClick={leave}>{d.class.owner ? t('class_delete') : t('class_leave')}</button>
