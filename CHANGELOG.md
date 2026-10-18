@@ -4,6 +4,19 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-18
+
+Patch release. The container image is `ghcr.io/bandulix/merkster:0.1.2` (also `latest` and `0.1`).
+
+### Added
+
+- Incentive rules can set a valid-as-of date so past practice and grades do not count toward a new reward.
+- Invited parents and other relatives can see the student's grades and practice stats when the invite grants that access.
+
+### Changed
+
+- Cloud Agent environment installs Chrome and OpenSSL so Playwright and TLS tooling work in the agent image.
+
 ## [0.1.1] - 2026-10-18
 
 Patch release. The container image is `ghcr.io/bandulix/merkster:0.1.1` (also `latest` and `0.1`).
@@ -54,4 +67,6 @@ First published version. The container image is `ghcr.io/bandulix/merkster:0.1.0
 - The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
 - The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
+[0.1.2]: https://github.com/bandulix/merkster/releases/tag/v0.1.2
+[0.1.1]: https://github.com/bandulix/merkster/releases/tag/v0.1.1
 [0.1.0]: https://github.com/bandulix/merkster/releases/tag/v0.1.0
