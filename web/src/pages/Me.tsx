@@ -56,6 +56,11 @@ export function Me() {
       </div>
 
       <div className="me-grid">
+        <Link to="/classes" className="card sup-card" data-testid="my-class">
+          <h3>🏫 {t('my_class')}</h3>
+          <p className="muted small">{t('my_class_sub')}</p>
+          <span className="btn ghost sm">{t('classes_title')} →</span>
+        </Link>
         <Link to="/supporters" className="card sup-card" data-testid="my-supporters">
           <h3>📣 {t('my_supporters')}</h3>
           <div className="sup-avs">{(sup.data || []).slice(0, 6).map(s => <MiniAvatar key={s.id} src={s.avatar} name={whoName(s)} size={36} />)}{!sup.data?.length && <span className="muted small">{t('no_supporters')}</span>}</div>

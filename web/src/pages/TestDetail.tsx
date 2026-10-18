@@ -14,6 +14,7 @@ import { ResultDialog } from '../components/ResultDialog';
 import { ShareSheet, type ShareWhat } from '../components/Share';
 import { CheerChips } from '../components/Cheers';
 import { ParentInvite } from '../components/ParentInvite';
+import { ShareWithClass } from '../components/ShareWithClass';
 import { EarnCards, ResultExtras } from '../components/Rewards';
 import { cheersFor, useCheers } from '../lib/supporters';
 import { formatsFor, t, testIcon, type Key } from '../i18n';
@@ -52,6 +53,7 @@ export function TestDetail() {
       {!test.result && <EarnCards subject={test.subject} test={test} />}
       <div className="row-btns wrap">
         <button className="btn ghost" data-testid="add-cards" onClick={() => nav(`/test/${test.id}/import`)}>📸 {t('add_cards')}</button>
+        <ShareWithClass testId={test.id} cards={test.items.length} />
         {ph !== 'past' && test.testDate <= today && <button className="btn ghost" onClick={() => setResult(true)}>📝 {t('enter_result')}</button>}
       </div>
       {showSettings && <div className="card settings-card pop-in">

@@ -10,6 +10,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 - Profile pictures can be chosen, replaced, and removed. The picture is stored and shown the same way as the cached Google picture. A later Google login leaves a picture the student set, or the choice to show initials, as it is.
 - A student can create at most 3 tests in any 24 hours, and each test can include at most 10 pictures. Both limits are enforced on the server. Deleting a test does not give the slot back.
 - A student without a parent sees a prompt on Today, right after a new test, and at the end of the intro: invite a parent so a reward can start. The prompt leaves once a parent has joined. Practice stays one tap away.
+- Students can create a class, invite classmates, and share a test so the cards are copied instead of scanned again. Each class has an XP leaderboard. The student who created the class sets its cover, name and motto.
 
 ### Changed
 

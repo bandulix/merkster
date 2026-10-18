@@ -10,6 +10,7 @@ import { supporterExport } from './supporters';
 import { evaluateSoon, rewardsExport } from './rewards';
 import { reportCardsExport } from './reportcards';
 import { PICTURES_PER_TEST, TESTS_PER_24H, picturesUsed, reservePictures, testsInLast24h } from './limits';
+import { classesExport } from './classes';
 import { cleanCard, cleanProfile, cleanSession, cleanState, cleanTest, ID_RE } from './sanitize';
 
 type Q = pg.Pool | pg.PoolClient;
@@ -213,7 +214,8 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     const rewards = await rewardsExport(pool, uid);
     const reportCards = await reportCardsExport(pool, uid);
     const pictureUses = (await pool.query('SELECT test_id, pictures FROM test_picture_uses WHERE user_id = $1 ORDER BY test_id', [uid])).rows.map(r => ({ testId: r.test_id, pictures: r.pictures }));
-    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards, pictureUses };
+    const classes = await classesExport(pool, uid);
+    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards, pictureUses, classes };
   });
 
   /* ---- delete all of my learning data (account stays) ---- */
@@ -226,6 +228,7 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
       await c.query('DELETE FROM profiles WHERE user_id = $1', [uidOf(req)]);
       await c.query('DELETE FROM result_photos WHERE student_id = $1', [uidOf(req)]);
       await c.query('DELETE FROM report_cards WHERE user_id = $1', [uidOf(req)]);
+      await c.query('DELETE FROM class_shares WHERE author_id = $1', [uidOf(req)]);
     });
     return { ok: true };
   });
