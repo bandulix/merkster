@@ -14,7 +14,7 @@ export function Onboarding() {
   // a new device may land here before the first sync finished – once the account turns out to be onboarded, leave
   if (d.settings.onboarded && !leaving.current) return <Navigate to="/" replace />;
   const art = step === 1 ? <Logo size={120} className="ob-logo" />
-    : step === 2 ? <div className="ob-steps"><span>📸</span><i>→</i><span>🧠</span><i>→</i><span>🏆</span></div>
+    : step === 2 ? <div className="ob-steps"><span>📸</span><i>→</i><span>🧠</span><i>→</i><span>🏆</span><i>→</i><span>🎁</span></div>
       : <div className="ob-cal">{[t('ob_d1'), t('ob_d2'), t('ob_d3'), '🌙', '☀️'].map((x, i) => <b key={i} style={{ ['--i' as string]: i }}>{x}</b>)}</div>;
   return (
     <section className="onboard" data-testid="onboarding">

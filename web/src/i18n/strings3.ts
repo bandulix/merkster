@@ -1,7 +1,8 @@
 /* v1 strings: Google sign-in, progression, results dashboard, sharing, privacy. Tone: hype, never guilt. */
 export const en3 = {
-  tab_results: 'Results', tab_me: 'Me', claim: 'Snap it. Drill it. Own the test.',
-  login_p1: 'Photo of your worksheet → ready-made cards', login_p2: 'Practise exactly like the real test', login_p3: 'Level up, keep your streak, flex your results',
+  tab_results: 'Results', tab_me: 'Me', claim: 'Snap it. Drill it. Own the test. Earn the reward.',
+  login_p1: 'Photo of your worksheet → ready-made cards', login_p2: 'Practise exactly like the real test',
+  login_p3: 'A parent promises a reward for your grades and your practice', login_p4: 'The report card can unlock an extra reward',
   continue_google: 'Continue with Google', test_provider: 'Test mode: mock Google sign-in (not for production)',
   login_privacy: 'We only store your Google name, e-mail and profile picture link. No ads, no tracking.',
   err_cancelled: 'Sign-in was cancelled.', err_not_allowed: 'This Google account isn’t allowed on this server.', err_expired: 'Sign-in took too long – please try again.',
@@ -28,7 +29,7 @@ export const en3 = {
   share: 'Share', share_story: 'Story 9:16', share_square: 'Square', share_preview: 'Share preview', share_hide_name: 'Hide my name', share_hide_grade: 'Hide the grade',
   share_privacy: 'Never includes your e-mail or a profile link.', share_image: 'Share image', share_video: 'Animated clip', share_rendering: 'Rendering…',
   share_no_video: 'This browser can’t record video – sharing the image instead.', share_downloaded: 'Saved – post it anywhere!',
-  share_invite: 'Learn smarter with Merkster', share_k_best: 'New personal best', share_k_result: 'Exam result', share_k_level: 'Level up', share_k_streak: 'Streak',
+  share_invite: 'Learn it and earn the reward with Merkster', share_k_best: 'New personal best', share_k_result: 'Exam result', share_k_level: 'Level up', share_k_streak: 'Streak',
   share_k_badge: 'Badge unlocked', share_k_week: 'My week', n_days: '{n} days', n_min: '{n} min', share_streak_sub: 'practising every day', share_week_sub: '{s} sessions on {d} days',
   done_sub: '{n} cards recalled.', s_sound: 'Celebration sounds', s_export_all: 'Download all my data', privacy_short: 'Your data belongs to you. Export it any time, or delete your account and everything in it.',
   delete_account: 'Delete account', delete_account_text: 'Deletes your account, all tests, cards, results and progress on the server – for good.',
@@ -36,8 +37,9 @@ export const en3 = {
   admin_delete_user: 'Delete the account of {name} and all its data?', admin_hint: 'Admins come from ADMIN_EMAILS in the server’s .env.'
 } as const;
 export const de3: Record<keyof typeof en3, string> = {
-  tab_results: 'Noten', tab_me: 'Ich', claim: 'Knipsen. Draufhaben. Test rocken.',
-  login_p1: 'Foto vom Arbeitsblatt → fertige Lernkarten', login_p2: 'Üben genau wie im echten Test', login_p3: 'Level aufsteigen, Serie halten, Noten zeigen',
+  tab_results: 'Noten', tab_me: 'Ich', claim: 'Knipsen. Draufhaben. Test rocken. Belohnung holen.',
+  login_p1: 'Foto vom Arbeitsblatt → fertige Lernkarten', login_p2: 'Üben genau wie im echten Test',
+  login_p3: 'Ein Elternteil verspricht eine Belohnung für Noten und fürs Üben', login_p4: 'Das Zeugnis kann eine extra Belohnung freischalten',
   continue_google: 'Weiter mit Google', test_provider: 'Testmodus: Google-Anmeldung simuliert (nicht für den Echtbetrieb)',
   login_privacy: 'Wir speichern nur deinen Google-Namen, deine E-Mail und den Link zum Profilbild. Keine Werbung, kein Tracking.',
   err_cancelled: 'Anmeldung abgebrochen.', err_not_allowed: 'Dieses Google-Konto ist auf diesem Server nicht freigeschaltet.', err_expired: 'Die Anmeldung hat zu lange gedauert – bitte nochmal.',
@@ -64,7 +66,7 @@ export const de3: Record<keyof typeof en3, string> = {
   share: 'Teilen', share_story: 'Story 9:16', share_square: 'Quadrat', share_preview: 'Vorschau', share_hide_name: 'Meinen Namen ausblenden', share_hide_grade: 'Note ausblenden',
   share_privacy: 'Enthält nie deine E-Mail oder einen Profil-Link.', share_image: 'Bild teilen', share_video: 'Animierter Clip', share_rendering: 'Wird erstellt…',
   share_no_video: 'Dieser Browser kann kein Video aufnehmen – stattdessen wird das Bild geteilt.', share_downloaded: 'Gespeichert – poste es, wo du willst!',
-  share_invite: 'Lern smarter mit Merkster', share_k_best: 'Neuer Rekord', share_k_result: 'Testergebnis', share_k_level: 'Level up', share_k_streak: 'Serie',
+  share_invite: 'Lernen und die Belohnung holen mit Merkster', share_k_best: 'Neuer Rekord', share_k_result: 'Testergebnis', share_k_level: 'Level up', share_k_streak: 'Serie',
   share_k_badge: 'Abzeichen freigeschaltet', share_k_week: 'Meine Woche', n_days: '{n} Tage', n_min: '{n} Min.', share_streak_sub: 'jeden Tag geübt', share_week_sub: '{s} Runden an {d} Tagen',
   done_sub: '{n} Karten abgerufen.', s_sound: 'Sounds bei Erfolgen', s_export_all: 'Alle meine Daten herunterladen', privacy_short: 'Deine Daten gehören dir. Exportiere sie jederzeit oder lösche dein Konto samt allem Inhalt.',
   delete_account: 'Konto löschen', delete_account_text: 'Löscht dein Konto, alle Tests, Karten, Noten und Fortschritte auf dem Server – endgültig.',

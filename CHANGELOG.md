@@ -14,6 +14,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Changed
 
+- The login page, intro, invites, share cards, and README pitch a promised reward with the same weight as practice. English and German both name the parent reward and the extra report-card reward beside snap-and-drill.
 - Exam-grade rewards and report-card rewards are separate. A Klausur pays only an exam rule. A report-card reward is extra, and it can apply to every report card or only the end-of-year report.
 - Every page sends `noindex`, in the HTML shell and on each response, so the app stays out of search engines.
 - The repository is public. The previous container package was deleted and `ghcr.io/bandulix/merkster` is published again as `latest`, `1.0`, and `1.0.0`. The new package is public and can be pulled without logging in.

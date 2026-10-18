@@ -2,7 +2,11 @@
 
 # Merkster
 
-**Snap it. Drill it. Own the test.** – Merkster is an exam-prep PWA for students. Take a photo of a worksheet, a vocabulary list or a PDF (or paste text), and Merkster turns it into cards. You then practise with *successive relearning* (retry until correct, spaced over the days until the test), see how practice relates to your grades, and family members can cheer you on and promise rewards.
+**Snap it. Drill it. Own the test. Earn the reward.** – Merkster is an exam-prep PWA for students.
+
+Take a photo of a worksheet, a vocabulary list or a PDF (or paste text), and Merkster turns it into cards. You then practise with *successive relearning* (retry until correct, spaced over the days until the test) and see how practice relates to your grades.
+
+Invite your family and they can promise a reward for exam grades, for that practice, and an extra one for the report card. Merkster only tracks those promises – it never moves money.
 
 Merkster is vibe coded: this app was written with AI coding agents.
 
