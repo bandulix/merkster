@@ -15,6 +15,7 @@ import { rewardsPlugin } from './rewards';
 import { reportCardsPlugin } from './reportcards';
 import { avatarsPlugin, initAvatars } from './avatars';
 import { classesPlugin } from './classes';
+import { classGamesPlugin } from './classGames';
 
 const CSP = [
   "default-src 'self'",
@@ -75,6 +76,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await rewardsPlugin(app, { pool, config });
   await reportCardsPlugin(app, { pool });
   await classesPlugin(app, { pool, config });
+  await classGamesPlugin(app, { pool, config });
   initAvatars(config);
   await avatarsPlugin(app, { pool });
 

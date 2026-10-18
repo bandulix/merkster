@@ -4,6 +4,11 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Class boss fight: the class picks a shared test and chips a shared HP bar by practising that deck correctly.
+- 1v1 vocab clash: challenge a classmate on a shared deck; the server grades answers and names a winner.
+
 ## [0.1.2] - 2026-10-18
 
 Patch release. The container image is `ghcr.io/bandulix/merkster:0.1.2` (also `latest` and `0.1`).

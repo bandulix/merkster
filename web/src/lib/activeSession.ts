@@ -24,13 +24,17 @@ export function startPractice(entries: S.SessionEntry[]): boolean {
 }
 function record(p: Practice): Summary {
   const ts = now(), sum = p.summary(ts), d = store.data, before = store.progress(ts);
+  let sessionId = '';
   store.commit(() => {
     d.stats.sessions++; d.stats.answers += p.answers; d.stats.firstTry += sum.firstTry; d.stats.ms += sum.activeMs;
+    const beforeLen = d.history.length;
     store.addHistory({ day: S.dayISO(ts), at: ts, n: sum.done, firstTry: sum.firstTry, correct: sum.correct, ms: sum.ms, activeMs: sum.activeMs, tests: sum.tests });
+    sessionId = d.history[d.history.length - 1]?.id || '';
+    if (!sessionId && beforeLen === d.history.length) sessionId = '';
     for (const id of sum.tests) { const x = store.test(id); if (x) { const day = S.dayISO(ts); if (!x.days.includes(day)) x.days.push(day); } }
   });
   const after = store.progress(ts);
-  return { ...sum, xpBefore: before.xp, xpAfter: after.xp, levelBefore: before.level, levelAfter: after.level };
+  return { ...sum, sessionId, xpBefore: before.xp, xpAfter: after.xp, levelBefore: before.level, levelAfter: after.level };
 }
 export function finishPractice(): Summary | null {
   if (!active) return null;

@@ -22,6 +22,7 @@ import { Celebrations } from './components/Celebrate';
 import { Join } from './pages/Join';
 import { ClassJoin } from './pages/ClassJoin';
 import { ClassPage, Classes } from './pages/Classes';
+import { ClashPage } from './pages/Clash';
 import { CheerHome } from './pages/Cheer';
 import { Supporters } from './pages/Supporters';
 import { useCheers } from './lib/supporters';
@@ -103,6 +104,7 @@ export function App() {
           <Route path="/supporters" element={<Supporters />} />
           <Route path="/classes" element={<Classes />} />
           <Route path="/classes/:id" element={<ClassPage />} />
+          <Route path="/classes/:id/clash/:clashId" element={<ClashPage />} />
           <Route path="/join" element={<Join user={user} />} />
           <Route path="/class" element={<ClassJoin user={user} />} />
           <Route path="/cheer" element={<CheerHome />} />

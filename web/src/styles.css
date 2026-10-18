@@ -601,3 +601,18 @@ textarea { resize: vertical; }
 .class-shares { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .share-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .share-row .grow { flex: 1; display: grid; min-width: 140px; }
+.boss-card, .clash-card { display: grid; gap: 10px; }
+.boss-bar { height: 14px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 12%, transparent); overflow: hidden; }
+.boss-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #e85d4c, #f0a202); transition: width .35s ease; }
+.boss-hp { margin: 0; font-weight: 750; }
+.boss-contrib { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.boss-contrib li { display: flex; align-items: center; gap: 8px; }
+.clash-form { display: grid; gap: 8px; }
+.clash-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.clash-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent); }
+.clash-row .grow { flex: 1; display: grid; min-width: 140px; }
+.clash-head { display: grid; gap: 6px; justify-items: center; text-align: center; }
+.clash-faces { display: flex; align-items: center; gap: 12px; }
+.clash-term { font-size: 1.55rem; font-weight: 800; margin: 8px 0; }
+.clash-quiz input.wide, .clash-quiz input { width: 100%; font-size: 1.1rem; padding: 12px 14px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); background: var(--card); color: var(--ink); }
+.clash-result { text-align: center; display: grid; gap: 10px; }
