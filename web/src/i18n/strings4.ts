@@ -25,7 +25,12 @@ export const en4 = {
   in_days: 'in {n} days', in_1_day: 'tomorrow', is_today: 'today', practised_days: 'practised on {n} days', kid_week: '{m} min practice this week',
   readonly_note: 'You see stats and results – never cards or notes – and can’t change any of their data.', learn_too: 'Want to learn with Merkster yourself?', start_learning: 'Create my own test',
   react: 'Cheer', send_message: 'Send a message', level_n: 'Level {n}', not_linked: 'You don’t have access to this anymore.', all_results: 'All results', fans_n: '{n} supporters',
-  xp_r7: 'Cheers from your supporters: +{n} XP per cheered result or milestone (max {m} a day)', results_dash: 'Results dashboard'
+  xp_r7: 'Cheers from your supporters: +{n} XP per cheered result or milestone (max {m} a day)', results_dash: 'Results dashboard',
+  ob_parent: 'A parent can promise a reward for your grades and your practice.',
+  parent_invite_title: 'A parent can promise a reward',
+  parent_invite_text: 'Invite mum or dad. They choose what you earn for a good grade or for practising.',
+  parent_invite_cta: 'Invite a parent',
+  parent_invite_sent: 'Invite sent. The reward can start once your parent joins.'
 };
 export const de4: Record<keyof typeof en4, string> = {
   tab_cheer: 'Anfeuern', cheer_kicker: 'Deine Kids', cheer_title: 'Anfeuern',
@@ -53,5 +58,10 @@ export const de4: Record<keyof typeof en4, string> = {
   in_days: 'in {n} Tagen', in_1_day: 'morgen', is_today: 'heute', practised_days: 'an {n} Tagen geübt', kid_week: '{m} Min. geübt diese Woche',
   readonly_note: 'Du siehst Statistiken und Noten – nie Karten oder Notizen – und kannst nichts an ihren Daten ändern.', learn_too: 'Selbst mit Merkster lernen?', start_learning: 'Eigenen Test anlegen',
   react: 'Anfeuern', send_message: 'Nachricht senden', level_n: 'Level {n}', not_linked: 'Du hast darauf keinen Zugriff mehr.', all_results: 'Alle Noten', fans_n: '{n} Fans',
-  xp_r7: 'Anfeuern durch deine Fans: +{n} XP pro angefeuerter Note oder Erfolg (max. {m} am Tag)', results_dash: 'Noten-Dashboard'
+  xp_r7: 'Anfeuern durch deine Fans: +{n} XP pro angefeuerter Note oder Erfolg (max. {m} am Tag)', results_dash: 'Noten-Dashboard',
+  ob_parent: 'Ein Elternteil kann eine Belohnung für deine Noten und fürs Üben versprechen.',
+  parent_invite_title: 'Ein Elternteil kann eine Belohnung versprechen',
+  parent_invite_text: 'Lad Mama oder Papa ein. Sie bestimmen, was du für eine gute Note oder fürs Üben bekommst.',
+  parent_invite_cta: 'Elternteil einladen',
+  parent_invite_sent: 'Einladung ist raus. Die Belohnung kann starten, sobald dein Elternteil dabei ist.'
 };
