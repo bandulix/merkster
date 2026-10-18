@@ -45,14 +45,14 @@ lint: ## hadolint + compose config validation
 	$(COMPOSE) config -q
 	$(COMPOSE) -f docker-compose.yml -f docker-compose.caddy.yml config -q
 
-up: .env ## build and start app + Postgres
-	$(COMPOSE) up -d --build
+up: .env ## pull ghcr.io/bandulix/merkster:latest and start app + Postgres
+	$(COMPOSE) up -d
 
 mock: ## start app + Postgres + mock Google + mock LLM (TEST ONLY)
-	$(COMPOSE) --profile mock up -d --build
+	$(COMPOSE) --profile mock up -d
 
 caddy: .env ## start with Caddy (HTTPS) in front – needs DOMAIN in .env
-	$(COMPOSE) -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.caddy.yml up -d
 
 down: ## stop everything (data volume is kept)
 	$(COMPOSE) --profile mock down
@@ -60,8 +60,8 @@ down: ## stop everything (data volume is kept)
 logs: ## follow app logs
 	$(COMPOSE) logs -f app
 
-health: ## query the health endpoint
-	curl -fsS http://localhost:$${APP_PORT:-8080}/api/health && echo
+health: ## query the health endpoint (PORT from .env, default 8080)
+	@port=$$(sed -n 's/^PORT=//p' .env 2>/dev/null | head -1 | cut -d'#' -f1 | tr -d '[:space:]'); curl -fsS "http://localhost:$${port:-8080}/api/health" && echo
 
 backup: ## dump the database to backups/
 	@mkdir -p backups

@@ -49,7 +49,8 @@ export function cleanTrigger(v: unknown): RewardTrigger | null {
       if (typeof o.kind !== 'string' || !isRcKind(o.kind)) return null;
       const subjectId = typeof o.subjectId === 'string' && /^(c_[a-z0-9-]{1,40}|[a-z]{1,20})$/.test(o.subjectId) ? o.subjectId : null;
       const system = GRADE_SYSTEMS.includes(o.system as GradeSystem) ? (o.system as GradeSystem) : undefined;
-      return rcTrigger(o.kind, { system, value: typeof o.value === 'number' ? o.value : undefined, mode: o.mode === 'exactly' ? 'exactly' : 'at_least', subjectId, minDelta: Number(o.minDelta) || 0 }, avgThreshold);
+      const when = o.when === 'final' ? 'final' as const : 'any' as const;
+      return rcTrigger(o.kind, { system, value: typeof o.value === 'number' ? o.value : undefined, mode: o.mode === 'exactly' ? 'exactly' : 'at_least', subjectId, minDelta: Number(o.minDelta) || 0, when }, avgThreshold);
     }
   }
 }
@@ -75,7 +76,7 @@ export async function evaluateRewards(pool: pg.Pool, studentId: number): Promise
   if (!rules.length) return 0;
   const [{ tests, history, progress }, cards] = await Promise.all([loadStudent(pool, studentId), loadCards(pool, studentId)]);
   const input: EvalInput = {
-    reportCards: cards.map(c => ({ id: c.id, issuedOn: c.issuedOn, createdAt: c.createdAt, lines: c.lines.map(l => ({ subjectId: l.subjectId, score: l.score })), avgScore: c.avgScore })),
+    reportCards: cards.map(c => ({ id: c.id, issuedOn: c.issuedOn, createdAt: c.createdAt, term: c.term, lines: c.lines.map(l => ({ subjectId: l.subjectId, score: l.score })), avgScore: c.avgScore })),
     results: tests.filter(t => t.result).map(t => ({ testId: t.id, subject: t.subject, score: scoreOf(t.result!), testDate: t.testDate, enteredAt: t.result!.enteredAt })),
     practiceDays: history.map(h => h.day),
     levelUps: milestonesOf(progress).filter(m => m.kind === 'level').map(m => ({ level: Number(m.id), at: m.at }))
