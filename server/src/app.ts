@@ -44,6 +44,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
 
   app.addHook('onSend', async (req, reply, payload) => {
     reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Robots-Tag', 'noindex');
     reply.header('Referrer-Policy', 'same-origin');
     reply.header('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
     if (!req.url.startsWith('/api/')) reply.header('Content-Security-Policy', CSP);
