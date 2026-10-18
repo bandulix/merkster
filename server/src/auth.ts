@@ -80,6 +80,8 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     const token = crypto.randomBytes(32).toString('base64url');
     await pool.query('INSERT INTO auth_sessions (token_hash, user_id, expires_at, user_agent) VALUES ($1, $2, now() + make_interval(days => $3), $4)',
       [hashToken(token), userId, config.sessionDays, String(req.headers['user-agent'] || '').slice(0, 200)]);
+    // Expired rows are invisible to the lookup above, but they still occupy the table.
+    await pool.query('DELETE FROM auth_sessions WHERE expires_at < now()');
     reply.setCookie(COOKIE, token, { ...cookieBase, maxAge: config.sessionDays * 86400 });
   }
 
@@ -98,6 +100,9 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
 
   app.decorateRequest('user', null);
   app.addHook('onRequest', async req => {
+    // Static files, the service worker and fonts never read req.user. Looking the session up
+    // for each of them turned every page load into a burst of identical database queries.
+    if (!req.url.split('?')[0].startsWith('/api/')) return;
     const token = req.cookies?.[COOKIE];
     if (!token || token.length > 100) return;
     const r = await pool.query(`SELECT ${USER_COLS} FROM auth_sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1 AND s.expires_at > now()`, [hashToken(token)]);

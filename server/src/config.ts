@@ -48,6 +48,8 @@ export const config = {
   appSecret: env('APP_SECRET'),
   databaseUrl: databaseUrl(),
   dbSsl: bool('DATABASE_SSL', false),
+  // Only for a private network with a self-signed certificate. Default is to verify the server.
+  dbSslInsecure: bool('DATABASE_SSL_INSECURE', false),
   registrationOpen: bool('REGISTRATION_OPEN', true),
   // codeword needed to CREATE an account (empty = none). Server-side only: never logged, never sent to the browser.
   signupCode: (process.env.SIGNUP_CODE || '').trim(),

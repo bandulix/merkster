@@ -8,7 +8,23 @@ import { loadScript } from './util';
 import { APP_SLUG } from '../../../shared/brand';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-declare global { interface Window { Tesseract?: any; pdfjsLib?: any } }
+declare global { interface Window { Tesseract?: any } }
+type PdfJs = { getDocument: (src: object) => { promise: Promise<any> }; GlobalWorkerOptions: { workerSrc: string } };
+let pdfJsPromise: Promise<PdfJs> | null = null;
+/** PDF.js 4 as a same-origin module. JavaScript inside a PDF stays disabled. */
+function loadPdfJs(): Promise<PdfJs> {
+  if (!pdfJsPromise) pdfJsPromise = import(
+    /* @vite-ignore */
+    // The file is copied into web/public/vendor by scripts/vendor.mjs. It is not a TypeScript module.
+    // @ts-expect-error vendor asset
+    '/vendor/pdfjs/pdf.min.mjs'
+  ).then(mod => {
+    const lib = (mod as { getDocument?: PdfJs['getDocument'] }).getDocument ? mod as PdfJs : (mod as { default: PdfJs }).default;
+    lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+    return lib;
+  });
+  return pdfJsPromise;
+}
 type Src = ImageBitmap | HTMLImageElement | HTMLCanvasElement;
 export interface Status { stage: 'load' | 'prep' | 'ocr' | 'ai' | 'pdf'; page?: number; of?: number; progress?: number; name?: string }
 export interface ImportResult { rows: DraftRow[]; thumbs: string[]; method: 'ai' | 'ocr'; unreadable: string[]; unused: number; swapped: boolean; aiError: string | null; header: Header | null; orientConfidence?: number; pictureDropped?: number }
@@ -166,8 +182,8 @@ export async function recognize(canvas: HTMLCanvasElement, langs: string, psm: n
 }
 
 async function pdfPages(file: File, onStatus: (s: { page: number; of: number }) => void): Promise<Page[]> {
-  if (!window.pdfjsLib) { await loadScript('/vendor/pdfjs/pdf.min.js'); window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js'; }
-  const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
+  const pdfjs = await loadPdfJs();
+  const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer(), isEvalSupported: false }).promise;
   const out: Page[] = [];
   const N = Math.min(pdf.numPages, 15);
   for (let p = 1; p <= N; p++) {
@@ -343,7 +359,7 @@ export async function processFiles(files: File[], test: Test, useAI: boolean, on
 export async function warmOfflineCache(): Promise<boolean> {
   if (!('caches' in window)) return false;
   const files = ['/vendor/tesseract/tesseract.min.js', '/vendor/tesseract/worker.min.js', '/vendor/tesseract/core/tesseract-core-simd-lstm.wasm.js', '/vendor/tesseract/core/tesseract-core-lstm.wasm.js',
-    '/vendor/pdfjs/pdf.min.js', '/vendor/pdfjs/pdf.worker.min.js', ...['deu', 'eng', 'fra', 'spa', 'lat'].map(l => `/vendor/lang/${l}.traineddata.gz`)];
+    '/vendor/pdfjs/pdf.min.mjs', '/vendor/pdfjs/pdf.worker.min.mjs', ...['deu', 'eng', 'fra', 'spa', 'lat'].map(l => `/vendor/lang/${l}.traineddata.gz`)];
   const cache = await caches.open(`${APP_SLUG}-vendor`);
   await Promise.all(files.map(async f => { if (!(await cache.match(f))) { const r = await fetch(f); if (r.ok) await cache.put(f, r); } }));
   return true;
