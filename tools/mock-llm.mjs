@@ -6,6 +6,7 @@ import http from 'node:http';
 const PORT = +(process.env.MOCK_LLM_PORT || 8099);
 const KEY = process.env.MOCK_LLM_KEY || 'sk-mock-local-test-key';
 let last = null, count = 0;
+const calls = [];
 
 const VOCAB = {
   language: 'en', subject: 'Languages', title: 'Unit 3 – At school',
@@ -51,7 +52,7 @@ const BIO = {
 
 http.createServer((req, res) => {
   const send = (code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
-  if (req.method === 'GET' && req.url === '/__last') return send(200, { count, last });
+  if (req.method === 'GET' && req.url === '/__last') return send(200, { count, last, calls });
   if (req.method === 'GET' && req.url === '/health') return send(200, { ok: true });
   if (req.method !== 'POST' || !req.url.endsWith('/chat/completions')) return send(404, { error: 'not found' });
   if (req.headers.authorization !== 'Bearer ' + KEY) return send(401, { error: { message: 'invalid api key' } });
@@ -64,10 +65,18 @@ http.createServer((req, res) => {
     const text = parts.filter(p => p.type === 'text').map(p => p.text).join('\n');
     const images = parts.filter(p => p.type === 'image_url');
     count++;
-    last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: (j.messages[0]?.content || '').slice(0, 80) };
+    const sys = String(j.messages?.[0]?.content || '');
+    last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: sys.slice(0, 80) };
+    calls.push({ system: sys.slice(0, 32), prompt: text.slice(0, 180) });
+    if (calls.length > 12) calls.shift();
     if (/Reply with OK/.test(text)) return send(200, { choices: [{ message: { role: 'assistant', content: 'OK' } }] });
     if (/MOCK_FAIL/.test(text)) return send(500, { error: { message: 'mock failure' } });
-    const sys = String(j.messages?.[0]?.content || '');
+    // Test double for the school-material gate. NOT_SCHOOL in the text (or in image bytes, for a direct upload) refuses. Anything else is allowed, immediately, so card extraction stays the slow call.
+    if (sys.includes('SCHOOL_MATERIAL_CHECK')) {
+      const blobs = images.map(p => { const url = String(p.image_url?.url || ''); const i = url.indexOf(','); if (i < 0) return ''; try { return Buffer.from(url.slice(i + 1), 'base64').toString('latin1'); } catch { return ''; } }).join('\n');
+      const school = !/NOT_SCHOOL/.test(text) && !/NOT_SCHOOL/.test(blobs);
+      return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ school }) } }] });
+    }
     const payload = /REPORT_CARD/.test(sys) ? REPORT : /Vocabulary:/.test(text) ? VOCAB : BIO;
     setTimeout(() => send(200, { id: 'mock-' + count, object: 'chat.completion', model: j.model, choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(payload) }, finish_reason: 'stop' }] }), 400);
   });

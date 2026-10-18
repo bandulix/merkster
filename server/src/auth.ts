@@ -90,7 +90,7 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     const u: DbUser = (await pool.query(`INSERT INTO users (google_sub, email, name, avatar_url, is_admin, last_login_at) VALUES ($1,$2,$3,$4,$5, now())
       ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url, is_admin = EXCLUDED.is_admin, last_login_at = now()
       RETURNING id, google_sub, email, name, avatar_url, avatar_etag, is_admin, is_supporter, created_at, last_login_at`, [c.sub, c.email, c.name, safeAvatar(c.picture), isAdmin])).rows[0];
-    await refreshAvatar(pool, config, u.id, c.picture, req.log);   // re-downloaded on every sign-in
+    await refreshAvatar(pool, config, u.id, c.picture, req.log);   // skipped when the student chose or removed their own picture
     await startSession(reply, req, u.id);
     if (!existing) req.log.info({ userId: String(u.id), admin: isAdmin }, 'new user');
     reply.clearCookie(PASS_COOKIE, { path: '/api/auth/' }).clearCookie(PENDING_COOKIE, { path: '/api/auth/' });

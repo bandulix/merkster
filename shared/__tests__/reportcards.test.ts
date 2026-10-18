@@ -124,6 +124,18 @@ describe('report-card rules', () => {
     const us = card('u', '2026-01-30', T0 + 864e5, 'us_letter', { math: 4, german: 3.7, english: 3 });   // A, A-, B
     expect(evaluateRule({ trigger: tr, createdAt: T0, capPerMonth: null }, inp([us])).map(s => s.subjectId)).toEqual(['math', 'german']);
   });
+  it('a Klausur and the report card pay separately; only the end-of-year report is the extra', () => {
+    const cFinal = { ...card('c', '2026-07-15', T0 + 864e5, 'de_grade', { math: 1 }), term: 'final' as const };
+    const cHalf = { ...card('h', '2026-01-30', T0 + 864e5, 'de_grade', { math: 1 }), term: 'h1' as const };
+    const both = { results: [{ testId: 't', subject: 'math' as const, score: lineScore('de_grade', 1), testDate: '2026-03-01', enteredAt: T0 + 864e5 }], practiceDays: [] as string[], levelUps: [], reportCards: [cFinal] };
+    expect(evaluateRule({ trigger: gradeTrigger('de_grade', 1, 'at_least')!, createdAt: T0, capPerMonth: null }, both).map(s => s.key)).toEqual(['result:t']);
+    const each = rc('rc_each', { system: 'de_grade', value: 1 });
+    expect(evaluateRule({ trigger: each, createdAt: T0, capPerMonth: null }, both).map(s => s.key)).toEqual(['rc:c:each:math']);
+    const extra = rc('rc_each', { system: 'de_grade', value: 1, when: 'final' });
+    expect(evaluateRule({ trigger: extra, createdAt: T0, capPerMonth: null }, inp([cHalf]))).toEqual([]);
+    expect(evaluateRule({ trigger: extra, createdAt: T0, capPerMonth: null }, inp([cFinal])).map(s => s.key)).toEqual(['rc:c:each:math']);
+    expect(evaluateRule({ trigger: each, createdAt: T0, capPerMonth: null }, inp([cHalf, cFinal]))).toHaveLength(2);
+  });
   it('every grading system: "per top grade" works', () => {
     const top: Record<GradeSystem, number> = { de_grade: 1, points15: 14, at_grade: 1, ch_grade: 6, us_letter: 4, uk_gcse: 9, percent: 90, xofy: 90 };
     for (const s of GRADE_SYSTEMS) {

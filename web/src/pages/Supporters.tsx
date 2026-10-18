@@ -1,5 +1,6 @@
 /* Student: "My supporters" – invite (link / share / QR), see who cheers, control what each supporter sees, remove. */
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { APP_NAME } from '../../../shared/brand';
 import { INVITE_DAYS_DEFAULT, RELATIONS, type CreatedInvite, type Relation, type Supporter } from '../../../shared/supporters';
@@ -13,9 +14,9 @@ import { t, uiLang } from '../i18n';
 
 const REL_ICON: Record<Relation, string> = { mum: '👩', dad: '👨', grandma: '👵', grandpa: '👴', aunt: '🧑‍🦰', uncle: '🧔', coach: '🏅', other: '🙂' };
 
-function InviteModal({ onClose }: { onClose: () => void }) {
+function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; startAs?: Relation }) {
   const me = useMe(), qc = useQueryClient();
-  const [rel, setRel] = useState<Relation>('grandma'), [label, setLabel] = useState(''), [uses, setUses] = useState(1);
+  const [rel, setRel] = useState<Relation>(startAs), [label, setLabel] = useState(''), [uses, setUses] = useState(1);
   const [inv, setInv] = useState<CreatedInvite | null>(null), [qr, setQr] = useState<string | null>(null), [busy, setBusy] = useState(false);
   useEffect(() => { if (!inv) return; import('qrcode').then(Q => Q.toDataURL(inv.url, { margin: 1, width: 360, color: { dark: '#0d0f1e', light: '#ffffff' }, errorCorrectionLevel: 'M' })).then(setQr).catch(() => setQr(null)); }, [inv]);
   const create = async () => {
@@ -34,7 +35,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose} label={t('invite_supporter')}>
       {!inv ? <>
-        <h2>📣 {t('invite_supporter')}</h2>
+        <h2>📣 {startAs === 'mum' || startAs === 'dad' ? t('parent_invite_cta') : t('invite_supporter')}</h2>
         <h3 className="q2">{t('invite_who')}</h3>
         <div className="rel-grid">{RELATIONS.map(r => <button key={r} className={'rel' + (rel === r ? ' on' : '')} data-testid={'rel-' + r} onClick={() => setRel(r)}><span>{REL_ICON[r]}</span>{relName(r)}</button>)}</div>
         <label className="field"><span>{t('invite_label')}</span><input data-testid="inv-label" value={label} maxLength={40} placeholder={t('invite_label_ph')} onChange={e => setLabel(e.target.value)} /></label>
@@ -82,16 +83,22 @@ function SupporterRow({ s }: { s: Supporter }) {
 
 export function Supporters() {
   const sup = useSupporters(), inv = useInvites(), qc = useQueryClient(), vis = useSeeEachOther();
+  const [sp, setSp] = useSearchParams();
+  const asked = sp.get('invite');
+  const fromLink = asked === '1' || (RELATIONS as readonly string[]).includes(asked || '');
+  const startAs: Relation = (RELATIONS as readonly string[]).includes(asked || '') ? (asked as Relation) : 'mum';
   const [seeOthers, setSeeOthers] = useState(false);
   useEffect(() => { if (vis.data !== undefined) setSeeOthers(vis.data); }, [vis.data]);
-  const [open, setOpen] = useState(false);
+  const [manual, setManual] = useState(false);
+  const open = manual || fromLink;
+  const closeInvite = () => { setManual(false); if (asked) setSp({}, { replace: true }); };
   const revoke = async (id: string) => { await api('/api/invites/' + id, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['invites'] }); };
   const invites = (inv.data || []).filter(i => i.status === 'open' || Date.now() - Date.parse(i.createdAt) < 7 * 864e5);
   return (
     <section className="supporters page narrow">
       <TopBar title={t('my_supporters')} back="/me" />
       <p className="muted">{t('supporters_sub')}</p>
-      <button className="btn primary big wide" data-testid="invite-new" onClick={() => setOpen(true)}>📣 {t('invite_supporter')}</button>
+      <button className="btn primary big wide" data-testid="invite-new" onClick={() => setManual(true)}>📣 {t('invite_supporter')}</button>
       {sup.data && !sup.data.length && <div className="empty-hero small"><div className="empty-emoji">👵👴👩👨</div><p>{t('no_supporters')}</p></div>}
       <ul className="sup-list" data-testid="sup-list">{sup.data?.map(s => <SupporterRow key={s.id} s={s} />)}</ul>
       {sup.data && sup.data.length > 1 && <div className="card" data-testid="see-each-other-card">
@@ -106,7 +113,7 @@ export function Supporters() {
             <span className="grow"><b>{i.label || relName(i.relation)}</b><small className="muted">{t(('inv_' + i.status) as 'inv_open')} · {t('inv_uses', { u: i.uses, m: i.maxUses })}{i.status === 'open' ? ' · ' + t('inv_until', { d: new Date(i.expiresAt).toLocaleDateString(uiLang()) }) : ''}</small></span>
             {i.status === 'open' && <button className="btn ghost sm" data-testid="inv-revoke" onClick={() => revoke(i.id)}>{t('revoke')}</button>}
           </li>))}</ul></div>}
-      {open && <InviteModal onClose={() => setOpen(false)} />}
+      {open && <InviteModal startAs={fromLink ? startAs : 'grandma'} onClose={closeInvite} />}
     </section>
   );
 }

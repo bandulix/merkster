@@ -27,6 +27,7 @@ async function newRule(page: Page, o: { kind: string; grade?: string; mode?: 'at
   await page.getByTestId('rule-new').click();
   await page.getByTestId('rt-' + o.kind).click();
   if (o.subject) await page.getByTestId('rule-rc-subject').selectOption(o.subject);
+  if (o.kind.startsWith('rc_')) await page.getByTestId('rule-rc-when-any').click();
   if (o.grade) await page.getByTestId('rg-' + o.grade).click();
   if (o.mode) await page.getByTestId('rm-' + o.mode).click();
   if (o.avg) await page.getByTestId('rule-avg').fill(o.avg);
