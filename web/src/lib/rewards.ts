@@ -32,18 +32,19 @@ const sysName = (s: GradeSystem) => t(('gs_' + s) as Key);
 /** "for every 1 or better in Biology" – shown in the student's (current) grading system */
 export function ruleWhen(tr: RewardTrigger, kidSystem: GradeSystem): string {
   const subj = 'subject' in tr && tr.subject ? ' ' + t('rule_in_subject', { subject: subjectName(tr.subject) }) : '';
+  const scope = 'when' in tr && tr.when === 'final' ? t('rule_rc_only_final') : '';
   switch (tr.kind) {
     case 'grade': { const th = thresholdIn(tr, kidSystem); return t(tr.mode === 'exactly' ? 'rule_grade_exactly' : 'rule_grade_atleast', { grade: th.label }) + subj; }
     case 'personal_best': return t('rule_personal_best') + subj;
     case 'improvement': return (tr.minDelta ? t('rule_improvement_n', { n: tr.minDelta }) : t('rule_improvement')) + subj;
     case 'streak': return t('rule_streak', { n: tr.days });
     case 'level': return t('rule_level', { n: tr.level });
-    case 'rc_each': return t(tr.mode === 'exactly' ? 'rule_rc_each_exactly' : 'rule_rc_each', { grade: thresholdIn({ ...tr, kind: 'grade' }, kidSystem).label });
-    case 'rc_subject': return t('rule_rc_subject', { grade: thresholdIn({ ...tr, kind: 'grade' }, kidSystem).label, subject: subjName(tr.subjectId) });
-    case 'rc_improved': return tr.subjectId ? t('rule_rc_improved_subj', { subject: subjName(tr.subjectId) }) : t('rule_rc_improved');
-    case 'rc_avg': return t('rule_rc_avg', { grade: tr.system === kidSystem ? fmtAvg(kidSystem, tr.min, LOCALE()) : '≈ ' + fmtAvg(kidSystem, tr.min, LOCALE()) });
-    case 'rc_avg_improved': return t('rule_rc_avg_improved');
-    case 'rc_floor': return t('rule_rc_floor', { grade: thresholdIn({ kind: 'grade', system: tr.system, value: tr.value, mode: 'at_least', min: tr.min, max: 100 }, kidSystem).label });
+    case 'rc_each': return t(tr.mode === 'exactly' ? 'rule_rc_each_exactly' : 'rule_rc_each', { grade: thresholdIn({ ...tr, kind: 'grade' }, kidSystem).label }) + scope;
+    case 'rc_subject': return t('rule_rc_subject', { grade: thresholdIn({ ...tr, kind: 'grade' }, kidSystem).label, subject: subjName(tr.subjectId) }) + scope;
+    case 'rc_improved': return (tr.subjectId ? t('rule_rc_improved_subj', { subject: subjName(tr.subjectId) }) : t('rule_rc_improved')) + scope;
+    case 'rc_avg': return t('rule_rc_avg', { grade: tr.system === kidSystem ? fmtAvg(kidSystem, tr.min, LOCALE()) : '≈ ' + fmtAvg(kidSystem, tr.min, LOCALE()) }) + scope;
+    case 'rc_avg_improved': return t('rule_rc_avg_improved') + scope;
+    case 'rc_floor': return t('rule_rc_floor', { grade: thresholdIn({ kind: 'grade', system: tr.system, value: tr.value, mode: 'at_least', min: tr.min, max: 100 }, kidSystem).label }) + scope;
   }
 }
 /** a converted grade threshold needs a hint for the supporter */

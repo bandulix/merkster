@@ -6,14 +6,15 @@ import { SUBJECT_KEYS } from '../../../shared/types';
 import { families, GRADE_SPECS } from '../../../shared/grades';
 import { CANON_SUBJECTS } from '../../../shared/reportcards';
 import { avgThreshold } from '../../../shared/reportcards';
-import { CURRENCIES, STREAK_OPTIONS, type Currency, type Reward, type RewardTrigger, type TriggerKind } from '../../../shared/rewards';
+import { CURRENCIES, isRcKind, STREAK_OPTIONS, type Currency, type Reward, type RewardTrigger, type TriggerKind } from '../../../shared/rewards';
 import { api, ApiError } from '../lib/api';
 import { rewardText, ruleConverted, ruleWhen, useKidRewards } from '../lib/rewards';
 import { confetti, toast } from '../lib/util';
 import { subjectName, t, uiLang, type Key } from '../i18n';
 import { Modal } from './ui';
 
-const KINDS: TriggerKind[] = ['grade', 'personal_best', 'improvement', 'streak', 'level'];
+const EXAM: TriggerKind[] = ['grade', 'personal_best', 'improvement'];
+const PRACTICE: TriggerKind[] = ['streak', 'level'];
 const RC: TriggerKind[] = ['rc_each', 'rc_subject', 'rc_improved', 'rc_avg', 'rc_avg_improved', 'rc_floor'];
 const GRADE_KINDS: TriggerKind[] = ['grade', 'rc_each', 'rc_subject', 'rc_floor'];
 
@@ -33,20 +34,24 @@ export function RulesPanel({ kidId, kidName, grading, subjects = [] }: { kidId: 
         <button className="btn primary sm" data-testid="rule-new" onClick={() => setOpen(true)}>+ {t('rule_new')}</button></div>
       <p className="muted small">{t('rule_kid_system', { name: kidName, sys: t(('gs_' + sys) as Key) })} · 🤝 {t('rule_promise_note')}</p>
       {!rules.length && <p className="muted" data-testid="rule-none">{t('rule_none')}</p>}
-      <ul className="rule-list">{rules.map(r => {
-        const conv = ruleConverted(r.trigger, sys, kidName);
-        return (
-          <li key={r.id} className={'rule-row' + (r.active ? '' : ' paused')} data-testid="rule-row" data-active={r.active ? '1' : '0'}>
-            <div><b data-testid="rule-preview">{rewardText(r.reward)}</b> <span>{ruleWhen(r.trigger, sys)}</span>
-              {r.capPerMonth != null && <small className="chip xs">{t('rule_cap', { n: r.capPerMonth })} · {r.earnedThisMonth}/{r.capPerMonth}</small>}
-              {!r.active && <small className="chip xs">{t('rule_paused')}</small>}
-              {conv && <small className="warn-line" data-testid="rule-converted">⚠️ {conv}</small>}</div>
-            <div className="row-btns">
-              <button className="btn ghost sm" data-testid="rule-pause" disabled={busy} onClick={() => act(`/api/kids/${kidId}/rules/${r.id}`, { active: !r.active }, 'PATCH')}>{r.active ? t('rule_pause') : t('rule_resume')}</button>
-              <button className="btn link bad sm" data-testid="rule-delete" disabled={busy} onClick={() => { if (confirm(t('rule_delete_confirm'))) void act(`/api/kids/${kidId}/rules/${r.id}`, undefined, 'DELETE'); }}>{t('rule_delete')}</button>
-            </div>
-          </li>);
-      })}</ul>
+      {([['exam', rules.filter(r => !isRcKind(r.trigger.kind))], ['report', rules.filter(r => isRcKind(r.trigger.kind))]] as const).map(([id, rows]) => rows.length > 0 && (
+        <div key={id} className="rule-group" data-testid={'rule-group-' + id}>
+          <span className="muted xsmall">{t(id === 'report' ? 'rule_list_reports' : 'rule_list_exams')}</span>
+          <ul className="rule-list">{rows.map(r => {
+            const conv = ruleConverted(r.trigger, sys, kidName);
+            return (
+              <li key={r.id} className={'rule-row' + (r.active ? '' : ' paused')} data-testid="rule-row" data-active={r.active ? '1' : '0'}>
+                <div><b data-testid="rule-preview">{rewardText(r.reward)}</b> <span>{ruleWhen(r.trigger, sys)}</span>
+                  {r.capPerMonth != null && <small className="chip xs">{t('rule_cap', { n: r.capPerMonth })} · {r.earnedThisMonth}/{r.capPerMonth}</small>}
+                  {!r.active && <small className="chip xs">{t('rule_paused')}</small>}
+                  {conv && <small className="warn-line" data-testid="rule-converted">⚠️ {conv}</small>}</div>
+                <div className="row-btns">
+                  <button className="btn ghost sm" data-testid="rule-pause" disabled={busy} onClick={() => act(`/api/kids/${kidId}/rules/${r.id}`, { active: !r.active }, 'PATCH')}>{r.active ? t('rule_pause') : t('rule_resume')}</button>
+                  <button className="btn link bad sm" data-testid="rule-delete" disabled={busy} onClick={() => { if (confirm(t('rule_delete_confirm'))) void act(`/api/kids/${kidId}/rules/${r.id}`, undefined, 'DELETE'); }}>{t('rule_delete')}</button>
+                </div>
+              </li>);
+          })}</ul>
+        </div>))}
       {open && <RuleEditor kidId={kidId} kidName={kidName} grading={sys} subjects={subjects} busy={busy} onClose={() => setOpen(false)}
         onSave={async (trigger, reward, cap) => { await act(`/api/kids/${kidId}/rules`, { trigger, reward, capPerMonth: cap }); confetti(); toast(t('rule_saved'), 'ok'); setOpen(false); }} />}
     </div>
@@ -64,6 +69,7 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, busy, onClose, 
   const [subject, setSubject] = useState<Subject | ''>('');
   const [days, setDays] = useState(7), [level, setLevel] = useState(2), [delta, setDelta] = useState(0);
   const [rtype, setRtype] = useState<'money' | 'other'>('money');
+  const [rcWhen, setRcWhen] = useState<'any' | 'final'>('final');
   const [amount, setAmount] = useState('5'), [currency, setCurrency] = useState<Currency>('EUR'), [text, setText] = useState('');
   const [cap, setCap] = useState('');
   const allSubjects = [...subjects, ...CANON_SUBJECTS.filter(c => !subjects.some(x => x.id === c.id)).map(c => ({ id: c.id, name: c.name[uiLang()] }))];
@@ -72,6 +78,7 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, busy, onClose, 
   const avgNumeric = !opts || grading === 'de_grade' || grading === 'points15' || grading === 'ch_grade';
   const trigger = (): RewardTrigger | null => {
     const sub = subject || null;
+    const when = rcWhen === 'final' ? 'final' as const : undefined;
     switch (kind) {
       case 'grade': return { kind: 'grade', system: grading, value: gradeVal, mode, min: 0, max: 100, subject: sub }; // server rebuilds min/max via gradeTrigger
       case 'personal_best': return { kind: 'personal_best', subject: sub };
@@ -79,12 +86,12 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, busy, onClose, 
       case 'streak': return { kind: 'streak', days };
       case 'level': return { kind: 'level', level };
       // report cards: the server rebuilds the score thresholds from system + value (same code as the unit tests)
-      case 'rc_each': return { kind: 'rc_each', system: grading, value: gradeVal, mode, min: 0, max: 100 };
-      case 'rc_subject': return { kind: 'rc_subject', subjectId: rcSubject, system: grading, value: gradeVal, mode: 'at_least', min: 0, max: 100 };
-      case 'rc_improved': return { kind: 'rc_improved', subjectId: subject ? rcSubject : null };
-      case 'rc_avg': { const v = avgNumeric ? parseFloat(avg.replace(',', '.')) : gradeVal; return Number.isFinite(v) ? { kind: 'rc_avg', system: grading, value: v, min: avgThreshold(grading, v) } : null; }
-      case 'rc_avg_improved': return { kind: 'rc_avg_improved', minDelta: 0 };
-      case 'rc_floor': return { kind: 'rc_floor', system: grading, value: gradeVal, min: 0 };
+      case 'rc_each': return { kind: 'rc_each', system: grading, value: gradeVal, mode, min: 0, max: 100, when };
+      case 'rc_subject': return { kind: 'rc_subject', subjectId: rcSubject, system: grading, value: gradeVal, mode: 'at_least', min: 0, max: 100, when };
+      case 'rc_improved': return { kind: 'rc_improved', subjectId: subject ? rcSubject : null, when };
+      case 'rc_avg': { const v = avgNumeric ? parseFloat(avg.replace(',', '.')) : gradeVal; return Number.isFinite(v) ? { kind: 'rc_avg', system: grading, value: v, min: avgThreshold(grading, v), when } : null; }
+      case 'rc_avg_improved': return { kind: 'rc_avg_improved', minDelta: 0, when };
+      case 'rc_floor': return { kind: 'rc_floor', system: grading, value: gradeVal, min: 0, when };
       default: return null;
     }
   };
@@ -102,10 +109,18 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, busy, onClose, 
       <p className="muted small">{t('rule_kid_system', { name: kidName, sys: t(('gs_' + grading) as Key) })}</p>
       <label className="field"><span>{t('rule_when')}</span>
         <small className="muted">{t('rule_group_exams')}</small>
-        <div className="seg wrap" data-testid="rule-kind">{KINDS.map(k => <button key={k} className={'pill sm' + (kind === k ? ' on' : '')} data-testid={'rt-' + k} onClick={() => { setKind(k); setSubject(''); }}>{t(('rt_' + k) as Key)}</button>)}</div>
+        <div className="seg wrap" data-testid="rule-kind">{EXAM.map(k => <button key={k} type="button" className={'pill sm' + (kind === k ? ' on' : '')} data-testid={'rt-' + k} onClick={() => { setKind(k); setSubject(''); }}>{t(('rt_' + k) as Key)}</button>)}</div>
+        <small className="muted">{t('rule_group_practice')}</small>
+        <div className="seg wrap" data-testid="rule-kind-practice">{PRACTICE.map(k => <button key={k} type="button" className={'pill sm' + (kind === k ? ' on' : '')} data-testid={'rt-' + k} onClick={() => { setKind(k); setSubject(''); }}>{t(('rt_' + k) as Key)}</button>)}</div>
         <small className="muted">📜 {t('rule_group_reports')}</small>
-        <div className="seg wrap" data-testid="rule-kind-rc">{RC.map(k => <button key={k} className={'pill sm' + (kind === k ? ' on' : '')} data-testid={'rt-' + k} onClick={() => { setKind(k); setSubject(''); }}>{t(('rt_' + k) as Key)}</button>)}</div>
+        <div className="seg wrap" data-testid="rule-kind-rc">{RC.map(k => <button key={k} type="button" className={'pill sm' + (kind === k ? ' on' : '')} data-testid={'rt-' + k} onClick={() => { setKind(k); setSubject(''); }}>{t(('rt_' + k) as Key)}</button>)}</div>
+        {isRcKind(kind) && <p className="muted xsmall" data-testid="rule-zeugnis-extra">{t('rule_zeugnis_extra')}</p>}
       </label>
+      {isRcKind(kind) && <div className="seg wrap" data-testid="rule-rc-when">
+        <span className="muted small">{t('rule_rc_when')}</span>
+        <button type="button" className={'pill sm' + (rcWhen === 'final' ? ' on' : '')} data-testid="rule-rc-when-final" onClick={() => setRcWhen('final')}>{t('rule_rc_when_final')}</button>
+        <button type="button" className={'pill sm' + (rcWhen === 'any' ? ' on' : '')} data-testid="rule-rc-when-any" onClick={() => setRcWhen('any')}>{t('rule_rc_when_any')}</button>
+      </div>}
       {(kind === 'rc_subject' || (kind === 'rc_improved' && subject)) && <label className="field"><span>{t('rc_subject')}</span>
         <select data-testid="rule-rc-subject" value={rcSubject} onChange={e => setRcSubject(e.target.value)}>{allSubjects.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
       {kind === 'rc_improved' && <label className="toggle"><input type="checkbox" data-testid="rule-rc-one" checked={!!subject} onChange={e => setSubject(e.target.checked ? 'other' : '')} /><span>{t('rt_rc_subject')}</span></label>}
@@ -139,7 +154,7 @@ function RuleEditor({ kidId: _kidId, kidName, grading, subjects, busy, onClose, 
         </div>
       </label>
       {rtype === 'money'
-        ? <div className="row-in"><input type="number" data-testid="rule-amount" min={0.01} step={0.5} value={amount} onChange={e => setAmount(e.target.value)} placeholder={t('rule_amount')} />
+        ? <div className="row-in money-row"><input type="number" inputMode="decimal" data-testid="rule-amount" min={0.01} step={0.5} value={amount} onChange={e => setAmount(e.target.value)} placeholder={t('rule_amount')} aria-label={t('rule_amount')} />
             <select data-testid="rule-currency" value={currency} onChange={e => setCurrency(e.target.value as Currency)}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
         : <input data-testid="rule-text" maxLength={60} value={text} onChange={e => setText(e.target.value)} placeholder={t('rule_text_ph')} />}
       <label className="field"><span>{t('rule_cap_label')}</span><input type="number" data-testid="rule-cap" min={1} max={100} value={cap} onChange={e => setCap(e.target.value)} placeholder="–" /></label>

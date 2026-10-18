@@ -5,11 +5,18 @@ import { useConfig, useStore } from '../hooks';
 import { store } from '../lib/store';
 import { processFiles, type ImportResult, type Status } from '../lib/ocr';
 import { orient, parseGeneral, parseText } from '../lib/parse';
+import { ApiError } from '../lib/api';
 import { toast } from '../lib/util';
 import { Logo, TopBar } from '../components/ui';
 import { demoRows, t } from '../i18n';
 
 export interface Draft { testId: string; rows: DraftRow[]; thumbs: string[]; method: string; swapped?: boolean; unreadable: string[]; unused?: number; aiError?: string | null }
+
+/** bold the test name where {name} sits in the sentence (end in English, middle in German) */
+export function ImportLead({ name }: { name: string }) {
+  const [before, after = ''] = t('import_lead', { name: '\u0000' }).split('\u0000');
+  return <p className="lead" data-testid="import-lead">{before}<b>{name}</b>{after}</p>;
+}
 
 /** put rows into the review draft (merging with an existing draft for "add another page") */
 export function toReview(test: Test, res: Partial<Omit<ImportResult, 'method'>> & { rows: DraftRow[]; method: string }, merge: boolean) {
@@ -36,17 +43,20 @@ export function ImportPage() {
       if (res.aiError) toast(res.aiError === 'ai_rate_limited' ? t('ai_rate_limited') : t('ai_failed'), 'bad');
       toReview(test, res, merge);
       nav('/test/' + test.id + '/review', { replace: true });
-    } catch (e) { console.error('import failed', (e as Error).message); setError((e as Error).message || ''); setStatus(null); }
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'not_school_material') { setError('not_school_material'); setStatus(null); return; }
+      console.error('import failed', (e as Error).message); setError((e as Error).message || ''); setStatus(null);
+    }
   };
   const pct = status ? Math.round((((status.page || 1) - 1) + (status.progress || 0)) / (status.of || 1) * 100) : 0;
   const label = status && ({ ai: t('st_ai'), load: t('st_load'), pdf: t('st_pdf'), prep: t('st_prep'), ocr: t('st_ocr') } as const)[status.stage];
   return (
     <section className="import page narrow">
       <TopBar title={t('add_cards')} back={merge ? `/test/${test.id}/review` : `/test/${test.id}`} />
-      <p className="lead">{t('import_lead', { name: '' })}<b>{test.name}</b></p>
+      <ImportLead name={test.name} />
       {ai ? <div className="ai-banner on" data-testid="ai-on">✨ <span>{t('ai_on')}</span></div>
         : <div className={'ai-banner' + (isLang ? '' : ' strong')} data-testid="ai-off">{isLang ? '💡' : '✨'} <span>{isLang ? t('ai_tip_lang') : t('ai_tip_general')} {t('ai_tip_admin')}</span></div>}
-      {error != null && <div className="proc"><b>😕 {t('import_failed')}</b><p className="muted">{error}</p><button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
+      {error != null && <div className="proc" data-testid={error === 'not_school_material' ? 'import-refused' : 'import-error'}><b>😕 {error === 'not_school_material' ? t('not_school_material') : t('import_failed')}</b>{error !== 'not_school_material' && <p className="muted">{error}</p>}<button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}
       {status ? (
         <div className="proc pop-in" data-testid="progress">
           <div className="scan"><Logo size={64} /><i /></div>

@@ -39,13 +39,14 @@ export default function Simulator() {
   const initial = useMemo(() => prefill(sys, cards, d.tests), [sys, cardsQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const [edits, setEdits] = useState<Grades | null>(null);
   const [extra, setExtra] = useState<string[]>([]);
+  const [simTerm, setSimTerm] = useState<'final' | 'h1'>('final');
   const grades: Grades = { ...initial.g, ...Object.fromEntries(extra.map(id => [id, (edits || initial.g)[id] ?? opts[1].value])), ...(edits || {}) };
   const ids = Object.keys(grades);
   const setG = (id: string, v: number) => setEdits({ ...grades, [id]: v });
   const rules: SimRule<PersonLite>[] = (rw.data?.rules || []).filter(r => r.active && isRcKind(r.trigger.kind)).map(r => ({ id: r.id, trigger: r.trigger, reward: r.reward, capPerMonth: r.capPerMonth, supporterId: r.supporter.id, supporter: r.supporter }));
   const earned = (rw.data?.earned || []).map(e => ({ ruleId: e.ruleId, key: e.sourceKey, at: e.earnedAt }));
   const prev = cards.map(c => ({ id: c.id, issuedOn: c.issuedOn, createdAt: c.createdAt, lines: c.lines, avgScore: c.avgScore }));
-  const sim = (g: Grades) => { const lines = Object.entries(g).map(([subjectId, v]) => ({ subjectId, score: lineScore(sys, v) })); return simulateReportCard(rules, { issuedOn: isoToday(), lines, avgScore: avgOf(lines) }, prev, earned); };
+  const sim = (g: Grades) => { const lines = Object.entries(g).map(([subjectId, v]) => ({ subjectId, score: lineScore(sys, v) })); return simulateReportCard(rules, { issuedOn: isoToday(), term: simTerm, lines, avgScore: avgOf(lines) }, prev, earned); };
   const b = sim(grades);
   const avg = avgOf(ids.map(id => ({ score: lineScore(sys, grades[id]) })));
   const cur = b.grand[0]?.currency || (rules.find(r => r.reward.type === 'money')?.reward as { currency?: 'EUR' } | undefined)?.currency || 'EUR';
@@ -66,6 +67,10 @@ export default function Simulator() {
       <TopBar title={'🧮 ' + t('sim_title')} back="/reports" />
       <div className="sim-banner" data-testid="sim-label">🧪 {t('sim_label')}</div>
       <p className="muted small">{t('sim_sub')} {initial.from === 'tests' ? '· ' + t('sim_prefill_tests') : initial.from === 'card' ? '· ' + t('sim_prefill_card') : ''}</p>
+      <div className="seg wrap" data-testid="sim-term">
+        <button type="button" className={'pill sm' + (simTerm === 'final' ? ' on' : '')} data-testid="sim-term-final" onClick={() => setSimTerm('final')}>{t('rule_rc_when_final')}</button>
+        <button type="button" className={'pill sm' + (simTerm === 'h1' ? ' on' : '')} data-testid="sim-term-h1" onClick={() => setSimTerm('h1')}>{t('rc_term_h1')}</button>
+      </div>
       <div className="card sim-total-card">
         <GrandTotal b={b} label={t('sim_total')} testid="sim-total" />
         {!rules.length && <p className="muted small" data-testid="sim-none">{t('sim_none')}</p>}
