@@ -20,8 +20,8 @@ import { tx } from './db';
 import { avatarPath } from './avatars';
 import { limiter } from './ratelimit';
 import { gradingOf } from './rewards';
-import { loadCards } from './reportcards';
-import { cardsLite } from '../../shared/reportcards';
+import { cardRow } from './reportcards';
+import { cardsLite, type ReportCard } from '../../shared/reportcards';
 
 type Q = pg.Pool | pg.PoolClient;
 const TOKEN_RE = /^[A-Za-z0-9_-]{32}$/;
@@ -49,17 +49,41 @@ const inviteRow = (r: Record<string, any>): Invite => ({
 });
 
 /* ---------- a student's progress, recomputed on the server from the same data + the same code as the app ---------- */
-export async function loadStudent(q: Q, studentId: number) {
+const byUser = (rows: Record<string, any>[], key: string) => {
+  const m = new Map<number, Record<string, any>[]>();
+  for (const r of rows) {
+    const id = Number(r[key]);
+    const list = m.get(id);
+    if (list) list.push(r); else m.set(id, [r]);
+  }
+  return m;
+};
+type StudentBundle = { tests: Test[]; history: HistoryEntry[]; cheers: CheerLite[]; cards: ReportCard[]; progress: Progress };
+/** Same result as loadStudent, for many students, in four queries instead of four per student. */
+export async function loadStudents(q: Q, studentIds: number[]) {
+  const ids = [...new Set(studentIds.map(Number))].filter(n => Number.isInteger(n));
+  const out = new Map<number, StudentBundle>();
+  if (!ids.length) return out;
   const [t, s, c, cards] = await Promise.all([
-    q.query('SELECT id, name, subject, foreign_lang, native_lang, test_date, format, articles, created_day, days, result, result_skipped, grading FROM tests WHERE user_id = $1 AND NOT deleted', [studentId]),
-    q.query('SELECT id, day, cards, first_try, ms, active_ms, correct, ended_at, test_ids FROM practice_sessions WHERE user_id = $1', [studentId]),
-    q.query('SELECT supporter_id, target_kind, target_id, created_at FROM reactions WHERE student_id = $1', [studentId]),
-    loadCards(q, studentId)
+    q.query('SELECT user_id, id, name, subject, foreign_lang, native_lang, test_date, format, articles, created_day, days, result, result_skipped, grading FROM tests WHERE user_id = ANY($1::bigint[]) AND NOT deleted', [ids]),
+    q.query('SELECT user_id, id, day, cards, first_try, ms, active_ms, correct, ended_at, test_ids FROM practice_sessions WHERE user_id = ANY($1::bigint[])', [ids]),
+    q.query('SELECT student_id, supporter_id, target_kind, target_id, created_at FROM reactions WHERE student_id = ANY($1::bigint[])', [ids]),
+    q.query(`SELECT c.user_id, c.*, EXISTS (SELECT 1 FROM report_card_photos p WHERE p.card_id = c.id) AS has_photo FROM report_cards c WHERE c.user_id = ANY($1::bigint[]) ORDER BY c.issued_on, c.created_at`, [ids])
   ]);
-  const tests = t.rows.map(r => ({ id: r.id, name: r.name, subject: r.subject, foreign: r.foreign_lang, native: r.native_lang, testDate: r.test_date, format: r.format, articles: r.articles, created: r.created_day, days: r.days || [], result: r.result || null, resultSkipped: r.result_skipped, grading: r.grading || null, items: [] }) as unknown as Test);
-  const history: HistoryEntry[] = s.rows.map(r => ({ id: r.id, day: r.day, n: r.cards, firstTry: r.first_try, ms: r.ms, activeMs: r.active_ms, correct: r.correct, at: r.ended_at ?? undefined, tests: r.test_ids || [] }));
-  const cheers: CheerLite[] = c.rows.map(r => ({ at: new Date(r.created_at).getTime(), target: targetKey(r.target_kind, r.target_id), from: String(r.supporter_id) }));
-  return { tests, history, cheers, cards, progress: computeProgress(history, tests, Date.now(), cheers, cardsLite(cards)) };
+  const testsOf = byUser(t.rows, 'user_id'), sessionsOf = byUser(s.rows, 'user_id'), cheersOf = byUser(c.rows, 'student_id'), cardsOf = byUser(cards.rows, 'user_id');
+  const now = Date.now();
+  for (const id of ids) {
+    const tests = (testsOf.get(id) || []).map(r => ({ id: r.id, name: r.name, subject: r.subject, foreign: r.foreign_lang, native: r.native_lang, testDate: r.test_date, format: r.format, articles: r.articles, created: r.created_day, days: r.days || [], result: r.result || null, resultSkipped: r.result_skipped, grading: r.grading || null, items: [] }) as unknown as Test);
+    const history: HistoryEntry[] = (sessionsOf.get(id) || []).map(r => ({ id: r.id, day: r.day, n: r.cards, firstTry: r.first_try, ms: r.ms, activeMs: r.active_ms, correct: r.correct, at: r.ended_at ?? undefined, tests: r.test_ids || [] }));
+    const cheers: CheerLite[] = (cheersOf.get(id) || []).map(r => ({ at: new Date(r.created_at).getTime(), target: targetKey(r.target_kind, r.target_id), from: String(r.supporter_id) }));
+    const reportCards = (cardsOf.get(id) || []).map(cardRow);
+    out.set(id, { tests, history, cheers, cards: reportCards, progress: computeProgress(history, tests, now, cheers, cardsLite(reportCards)) });
+  }
+  return out;
+}
+export async function loadStudent(q: Q, studentId: number) {
+  const found = await loadStudents(q, [studentId]);
+  return found.get(studentId)!;
 }
 /** level-ups (with the time they happened) + unlocked badges, newest first */
 export function milestonesOf(p: Progress): Omit<KidMilestone, 'reactions'>[] {
