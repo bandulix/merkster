@@ -18,6 +18,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 - Every page sends `noindex`, in the HTML shell and on each response, so the app stays out of search engines.
 - The repository is public. The previous container package was deleted and `ghcr.io/bandulix/merkster` is published again as `latest`, `1.0`, and `1.0.0`. The new package is public and can be pulled without logging in.
 - Docker Compose publishes `PORT` from `.env` on the host and inside the container.
+- `docker-compose.yml` runs the published image `ghcr.io/bandulix/merkster:latest` instead of building a local `merkster:latest`.
 
 ### Fixed
 

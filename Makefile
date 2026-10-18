@@ -45,14 +45,14 @@ lint: ## hadolint + compose config validation
 	$(COMPOSE) config -q
 	$(COMPOSE) -f docker-compose.yml -f docker-compose.caddy.yml config -q
 
-up: .env ## build and start app + Postgres
-	$(COMPOSE) up -d --build
+up: .env ## pull ghcr.io/bandulix/merkster:latest and start app + Postgres
+	$(COMPOSE) up -d
 
 mock: ## start app + Postgres + mock Google + mock LLM (TEST ONLY)
-	$(COMPOSE) --profile mock up -d --build
+	$(COMPOSE) --profile mock up -d
 
 caddy: .env ## start with Caddy (HTTPS) in front – needs DOMAIN in .env
-	$(COMPOSE) -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.caddy.yml up -d
 
 down: ## stop everything (data volume is kept)
 	$(COMPOSE) --profile mock down
