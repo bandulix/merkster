@@ -11,10 +11,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import type { Config } from './config';
 import { limiter } from './ratelimit';
+import { tx } from './db';
 import { APP_COOKIE, APP_CSRF_HEADER } from '../../shared/brand';
 import { avatarPath, refreshAvatar } from './avatars';
 import { codeMatches, failureLimiter, signer, signupGate } from './signup';
 import { inviteIsOpen } from './supporters';
+import { classInviteIsOpen, releaseOwnedClasses } from './classes';
 
 export const COOKIE = APP_COOKIE;
 /** user columns we load per request (never the picture bytes) */
@@ -196,7 +198,8 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     if (!config.signupCode) return { ok: true, required: false };
     const rl = invitePassLimit(req.ip);
     if (!rl.ok) return reply.header('Retry-After', String(rl.retryAfter)).code(429).send({ error: 'rate_limited' });
-    if (!(await inviteIsOpen(pool, config.appSecret, (req.body as { token?: unknown } | null)?.token))) return reply.code(404).send({ error: 'not_found' });
+    const inviteToken = (req.body as { token?: unknown } | null)?.token;
+    if (!(await inviteIsOpen(pool, config.appSecret, inviteToken)) && !(await classInviteIsOpen(pool, config.appSecret, inviteToken))) return reply.code(404).send({ error: 'not_found' });
     setPass(reply, 'invite');
     return { ok: true };
   });
@@ -238,7 +241,10 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
 
   /* delete my account and everything in it (GDPR Art. 17) */
   app.delete('/api/me', { preHandler: app.requireUser }, async (req, reply) => {
-    await pool.query('DELETE FROM users WHERE id = $1', [req.user!.id]);   // cascades to sessions, tests, cards, history, profile, AI log, invites, supporter links (both ways) and reactions
+    await tx(pool, async c => {
+      await releaseOwnedClasses(c, req.user!.id);
+      await c.query('DELETE FROM users WHERE id = $1', [req.user!.id]);
+    });
     req.log.info({ userId: String(req.user!.id) }, 'account deleted');
     reply.clearCookie(COOKIE, { path: '/' });
     return { ok: true };
@@ -255,7 +261,10 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
   app.delete<{ Params: { id: string } }>('/api/admin/users/:id', { preHandler: app.requireAdmin }, async (req, reply) => {
     if (String(req.params.id) === String(req.user!.id)) return reply.code(400).send({ error: 'cannot_delete_self' });
     if (!/^\d+$/.test(req.params.id)) return reply.code(404).send({ error: 'not_found' });
-    const r = await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    const r = await tx(pool, async c => {
+      await releaseOwnedClasses(c, Number(req.params.id));
+      return c.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    });
     return r.rowCount ? { ok: true } : reply.code(404).send({ error: 'not_found' });
   });
 }

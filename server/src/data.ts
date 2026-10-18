@@ -9,6 +9,7 @@ import { tx } from './db';
 import { supporterExport } from './supporters';
 import { evaluateSoon, rewardsExport } from './rewards';
 import { reportCardsExport } from './reportcards';
+import { classesExport } from './classes';
 import { cleanCard, cleanProfile, cleanSession, cleanState, cleanTest, ID_RE } from './sanitize';
 
 type Q = pg.Pool | pg.PoolClient;
@@ -180,7 +181,8 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     const supporters = await supporterExport(pool, uid);
     const rewards = await rewardsExport(pool, uid);
     const reportCards = await reportCardsExport(pool, uid);
-    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards };
+    const classes = await classesExport(pool, uid);
+    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards, classes };
   });
 
   /* ---- delete all of my learning data (account stays) ---- */
@@ -193,6 +195,7 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
       await c.query('DELETE FROM profiles WHERE user_id = $1', [uidOf(req)]);
       await c.query('DELETE FROM result_photos WHERE student_id = $1', [uidOf(req)]);
       await c.query('DELETE FROM report_cards WHERE user_id = $1', [uidOf(req)]);
+      await c.query('DELETE FROM class_shares WHERE author_id = $1', [uidOf(req)]);
     });
     return { ok: true };
   });
