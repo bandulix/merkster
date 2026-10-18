@@ -41,7 +41,7 @@ No Google or LLM handy? `make mock-env && make mock` runs mock OIDC + vision (re
 
 HTTPS: set `DOMAIN` + `PUBLIC_URL` in `.env`, then `make caddy`.
 
-Container: `docker pull ghcr.io/bandulix/merkster:latest` (also tagged `0.1.0` / `0.1`). Every env var is documented in [`.env.example`](.env.example).
+Container: `docker pull ghcr.io/bandulix/merkster:latest` (also tagged `0.1.1` / `0.1`). Every env var is documented in [`.env.example`](.env.example).
 
 ### Google redirect
 
