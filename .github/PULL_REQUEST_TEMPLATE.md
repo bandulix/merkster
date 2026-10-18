@@ -11,4 +11,4 @@
 ## Notes
 
 - [ ] No secrets, `.env` values, or student data are included
-- [ ] Version fields and `CHANGELOG.md` are updated if this is a release
+- [ ] `CHANGELOG.md` and `README.md` are updated before this is tagged or published
