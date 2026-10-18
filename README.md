@@ -29,7 +29,7 @@ Merkster is vibe coded: this app was written with AI coding agents.
 ```bash
 make env            # creates .env from .env.example with random APP_SECRET / POSTGRES_PASSWORD
 $EDITOR .env        # add GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (and optionally the LLM settings)
-make up             # docker compose up -d --build  →  http://localhost:8080
+make up             # docker compose up -d --build  →  http://localhost:$PORT (PORT in .env, default 8080)
 make health
 ```
 
