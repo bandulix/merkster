@@ -29,7 +29,7 @@ export type RewardTrigger =
   | { kind: 'rc_avg_improved'; minDelta: number; when?: 'final' }
   | { kind: 'rc_floor'; system: GradeSystem; value: number; min: number; when?: 'final' };
 export type Reward = { type: 'money'; amount: number; currency: Currency } | { type: 'other'; text: string };
-export interface RewardRule { id: string; supporterId: string; trigger: RewardTrigger; reward: Reward; capPerMonth: number | null; active: boolean; createdAt: number }
+export interface RewardRule { id: string; supporterId: string; trigger: RewardTrigger; reward: Reward; capPerMonth: number | null; active: boolean; createdAt: number; members?: PersonLite[] }
 
 /** input for evaluation: all results of the student + practice facts */
 export interface EvalResult { testId: string; subject: Subject; score: number; testDate: string; enteredAt: number }
@@ -161,7 +161,7 @@ export interface EarnedView {
   sourceKey: string; testId: string | null; test?: { name: string; subject: Subject; result: ExamResult | null } | null;
   cardId?: string | null; subjectId?: string | null;
   card?: { schoolYear: string; term: string; termLabel: string; issuedOn: string; system: GradeSystem; line: { subjectId: string; name: string; value: number; score: number } | null; avgScore: number | null } | null;
-  seen: boolean; supporter?: PersonLite; kid?: PersonLite;
+  seen: boolean; supporter?: PersonLite; kid?: PersonLite; members?: PersonLite[];
 }
 export const MAX_RULES_PER_LINK = 20;
 export const REWARD_TEXT_MAX = 60;

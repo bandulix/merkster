@@ -72,7 +72,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await aiPlugin(app, { pool, config });
   await reportAiPlugin(app, { pool, config });
   await supportersPlugin(app, { pool, config });
-  await rewardsPlugin(app, { pool });
+  await rewardsPlugin(app, { pool, config });
   await reportCardsPlugin(app, { pool });
   await classesPlugin(app, { pool, config });
   initAvatars(config);

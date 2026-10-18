@@ -481,6 +481,9 @@ textarea { resize: vertical; }
 .rule-modal .money-row input[type=number] { width: 100%; max-width: none; min-width: 0; font-size: 1.45rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); background: var(--card); }
 .rule-modal .money-row select { width: 100%; max-width: none; }
 .rule-group { margin-top: 14px; } .rule-group .rule-list { margin-top: 4px; }
+.joint-box { margin: 10px 0; padding: 10px 12px; border-radius: 14px; border: 2px dashed var(--line); }
+.joint-box .toggle { margin: 6px 0; }
+.joint-box .btn { margin-top: 6px; }
 
 .rw-total b { font-size: 1.25rem; }
 .rw-sup-head { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }

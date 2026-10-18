@@ -1,6 +1,6 @@
 /* Server-side sanitising of reward rules: what the client sends is never trusted. */
 import { describe, expect, it } from 'vitest';
-import { cleanReward, cleanTrigger } from '../src/rewards';
+import { cleanMemberIds, cleanReward, cleanTrigger, syncPair } from '../src/rewards';
 import { cleanCard } from '../src/reportcards';
 
 describe('cleanReward', () => {
@@ -15,6 +15,21 @@ describe('cleanReward', () => {
     expect(cleanReward({ type: 'money', amount: 5000 })).toBeNull();
     expect(cleanReward({ type: 'other', text: '   ' })).toBeNull();
     expect(cleanReward({ type: 'other', text: '<b>Pizza</b> night' })).toEqual({ type: 'other', text: 'bPizza/b night' });
+  });
+});
+describe('cleanMemberIds', () => {
+  it('keeps unique supporter ids and drops anything else', () => {
+    expect(cleanMemberIds(['1', '1', 'x', '2'])).toEqual(['1', '2']);
+    expect(cleanMemberIds('1')).toEqual([]);
+    expect(cleanMemberIds(null)).toEqual([]);
+  });
+});
+describe('syncPair', () => {
+  it('orders the two ids and rejects a person paired with themselves', () => {
+    expect(syncPair('20', '3')).toEqual(['3', '20']);
+    expect(syncPair('3', '20')).toEqual(['3', '20']);
+    expect(syncPair('4', '4')).toBeNull();
+    expect(syncPair('x', '4')).toBeNull();
   });
 });
 describe('cleanTrigger', () => {

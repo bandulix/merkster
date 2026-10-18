@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { KidSummary, ReactionCount } from '../../../shared/supporters';
+import { isFamilyRelation, type KidSummary, type ReactionCount } from '../../../shared/supporters';
 import { fmtResult } from '../../../shared/grades';
 import { api, ApiError } from '../lib/api';
 import { confetti, fmtDay, toast } from '../lib/util';
@@ -90,7 +90,7 @@ export default function KidDetail() {
             {c.hasPhoto && (k.showPhotos ? <button className="btn ghost xs" data-testid="kid-rc-photo-btn" onClick={() => setRcPhoto(c.id)}>🖼 {t('rc_photo')}</button> : null)}
             <ReactionBar counts={c.reactions} busy={busy} onToggle={(r, on) => react('report', c.id, r, on)} />
           </div>))}</div>}
-      <RulesPanel kidId={k.id} kidName={k.name} grading={k.grading} subjects={kidCustom} />
+      <RulesPanel kidId={k.id} kidName={k.name} grading={k.grading} subjects={kidCustom} canSync={isFamilyRelation(k.relation)} />
       {myB.perSupporter.length > 0 && <div className="card" data-testid="kid-my-total"><GrandTotal b={myB} label={t('rw_kid_total', { name: k.name })} big={false} /><SupporterBreakdownList b={myB} sys={k.grading} testid="kid-my-breakdown" /></div>}
       {kr.data && (kr.data.others ? <div className="card" data-testid="kid-others"><h3>{t('others_rewards')}</h3>
         {kr.data.others.length ? kr.data.others.map(o => (

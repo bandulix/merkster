@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GradeSystem } from '../../../shared/types';
 import { breakdown, type Breakdown, type EarnedView, type MoneyTotal, type PersonLite } from '../../../shared/rewards';
-import { moneyList, rewardText, ruleWhen } from '../lib/rewards';
+import { moneyList, rewardPeople, rewardText, ruleWhen } from '../lib/rewards';
 import { whoName } from '../lib/supporters';
 import { MiniAvatar } from './Cheers';
 import { t } from '../i18n';
@@ -12,7 +12,7 @@ import { t } from '../i18n';
 export const fmtMoney = (m: MoneyTotal[]) => (m.length ? moneyList(m) : '');
 /** earned entries (student view: each has its supporter) → breakdown */
 export const earnedBreakdown = (list: (EarnedView & { supporter: PersonLite })[]) =>
-  breakdown(list.map(e => ({ supporterId: e.supporter.id, supporter: e.supporter, ruleId: e.ruleId || e.id, trigger: e.trigger, reward: e.reward })));
+  breakdown(list.map(e => { const supporter = rewardPeople(e); return { supporterId: supporter.id, supporter, ruleId: e.ruleId || e.id, trigger: e.trigger, reward: e.reward }; }));
 
 /** a number that counts up to its target (for the money counter) */
 export function useCountUp(target: number, ms = 650) {
