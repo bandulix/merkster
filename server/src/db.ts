@@ -10,8 +10,14 @@ pg.types.setTypeParser(20, v => Number(v));
 
 type Log = { info: (o: unknown, m?: string) => void; warn: (m: string) => void };
 
+/** TLS options for Postgres. Certificate checks stay on unless DATABASE_SSL_INSECURE=true. */
+export function pgSsl(config: Config): pg.PoolConfig['ssl'] {
+  if (!config.dbSsl) return undefined;
+  return { rejectUnauthorized: !config.dbSslInsecure };
+}
+
 export function createPool(config: Config) {
-  return new pg.Pool({ connectionString: config.databaseUrl, max: 10, ssl: config.dbSsl ? { rejectUnauthorized: false } : undefined });
+  return new pg.Pool({ connectionString: config.databaseUrl, max: 10, ssl: pgSsl(config) });
 }
 
 /** Applies migrations/NNN_*.sql in order, each in its own transaction, under an advisory lock

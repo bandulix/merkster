@@ -10,7 +10,7 @@ import type { Config } from './config';
 import { tx } from './db';
 import { avatarPath } from './avatars';
 import { limiter } from './ratelimit';
-import { loadStudent } from './supporters';
+import { loadStudents } from './supporters';
 import { ID_RE } from './sanitize';
 import { CARD_TYPES, FORMATS, LANG_CODES, SUBJECT_KEYS, type CardType, type Format, type Lang, type Subject } from '../../shared/types';
 import {
@@ -67,15 +67,6 @@ export async function classesExport(q: Q, uid: number) {
     classes: mine.rows.map(r => ({ id: r.id, name: r.name, motto: r.motto, owner: !!r.owner, joinedAt: r.joined_at })),
     shares: shares.rows.map(r => ({ id: r.id, classId: r.class_id, name: r.name, subject: r.subject, cards: r.card_count, at: r.created_at }))
   };
-}
-
-async function mapLimit<T, R>(items: T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let i = 0;
-  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
-    while (i < items.length) { const idx = i++; out[idx] = await fn(items[idx]); }
-  }));
-  return out;
 }
 
 const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | null => (allowed as readonly string[]).includes(v as string) ? v as T : null;
@@ -139,8 +130,9 @@ export async function classesPlugin(app: FastifyInstance, { pool, config }: { po
       pool.query(`SELECT id, created_by, max_uses, uses, expires_at, created_at FROM class_invites
         WHERE class_id = $1 AND revoked_at IS NULL AND uses < max_uses AND expires_at > now() ORDER BY created_at DESC`, [cls.id])
     ]);
-    const board = boardOrder(await mapLimit(people.rows, 4, async p => {
-      const { progress } = await loadStudent(pool, Number(p.id));
+    const progressOf = await loadStudents(pool, people.rows.map(p => Number(p.id)));
+    const board = boardOrder(people.rows.map(p => {
+      const progress = progressOf.get(Number(p.id))!.progress;
       return { id: String(p.id), name: p.name as string, avatar: avatarPath(p.id, p.avatar_etag), owner: !!p.is_owner, me: Number(p.id) === uidOf(req), xp: progress.xp, level: progress.level };
     }));
     return {
@@ -308,13 +300,16 @@ export async function classesPlugin(app: FastifyInstance, { pool, config }: { po
         RETURNING id`, [newId(), cls.id, uidOf(req), testId, clip(test.name, 60), subject, foreign, native, test.test_date, format, !!test.articles, cards.length]);
       const id = up.rows[0].id as string;
       await c.query('DELETE FROM class_share_cards WHERE share_id = $1', [id]);
-      for (let i = 0; i < cards.length; i++) {
-        const card = cards[i];
+      const params: unknown[] = [];
+      const values: string[] = [];
+      cards.forEach((card, i) => {
         const type: CardType = oneOf<CardType>(card.type, CARD_TYPES) || 'pair';
         const distractors = Array.isArray(card.distractors) ? card.distractors.filter((x: unknown) => typeof x === 'string').slice(0, 4).map((x: string) => clip(x, 200)) : [];
-        await c.query(`INSERT INTO class_share_cards (share_id, position, type, term, meaning, example, distractors) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)`,
-          [id, i, type, clip(card.term, 400), clip(card.meaning, 400), clip(card.example, 400), JSON.stringify(distractors)]);
-      }
+        const b = params.length;
+        params.push(id, i, type, clip(card.term, 400), clip(card.meaning, 400), clip(card.example, 400), JSON.stringify(distractors));
+        values.push(`($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7}::jsonb)`);
+      });
+      await c.query(`INSERT INTO class_share_cards (share_id, position, type, term, meaning, example, distractors) VALUES ${values.join(',')}`, params);
       return id;
     });
     return reply.code(201).send({ shareId, cards: cards.length });

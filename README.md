@@ -16,7 +16,7 @@ Merkster is vibe coded: this app was written with AI coding agents.
 
 | | |
 |---|---|
-| **Import** | Photo / PDF / paste. On-device OCR (Tesseract, works offline) or – if configured – a server-side vision LLM. Always a review screen before anything is saved. |
+| **Import** | Photo / PDF / paste. On-device OCR (Tesseract, works offline) or – if configured – a server-side vision LLM. JavaScript inside a PDF is not run. Always a review screen before anything is saved. |
 | **Tests** | Each test has a date and a format (vocab, Q&A, mixed, articles). A student can create 3 tests in 24 hours, and each test can include 10 pictures. The *Today* dashboard plans what to practise. |
 | **Practice** | Retry-until-correct sessions, tolerant answer checking (typos, articles, accents), text-to-speech, EN/DE UI. |
 | **Results** | Self-reported exam results in 8 grading systems (DE 1–6 ±, Oberstufe 0–15 P, AT 1–5, CH 6–1 with halves, US A–F ±, UK GCSE 9–1, percent, x of y). Original value + normalised score. Results dashboard (Recharts). |
