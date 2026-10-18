@@ -15,7 +15,7 @@ export interface ShareData {
   stats?: [string, string][];
   name?: string | null;      // first name (optional)
   avatar?: string | null;    // same-origin profile picture URL – only when the name is shown
-  invite: string;            // "Learn smarter with Merkster"
+  invite: string;            // "Learn it and earn the reward with Merkster"
   url: string;               // origin of this server (no profile link)
 }
 export const SIZES: Record<ShareFormat, [number, number]> = { story: [1080, 1920], square: [1080, 1080] };

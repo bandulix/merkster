@@ -24,7 +24,7 @@ RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund && npm cache clean -
 # 3) runtime
 FROM ${NODE_IMAGE} AS runtime
 LABEL org.opencontainers.image.title="merkster" \
-      org.opencontainers.image.description="Merkster – snap your school material, practise like the real test." \
+      org.opencontainers.image.description="Merkster – snap your school material, practise like the real test, and earn a promised reward." \
       org.opencontainers.image.source="https://github.com/bandulix/merkster" \
       org.opencontainers.image.url="https://github.com/bandulix/merkster" \
       org.opencontainers.image.version="1.0.0" \

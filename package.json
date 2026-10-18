@@ -2,7 +2,7 @@
   "name": "merkster",
   "version": "1.0.0",
   "private": true,
-  "description": "Merkster – snap your school material, practise like the real test.",
+  "description": "Merkster – snap your school material, practise like the real test, and earn a promised reward.",
   "type": "module",
   "main": "dist/server/index.cjs",
   "engines": {
@@ -47,7 +47,7 @@
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.5",
     "openid-client": "^6.8.8",
-    "pdfjs-dist": "^3.11.174",
+    "pdfjs-dist": "^4.10.38",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -67,7 +67,7 @@ export function Join({ user }: { user: User | null }) {
           {pv.data?.relation && pv.data.relation !== 'other' && <p className="chip">{relName(pv.data.relation)}</p>}
           <p className="auth-claim">{t('join_sub', { name })}</p>
           {shareLine}
-          <ul className="auth-points"><li>📈 {t('sees_practice')}</li><li>📝 {t('sees_results')}</li><li>🔒 {t('join_privacy', { name })}</li></ul>
+          <ul className="auth-points"><li>📈 {t('sees_practice')}</li><li>📝 {t('sees_results')}</li><li>🎁 {t('promise_reward')}</li><li>🔒 {t('join_privacy', { name })}</li></ul>
           {err && <p className="err" role="alert" data-testid="join-error">{t(errKey(err))}</p>}
           {user
             ? <button className="btn start big wide" data-testid="join-accept" disabled={busy || !pv.data?.valid} onClick={accept}>📣 {t('join_accept', { name })}</button>

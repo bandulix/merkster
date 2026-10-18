@@ -83,7 +83,7 @@ export function Login() {
         <Logo size={96} className="auth-logo" />
         <h1 className="auth-title">{APP_NAME}</h1>
         <p className="auth-claim">{t('claim')}</p>
-        <ul className="auth-points"><li>📸 {t('login_p1')}</li><li>🧠 {t('login_p2')}</li><li>🚀 {t('login_p3')}</li></ul>
+        <ul className="auth-points"><li>📸 {t('login_p1')}</li><li>🧠 {t('login_p2')}</li><li>🎁 {t('login_p3')}</li><li>🏆 {t('login_p4')}</li></ul>
         {shownErr && <p className="err" role="alert" data-testid="auth-error">{t(ERR[shownErr] || 'err_unknown')}</p>}
         {cfg.data && !cfg.data.auth.google
           ? <p className="warn-box">{t('err_not_configured')}</p>

@@ -15,11 +15,17 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Changed
 
+- The login page, intro, invites, share cards, and README pitch a promised reward with the same weight as practice. English and German both name the parent reward and the extra report-card reward beside snap-and-drill.
+- A page load no longer asks the database who is signed in for every font, script and icon. The class leaderboard and a sync of practice sessions each use one query for the whole group.
 - Exam-grade rewards and report-card rewards are separate. A Klausur pays only an exam rule. A report-card reward is extra, and it can apply to every report card or only the end-of-year report.
 - Every page sends `noindex`, in the HTML shell and on each response, so the app stays out of search engines.
 - The repository is public. The previous container package was deleted and `ghcr.io/bandulix/merkster` is published again as `latest`, `1.0`, and `1.0.0`. The new package is public and can be pulled without logging in.
 - Docker Compose publishes `PORT` from `.env` on the host and inside the container.
 - `docker-compose.yml` runs the published image `ghcr.io/bandulix/merkster:latest` instead of building a local `merkster:latest`.
+
+### Security
+
+- PDF import uses PDF.js 4 with JavaScript inside the file switched off, so a worksheet cannot run script in the browser. When `DATABASE_SSL` is on, the database certificate is checked unless `DATABASE_SSL_INSECURE` is set. Expired sign-in sessions are deleted on the next sign-in.
 
 ### Fixed
 

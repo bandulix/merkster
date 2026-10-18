@@ -51,8 +51,19 @@ export async function upsertCard(q: Q, uid: number, c: WireCard): Promise<boolea
   return (r.rowCount || 0) > 0;
 }
 export async function insertSession(q: Q, uid: number, s: WireSession) {
-  await q.query(`INSERT INTO practice_sessions (user_id, id, day, cards, first_try, ms, test_ids, ended_at, correct, active_ms) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (user_id, id) DO NOTHING`,
-    [uid, s.id, s.day, s.n, s.firstTry, s.ms, JSON.stringify(s.tests), s.at, s.correct, s.activeMs]);
+  await insertSessions(q, uid, [s]);
+}
+/** One statement for a sync batch. A repeated id is ignored, same as the single-row insert. */
+export async function insertSessions(q: Q, uid: number, sessions: WireSession[]) {
+  if (!sessions.length) return;
+  const params: unknown[] = [];
+  const values: string[] = [];
+  for (const s of sessions) {
+    const b = params.length;
+    params.push(uid, s.id, s.day, s.n, s.firstTry, s.ms, JSON.stringify(s.tests), s.at, s.correct, s.activeMs);
+    values.push(`($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7},$${b + 8},$${b + 9},$${b + 10})`);
+  }
+  await q.query(`INSERT INTO practice_sessions (user_id, id, day, cards, first_try, ms, test_ids, ended_at, correct, active_ms) VALUES ${values.join(',')} ON CONFLICT (user_id, id) DO NOTHING`, params);
 }
 export async function upsertProfile(q: Q, uid: number, p: WireProfile) {
   await q.query(`INSERT INTO profiles (user_id, data, updated_at) VALUES ($1,$2,$3)
@@ -104,7 +115,7 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     await tx(pool, async c => {
       for (const t of tests) if (!(await upsertTest(c, uid, t))) rejectedTests.push(t.id);
       for (const card of cards) if (!(await upsertCard(c, uid, card))) skipped++;
-      for (const s of sessions) await insertSession(c, uid, s);
+      await insertSessions(c, uid, sessions);
       if (profile) await upsertProfile(c, uid, profile);
     });
     // supporter rewards depend on results / practice days / level → re-evaluate in the background
@@ -115,8 +126,12 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
 
   /* ---- REST: tests ---- */
   app.get('/api/tests', auth, async req => {
-    const r = await pool.query(`SELECT t.*, (SELECT count(*) FROM cards c WHERE c.user_id = t.user_id AND c.test_id = t.id AND NOT c.deleted) AS card_count
-      FROM tests t WHERE t.user_id = $1 AND NOT t.deleted ORDER BY t.test_date`, [uidOf(req)]);
+    const r = await pool.query(`SELECT t.*, coalesce(n.card_count, 0) AS card_count
+      FROM tests t
+      LEFT JOIN (
+        SELECT test_id, count(*) AS card_count FROM cards WHERE user_id = $1 AND NOT deleted GROUP BY test_id
+      ) n ON n.test_id = t.id
+      WHERE t.user_id = $1 AND NOT t.deleted ORDER BY t.test_date`, [uidOf(req)]);
     return { tests: r.rows.map(row => ({ ...testRow(row), cardCount: Number(row.card_count) })) };
   });
   app.get('/api/tests/quota', auth, async req => ({ used: await testsInLast24h(pool, uidOf(req)), max: TESTS_PER_24H }));
