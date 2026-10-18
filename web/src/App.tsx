@@ -19,6 +19,8 @@ import { Settings } from './pages/Settings';
 import { Me } from './pages/Me';
 import { Celebrations } from './components/Celebrate';
 import { Join } from './pages/Join';
+import { ClassJoin } from './pages/ClassJoin';
+import { ClassPage, Classes } from './pages/Classes';
 import { CheerHome } from './pages/Cheer';
 import { Supporters } from './pages/Supporters';
 import { useCheers } from './lib/supporters';
@@ -62,16 +64,16 @@ export function App() {
 
   if (me.isLoading) return <Splash />;
   if (!user) {
-    return (<><Routes><Route path="/login" element={<Login />} /><Route path="/join" element={<Join user={null} />} /><Route path="*" element={<Navigate to={loc.pathname === '/' ? '/login' : '/login?next=' + encodeURIComponent(loc.pathname)} replace />} /></Routes><Toasts /><UpdatePrompt /></>);
+    return (<><Routes><Route path="/login" element={<Login />} /><Route path="/join" element={<Join user={null} />} /><Route path="/class" element={<ClassJoin user={null} />} /><Route path="*" element={<Navigate to={loc.pathname === '/' ? '/login' : '/login?next=' + encodeURIComponent(loc.pathname)} replace />} /></Routes><Toasts /><UpdatePrompt /></>);
   }
   if (openFor !== user.id) return <Splash />;
   const p = loc.pathname;
   // a supporter who never started learning lands on the cheering overview instead of the student onboarding
   const supporterOnly = !!user.isSupporter && !data.settings.onboarded && data.tests.length === 0;
   const mode = supporterOnly ? 'supporter' : user.isSupporter ? 'both' : 'student';
-  const free = ['/welcome', '/new', '/test', '/settings', '/me', '/results', '/join', '/cheer', '/supporters', '/rewards'].some(x => p.startsWith(x));
+  const free = ['/welcome', '/new', '/test', '/settings', '/me', '/results', '/join', '/cheer', '/supporters', '/rewards', '/class'].some(x => p.startsWith(x));
   if (!data.settings.onboarded && !free) return <Navigate to={supporterOnly ? '/cheer' : '/welcome/1'} replace />;
-  const chrome = !/^\/(practice|done|welcome|join)/.test(p);
+  const chrome = !/^\/(practice|done|welcome|join)/.test(p) && p !== '/class';
   const unseen = (cheers.data || []).filter(c => !c.seen).length + (myRewards.data?.earned || []).filter(e => !e.seen).length;
   const rewardDot = given.data?.unseen || 0;
   return (
@@ -96,7 +98,10 @@ export function App() {
           <Route path="/reports/:id" element={<Suspense fallback={<Splash />}><ReportDetail /></Suspense>} />
           <Route path="/me" element={<Me />} />
           <Route path="/supporters" element={<Supporters />} />
+          <Route path="/classes" element={<Classes />} />
+          <Route path="/classes/:id" element={<ClassPage />} />
           <Route path="/join" element={<Join user={user} />} />
+          <Route path="/class" element={<ClassJoin user={user} />} />
           <Route path="/cheer" element={<CheerHome />} />
           <Route path="/rewards" element={<Suspense fallback={<Splash />}><RewardsPage /></Suspense>} />
           <Route path="/cheer/rewards" element={<Suspense fallback={<Splash />}><GivenRewards /></Suspense>} />

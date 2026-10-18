@@ -20,20 +20,20 @@ export type RewardTrigger =
   | { kind: 'improvement'; subject?: Subject | null; minDelta: number }
   | { kind: 'streak'; days: number }
   | { kind: 'level'; level: number }
-  // report cards: per subject at/above a grade · one specific subject · per subject improved vs. the last card ·
-  // overall average at/better than · average improved · "no grade worse than X" bonus
-  | { kind: 'rc_each'; system: GradeSystem; value: number; mode: 'at_least' | 'exactly'; min: number; max: number }
-  | { kind: 'rc_subject'; subjectId: string; system: GradeSystem; value: number; mode: 'at_least' | 'exactly'; min: number; max: number }
-  | { kind: 'rc_improved'; subjectId?: string | null }
-  | { kind: 'rc_avg'; system: GradeSystem; value: number; min: number }
-  | { kind: 'rc_avg_improved'; minDelta: number }
-  | { kind: 'rc_floor'; system: GradeSystem; value: number; min: number };
+  // report cards: EXTRA rewards, never a substitute for an exam grade. `when: 'final'` pays only the
+  // end-of-year report (Schuljahresende). Omitted = every confirmed report card.
+  | { kind: 'rc_each'; system: GradeSystem; value: number; mode: 'at_least' | 'exactly'; min: number; max: number; when?: 'final' }
+  | { kind: 'rc_subject'; subjectId: string; system: GradeSystem; value: number; mode: 'at_least' | 'exactly'; min: number; max: number; when?: 'final' }
+  | { kind: 'rc_improved'; subjectId?: string | null; when?: 'final' }
+  | { kind: 'rc_avg'; system: GradeSystem; value: number; min: number; when?: 'final' }
+  | { kind: 'rc_avg_improved'; minDelta: number; when?: 'final' }
+  | { kind: 'rc_floor'; system: GradeSystem; value: number; min: number; when?: 'final' };
 export type Reward = { type: 'money'; amount: number; currency: Currency } | { type: 'other'; text: string };
 export interface RewardRule { id: string; supporterId: string; trigger: RewardTrigger; reward: Reward; capPerMonth: number | null; active: boolean; createdAt: number }
 
 /** input for evaluation: all results of the student + practice facts */
 export interface EvalResult { testId: string; subject: Subject; score: number; testDate: string; enteredAt: number }
-export interface EvalCard { id: string; issuedOn: string; createdAt: number; lines: { subjectId: string; score: number }[]; avgScore: number }
+export interface EvalCard { id: string; issuedOn: string; createdAt: number; lines: { subjectId: string; score: number }[]; avgScore: number; term?: 'h1' | 'final' | 'custom' }
 export interface EvalInput { results: EvalResult[]; practiceDays: string[]; levelUps: { level: number; at: number }[]; reportCards?: EvalCard[] }
 export interface EarnSource { key: string; at: number; testId?: string; cardId?: string; subjectId?: string }
 
@@ -92,6 +92,7 @@ export function matches(rule: Pick<RewardRule, 'trigger' | 'createdAt'>, input: 
       const cards = [...(input.reportCards || [])].sort((a, b) => a.issuedOn.localeCompare(b.issuedOn) || a.createdAt - b.createdAt);
       cards.forEach((c, i) => {
         if (c.createdAt < rule.createdAt - 1000) return;
+        if ('when' in tr && tr.when === 'final' && c.term !== 'final') return;   // extra reward: end-of-year report only
         const prev = i > 0 ? cards[i - 1] : null;
         const src = (suffix: string, subjectId?: string): EarnSource => ({ key: `rc:${c.id}:${suffix}`, at: c.createdAt, cardId: c.id, ...(subjectId ? { subjectId } : {}) });
         const inBand = (score: number, min: number, max = 100) => score >= min - EPS && score <= max + EPS;
@@ -172,16 +173,17 @@ export function evaluateRule(rule: Pick<RewardRule, 'trigger' | 'createdAt' | 'c
 
 /* ---------------- report-card triggers ---------------- */
 /** build a report-card trigger from what a supporter picked (thresholds as normalised scores) */
-export function rcTrigger(kind: string, o: { system?: GradeSystem; value?: number; mode?: 'at_least' | 'exactly'; subjectId?: string | null; minDelta?: number }, avgThreshold: (s: GradeSystem, v: number) => number): RewardTrigger | null {
+export function rcTrigger(kind: string, o: { system?: GradeSystem; value?: number; mode?: 'at_least' | 'exactly'; subjectId?: string | null; minDelta?: number; when?: 'final' | 'any' | null }, avgThreshold: (s: GradeSystem, v: number) => number): RewardTrigger | null {
   const g = o.system && typeof o.value === 'number' ? gradeTrigger(o.system, o.value, o.mode === 'exactly' ? 'exactly' : 'at_least') : null;
   const gg = g && g.kind === 'grade' ? g : null;
+  const when = o.when === 'final' ? { when: 'final' as const } : {};
   switch (kind) {
-    case 'rc_each': return gg ? { kind: 'rc_each', system: gg.system, value: gg.value, mode: gg.mode, min: gg.min, max: gg.max } : null;
-    case 'rc_subject': return gg && o.subjectId ? { kind: 'rc_subject', subjectId: o.subjectId, system: gg.system, value: gg.value, mode: gg.mode, min: gg.min, max: gg.max } : null;
-    case 'rc_improved': return { kind: 'rc_improved', subjectId: o.subjectId || null };
-    case 'rc_avg': return o.system && typeof o.value === 'number' && GRADE_SPECS[o.system] ? { kind: 'rc_avg', system: o.system, value: o.value, min: Math.round(avgThreshold(o.system, o.value) * 100) / 100 } : null;
-    case 'rc_avg_improved': { const d = Number(o.minDelta) || 0; return d >= 0 && d <= 50 ? { kind: 'rc_avg_improved', minDelta: d } : null; }
-    case 'rc_floor': return gg ? { kind: 'rc_floor', system: gg.system, value: gg.value, min: gg.min } : null;
+    case 'rc_each': return gg ? { kind: 'rc_each', system: gg.system, value: gg.value, mode: gg.mode, min: gg.min, max: gg.max, ...when } : null;
+    case 'rc_subject': return gg && o.subjectId ? { kind: 'rc_subject', subjectId: o.subjectId, system: gg.system, value: gg.value, mode: gg.mode, min: gg.min, max: gg.max, ...when } : null;
+    case 'rc_improved': return { kind: 'rc_improved', subjectId: o.subjectId || null, ...when };
+    case 'rc_avg': return o.system && typeof o.value === 'number' && GRADE_SPECS[o.system] ? { kind: 'rc_avg', system: o.system, value: o.value, min: Math.round(avgThreshold(o.system, o.value) * 100) / 100, ...when } : null;
+    case 'rc_avg_improved': { const d = Number(o.minDelta) || 0; return d >= 0 && d <= 50 ? { kind: 'rc_avg_improved', minDelta: d, ...when } : null; }
+    case 'rc_floor': return gg ? { kind: 'rc_floor', system: gg.system, value: gg.value, min: gg.min, ...when } : null;
     default: return null;
   }
 }

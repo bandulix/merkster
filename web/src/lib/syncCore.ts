@@ -63,6 +63,19 @@ export function diff(d: AppData, st: SyncState, at: number): { req: SyncRequest;
   return { req, snapshot: snap, pushed, tombstones };
 }
 
+/** Tests the server refused (over the 24h cap) leave this device and are not marked synced. */
+export function dropRejected(d: AppData, rejected: string[] | undefined, pushed: string[]): string[] {
+  if (!rejected?.length) return pushed;
+  const drop = new Set(rejected);
+  const keys = new Set<string>([...drop].map(id => 't:' + id));
+  for (const t of d.tests) {
+    if (!drop.has(t.id)) continue;
+    for (const c of t.items) keys.add('c:' + c.id);
+  }
+  d.tests = d.tests.filter(t => !drop.has(t.id));
+  return pushed.filter(k => !keys.has(k));
+}
+
 /** merge server rows into local data. Entities changed locally while the request was in flight are skipped
  *  (they will be pushed next round, and the newer write wins on the server). */
 export function applyRemote(d: AppData, res: SyncResponse, changedLocally: (key: string) => boolean): number {
@@ -80,6 +93,7 @@ export function applyRemote(d: AppData, res: SyncResponse, changedLocally: (key:
     if (w.deleted) { if (i >= 0) { d.tests.splice(i, 1); n++; } continue; }
     const base = { id: w.id, name: w.name, subject: w.subject, foreign: w.foreign, native: w.native, testDate: w.testDate, format: w.format, articles: w.articles, created: w.created || w.testDate, days: w.days || [], result: w.result || null, resultSkipped: !!w.resultSkipped, grading: w.grading || null };
     if (i >= 0) Object.assign(d.tests[i], base); else d.tests.push({ ...base, items: [] });
+    if (w.serverCreatedAt) d.tests[i >= 0 ? i : d.tests.length - 1].createdAt = w.serverCreatedAt;
     n++;
   }
   const sorted = [...res.cards].sort((a, b) => a.position - b.position);
