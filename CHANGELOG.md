@@ -4,9 +4,9 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
+- Photo and PDF uploads are checked before AI extraction. Merkster only reads worksheets, notes, vocabulary, textbook pages, and report cards. Other pictures are refused, and they are not turned into cards on the device either. If the check itself does not clearly say yes, the upload is refused.
 
 ### Changed
 
@@ -16,6 +16,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ### Fixed
 
+- The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
 - The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
 ## [1.0.0] - 2026-10-17

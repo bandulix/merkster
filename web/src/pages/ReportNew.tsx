@@ -56,6 +56,7 @@ export default function ReportNew() {
       const form = new FormData(); form.append('image', blob, 'report.jpg');
       fromExtract(await api<Extract>('/api/ai/report-card', { form }));
     } catch (e) {
+      if (e instanceof ApiError && e.code === 'not_school_material') { setPhoto(null); setErr(t('not_school_material')); setStep('pick'); return; }
       setErr(e instanceof ApiError && e.status === 503 ? t('rc_ai_off') : t('rc_ai_failed'));
       manual();
     }
@@ -90,8 +91,8 @@ export default function ReportNew() {
         {aiOn ? <label className="big-choice" data-testid="rc-snap"><span className="bc-ic">📸</span><span><b>{t('rc_snap')}</b><small>{t('rc_snap_sub')}</small></span>
           <input type="file" accept="image/*" capture="environment" hidden data-testid="rc-photo-input" onChange={e => void onPhoto(e.target.files?.[0])} /></label>
           : <p className="note" data-testid="rc-ai-off">ℹ️ {t('rc_ai_off')}</p>}
-        <button className="big-choice" data-testid="rc-manual" onClick={manual}><span className="bc-ic">✍️</span><span><b>{t('rc_manual')}</b><small>{t('rc_manual_sub')}</small></span></button>
-        {err && <p className="err">{err}</p>}
+        <button className="big-choice" data-testid="rc-manual" onClick={() => { setErr(''); manual(); }}><span className="bc-ic">✍️</span><span><b>{t('rc_manual')}</b><small>{t('rc_manual_sub')}</small></span></button>
+        {err && <p className="err" data-testid="rc-refused">{err}</p>}
       </>}
     </section>);
 
