@@ -13,6 +13,8 @@ import { Ring, TopBar } from '../components/ui';
 import { ResultDialog } from '../components/ResultDialog';
 import { ShareSheet, type ShareWhat } from '../components/Share';
 import { CheerChips } from '../components/Cheers';
+import { ParentInvite } from '../components/ParentInvite';
+import { ShareWithClass } from '../components/ShareWithClass';
 import { EarnCards, ResultExtras } from '../components/Rewards';
 import { cheersFor, useCheers } from '../lib/supporters';
 import { formatsFor, t, testIcon, type Key } from '../i18n';
@@ -42,6 +44,7 @@ export function TestDetail() {
           <p className="small">{t('pb_line', { s: pb.sessions, d: pb.days, m: pb.minutes })}</p></div>
       </div>
       {fresh && <div className="fresh-card pop-in"><h2>🎉 {t('fresh_title', { n: test.items.length })}</h2><p>{t('fresh_text', { n: plan.length })}</p></div>}
+      <ParentInvite />
       {ph === 'past' ? (
         test.result
           ? <div className="card res-card"><span>{t('your_result')}</span><b className="big-num" data-testid="td-result">{fmtResult(test.result)}</b><div className="row-btns"><button className="btn ghost sm" onClick={() => setResult(true)}>✏️ {t('edit')}</button><button className="btn ghost sm" data-testid="td-share" onClick={() => setShare({ kind: 'result', test })}>📤 {t('share')}</button></div><CheerChips groups={cheersFor(cheers.data, 'result', test.id)} /><ResultExtras test={test} /></div>
@@ -50,6 +53,7 @@ export function TestDetail() {
       {!test.result && <EarnCards subject={test.subject} test={test} />}
       <div className="row-btns wrap">
         <button className="btn ghost" data-testid="add-cards" onClick={() => nav(`/test/${test.id}/import`)}>📸 {t('add_cards')}</button>
+        <ShareWithClass testId={test.id} cards={test.items.length} />
         {ph !== 'past' && test.testDate <= today && <button className="btn ghost" onClick={() => setResult(true)}>📝 {t('enter_result')}</button>}
       </div>
       {showSettings && <div className="card settings-card pop-in">

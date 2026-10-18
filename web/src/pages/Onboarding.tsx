@@ -22,6 +22,7 @@ export function Onboarding() {
       <div className="ob-art pop-in" key={step}>{art}</div>
       <h1 className="ob-title">{t(`ob${step}_title` as 'ob1_title')}</h1>
       <p className="ob-text">{t(`ob${step}_text` as 'ob1_text')}</p>
+      {step === 3 && <p className="ob-text" data-testid="ob-parent">{t('ob_parent')}</p>}
       {step === 1 && <label className="ob-grading"><span>🎓 {t('ob_grading')}</span>
         <select className="select" data-testid="ob-grading" value={d.settings.grading} onChange={e => store.setSettings({ grading: e.target.value as GradeSystem })}>{GRADE_SYSTEMS.map(g => <option key={g} value={g}>{t(('gs_' + g) as 'gs_de_grade')}</option>)}</select>
         <small>{t('ob_grading_sub')}</small></label>}
@@ -29,7 +30,7 @@ export function Onboarding() {
       <div className="ob-actions">
         {step < 3
           ? <><button className="btn primary big wide" onClick={() => nav('/welcome/' + (step + 1))}>{t('next')}</button><button className="btn link" data-testid="ob-skip" onClick={() => done('/')}>{t('skip')}</button></>
-          : <><button className="btn primary big wide" data-testid="ob-create" onClick={() => done('/new')}>📸 {t('ob_create')}</button><button className="btn link" onClick={() => done('/')}>{t('ob_look')}</button></>}
+          : <><button className="btn primary big wide" data-testid="ob-invite" onClick={() => done('/supporters?invite=mum')}>🎁 {t('parent_invite_cta')}</button><button className="btn ghost big wide" data-testid="ob-create" onClick={() => done('/new')}>📸 {t('ob_create')}</button><button className="btn link" onClick={() => done('/')}>{t('ob_look')}</button></>}
       </div>
     </section>
   );

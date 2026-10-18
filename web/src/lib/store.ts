@@ -94,7 +94,7 @@ class Store {
 
   test(id: string | undefined) { return this.data.tests.find(t => t.id === id); }
   createTest(f: Pick<Test, 'name' | 'subject' | 'foreign' | 'native' | 'testDate' | 'format' | 'articles'>): Test {
-    const t: Test = { id: uid(), ...f, created: S.dayISO(now()), items: [], days: [] };
+    const t: Test = { id: uid(), ...f, created: S.dayISO(now()), createdAt: now(), items: [], days: [] };
     this.commit(d => { d.tests.push(t); });
     return t;
   }

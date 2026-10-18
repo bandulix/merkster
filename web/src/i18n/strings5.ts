@@ -12,7 +12,7 @@ export const en5 = {
   rw_total_open: '{amount} open', rw_total_paid: '{amount} done', rw_other_n: '{n} other rewards', rw_from: 'from {name}',
   rw_cap_left: '{n} of {cap} left this month', rw_cap_full: 'Limit reached this month', rw_for_test: 'Rewards for this test',
   // rule texts
-  rule_grade_atleast: 'for every {grade} or better', rule_grade_exactly: 'for every {grade}', rule_in_subject: 'in {subject}',
+  rule_grade_atleast: 'for every exam grade of {grade} or better', rule_grade_exactly: 'for every exam grade of {grade}', rule_in_subject: 'in {subject}',
   rule_personal_best: 'for a new personal best', rule_improvement: 'when you beat your last result', rule_improvement_n: 'when you improve by {n}+ points', rule_streak: 'for a {n}-day streak', rule_level: 'for reaching level {n}',
   rule_converted: 'Set as {orig} ({sys}) – {name} now uses {cur}, so this is converted.', rule_paused: 'paused', rule_cap: 'max {n}× per month',
   // rewards – supporter
@@ -42,7 +42,7 @@ export const de5: Record<keyof typeof en5, string> = {
   rw_open: 'Offen', rw_paid: 'Erledigt', rw_this_month: 'Diesen Monat', rw_this_year: 'Dieses Jahr', rw_none_yet: 'Noch nichts verdient – das nächste gute Ergebnis kann das ändern!',
   rw_total_open: '{amount} offen', rw_total_paid: '{amount} erledigt', rw_other_n: '{n} andere Belohnungen', rw_from: 'von {name}',
   rw_cap_left: 'noch {n} von {cap} diesen Monat', rw_cap_full: 'Limit für diesen Monat erreicht', rw_for_test: 'Belohnungen für diesen Test',
-  rule_grade_atleast: 'für jede {grade} oder besser', rule_grade_exactly: 'für jede {grade}', rule_in_subject: 'in {subject}',
+  rule_grade_atleast: 'für jede Klausur mit {grade} oder besser', rule_grade_exactly: 'für jede Klausur mit {grade}', rule_in_subject: 'in {subject}',
   rule_personal_best: 'für eine neue Bestleistung', rule_improvement: 'wenn du dein letztes Ergebnis schlägst', rule_improvement_n: 'wenn du dich um {n}+ Punkte verbesserst', rule_streak: 'für {n} Tage am Stück', rule_level: 'für Level {n}',
   rule_converted: 'Festgelegt als {orig} ({sys}) – {name} nutzt jetzt {cur}, daher umgerechnet.', rule_paused: 'pausiert', rule_cap: 'max. {n}× pro Monat',
   kid_rewards: 'Belohnungen für {name}', rule_new: 'Belohnung hinzufügen', rule_none: 'Noch keine Belohnungen. Ein kleines Versprechen kann viel motivieren!',

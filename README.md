@@ -13,13 +13,14 @@ Merkster is vibe coded: this app was written with AI coding agents.
 | | |
 |---|---|
 | **Import** | Photo / PDF / paste. On-device OCR (Tesseract, works offline) or – if configured – a server-side vision LLM. Always a review screen before anything is saved. |
-| **Tests** | Each test has a date and a format (vocab, Q&A, mixed, articles). The *Today* dashboard plans what to practise. |
+| **Tests** | Each test has a date and a format (vocab, Q&A, mixed, articles). A student can create 3 tests in 24 hours, and each test can include 10 pictures. The *Today* dashboard plans what to practise. |
 | **Practice** | Retry-until-correct sessions, tolerant answer checking (typos, articles, accents), text-to-speech, EN/DE UI. |
 | **Results** | Self-reported exam results in 8 grading systems (DE 1–6 ±, Oberstufe 0–15 P, AT 1–5, CH 6–1 with halves, US A–F ±, UK GCSE 9–1, percent, x of y). Original value + normalised score. Results dashboard (Recharts). |
 | **Report cards** | Photo of the *Zeugnis* → AI proposes subject lines (or a quick manual form) → review & match subjects (synonyms + fuzzy, confidence, one-tap new subject, ignore conduct lines) → confirm. Terms, report card vs. test average with a friendly gap explanation, trends, unboxing reveal, badges & XP, share card with *hide grades*. |
 | **Gamification** | XP, levels, ranks, streaks with freezes, badges, share cards (PNG / short video). |
-| **Supporters** | Invite family via an unguessable, expiring, limited-use, revocable link (Web Share, copy, QR). Supporters sign in with Google, see a read-only dashboard of what the student shares, react with emojis/preset messages. |
-| **Rewards** | Supporters set rules (grade thresholds per subject, personal best, improvement, streak, level, report-card rules) with money (per currency) or free-text rewards and optional monthly caps. The student sees **one grand total plus a per-supporter breakdown** everywhere. *Merkster only tracks promises – it never moves money.* |
+| **Classes** | A student creates a class and invites classmates with an expiring link. Any member can share a test; the cards are copied into the classmate’s own tests, so the page is not scanned twice. Practice and results stay private. Each class has an XP leaderboard. The creator sets the cover, name and motto. |
+| **Supporters** | Invite family via an unguessable, expiring, limited-use, revocable link (Web Share, copy, QR). A student without a parent is asked on Today, after a new test, and at the end of the intro, because a reward can start only once a parent joins. Supporters sign in with Google, see a read-only dashboard of what the student shares, react with emojis/preset messages. |
+| **Rewards** | Supporters set rules for **exam grades** (a Klausur, personal best, improvement, streak, level) and **extra report-card rewards** (every report card, or only the end-of-year report). A test grade never pays a report-card rule, and the report card never pays an exam rule. Money is per currency, with optional monthly caps. The student sees **one grand total plus a per-supporter breakdown** everywhere. *Merkster only tracks promises – it never moves money.* |
 | **Simulator** | “What could I earn?” – play with expected report-card grades; the same rule engine computes the total per supporter. Clearly labelled *Simulation*; never creates rewards. |
 | **Offline-first** | IndexedDB on the device, last-writer-wins sync per record, installable PWA with update prompt. |
 | **Privacy** | Google sign-in only, GDPR export (JSON) and delete, supporter visibility switches, everything enforced server-side. |
@@ -29,7 +30,7 @@ Merkster is vibe coded: this app was written with AI coding agents.
 ```bash
 make env            # creates .env from .env.example with random APP_SECRET / POSTGRES_PASSWORD
 $EDITOR .env        # add GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (and optionally the LLM settings)
-make up             # pulls ghcr.io/bandulix/merkster:latest  →  http://localhost:8080
+make up             # pulls ghcr.io/bandulix/merkster:latest  →  http://localhost:$PORT (PORT in .env, default 8080)
 make health
 ```
 
@@ -44,7 +45,7 @@ HTTPS with Caddy: set `DOMAIN=…` and `PUBLIC_URL=https://…` in `.env`, then 
 3. Authorised redirect URI: `<PUBLIC_URL>/api/auth/google/callback`.
 4. Put the client ID/secret into `.env`. Optional: `ALLOWED_EMAIL_DOMAINS`, `REGISTRATION_OPEN=false` + `ALLOWLIST`, `ADMIN_EMAILS`, `SIGNUP_CODE`.
 
-The flow is authorization code + PKCE, with `state` and `nonce`. Profile pictures (`picture` claim) are fetched at 256 px on each login, cached on our server and served same-origin (`/api/avatars/:id`, signed URL, long cache) – the browser never loads images from Google. Without a picture we show initials.
+The flow is authorization code + PKCE, with `state` and `nonce`. Profile pictures (`picture` claim) are fetched at 256 px on each login, cached on our server and served same-origin (`/api/avatars/:id`, signed URL, long cache) – the browser never loads images from Google. A student can choose, replace, or remove that picture in Settings and on the Me page. The chosen picture is stored and served the same way. A later Google login does not replace a picture the student set, and it does not bring a removed picture back. Without a picture we show initials.
 
 ### Who can sign up (registration codeword)
 
@@ -68,7 +69,7 @@ The flow is authorization code + PKCE, with `state` and `nonce`. Profile picture
 
 ### AI extraction (optional)
 
-Any OpenAI-compatible endpoint with vision: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_VISION_MODEL`. Keys stay on the server – they are never logged and never reach the client. Per-user rate limits: `AI_RATE_LIMIT_PER_HOUR` / `_PER_DAY`. Without AI the app uses on-device OCR and the manual report-card form.
+Any OpenAI-compatible endpoint with vision: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_VISION_MODEL`. Keys stay on the server – they are never logged and never reach the client. Per-user rate limits: `AI_RATE_LIMIT_PER_HOUR` / `_PER_DAY`. Before it extracts cards, the server asks the model whether the upload is serious school material: a worksheet, notes, vocabulary, a textbook page, or a report card. Anything else is refused, and it is not read on the device either. If that check does not clearly say yes, the upload is refused. The photo is still not stored. Without AI the app uses on-device OCR and the manual report-card form.
 
 ## Development
 
@@ -82,7 +83,7 @@ npm run dev:web          # Vite on :5173 (proxy /api → :8080)
 
 | command | |
 |---|---|
-| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, server sanitisers, config safety, sign-up codeword gate) |
+| `npm test` | Vitest unit tests (grading systems, reward engine, report-card matching/terms, simulator == real evaluation, scheduler, checking, parsing, sync, picture and test limits, server sanitisers, config safety, sign-up codeword gate, school-material upload gate, profile-picture upload) |
 | `npm run typecheck` | TypeScript strict, web + server |
 | `npx playwright test` | end-to-end (needs app + mocks running; set `CHROME_PATH` to use a system Chrome) |
 | `make lint` | hadolint + `docker compose config` |
@@ -118,7 +119,7 @@ Merkster is used by school children. If you run it for others:
 - **Supporters see only what the student shares:** results and practice can be switched off per supporter; photos of graded tests/report cards only if the student allows it; other supporters' rules and amounts are hidden unless the student switches on *Supporters can see each other*. Supporters can never change the student's data.
 - **Rewards are promises:** Merkster only keeps track; it never handles money. Results are *self-reported* unless a supporter marks them *verified*.
 - **Export & delete:** *Settings → Your data* downloads everything as JSON (incl. rewards and report cards) or deletes the account and all data (including supporter links, reactions, rewards, photos).
-- AI extraction sends the photo to the LLM endpoint you configure – choose a provider with an appropriate data-processing agreement, or leave AI off.
+- AI extraction sends the photo to the LLM endpoint you configure – choose a provider with an appropriate data-processing agreement, or leave AI off. Pictures that are not school material are refused before they are turned into cards.
 
 ## Container package
 
@@ -128,7 +129,7 @@ The server image is published on GitHub Packages (GitHub Container Registry):
 docker pull ghcr.io/bandulix/merkster:latest
 ```
 
-`docker-compose.yml` sets the app service to `ghcr.io/bandulix/merkster:latest`. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). This repository is private, so pull it with `docker login ghcr.io`. Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md). The `1.0.0` tag is the same image as `latest` until the next release.
+`docker-compose.yml` sets the app service to `ghcr.io/bandulix/merkster:latest`. The same image is tagged `1.0.0` and `1.0`. The package is public, so this pull does not need `docker login`. The image listens on port 8080 and uses the same environment variables as Docker Compose (`APP_SECRET`, Postgres, and Google or the mock sign-in). Version tags are `vX.Y.Z` git tags; see [CHANGELOG.md](CHANGELOG.md).
 
 ## Configuration reference
 
