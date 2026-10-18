@@ -10,7 +10,7 @@ import { store } from '../lib/store';
 import { stopSync, resetSyncState, runSync } from '../lib/sync';
 import { warmOfflineCache } from '../lib/ocr';
 import { download, toast } from '../lib/util';
-import { Avatar } from '../components/ui';
+import { AvatarEdit } from '../components/AvatarEdit';
 import { fanfare } from '../components/Celebrate';
 import { t } from '../i18n';
 import { uiLang } from '../i18n';
@@ -39,7 +39,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
     <section className="settings page narrow">
       <h1 className="page-title">{t('tab_settings')}</h1>
       <div className="card account">
-        <Avatar user={user} rank={store.progress().rank} size={56} />
+        <AvatarEdit user={user} rank={store.progress().rank} size={56} />
         <div><b data-testid="account-name">{user.name || '—'}</b>{user.isAdmin && <span className="chip warm">{t('admin_badge')}</span>}<p className="muted small">{user.email}</p><p className="muted small">{t('signed_in_google')}</p></div>
         <button className="btn ghost sm" data-testid="logout" onClick={logout}>{t('logout')}</button>
       </div>

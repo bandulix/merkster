@@ -116,6 +116,14 @@ textarea { resize: vertical; }
 .rank-badge { display: inline-block; vertical-align: middle; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .25)); }
 .avatar { position: relative; display: inline-grid; place-items: center; border-radius: 50%; padding: 3px; background: conic-gradient(from 200deg, var(--c1), var(--c2), var(--glow), var(--c1)); box-shadow: 0 0 0 3px var(--card), 0 0 22px color-mix(in srgb, var(--glow) 60%, transparent); flex: none; }
 .avatar img, .avatar b { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--ink2); color: #fff; font-weight: 800; }
+.avatar-edit { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.avatar-hit { position: relative; border: 0; padding: 0; background: none; cursor: pointer; border-radius: 50%; }
+.avatar-hit:focus-visible { outline: 2px solid var(--accent, #6d5efc); outline-offset: 3px; }
+.avatar-hit:disabled { cursor: progress; }
+.avatar-cam { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--card); font-size: 12px; line-height: 1; box-shadow: 0 0 0 2px var(--card); }
+.avatar-remove { padding: 0; font-size: .75rem; }
+.me-hero .avatar-cam { background: #fff; }
+.me-hero .avatar-remove { color: #fff; }
 .avatar.rank-legend, .avatar.rank-galaxy, .avatar.rank-supernova { animation: aura 3s ease-in-out infinite; }
 
 /* ---------- auth ---------- */
