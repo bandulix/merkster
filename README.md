@@ -7,6 +7,9 @@
 Photo a worksheet → practise until exam day → family can promise a reward for the grade.  
 Merkster tracks the promise. It never moves money.
 
+> **Vibe coded** — this app was written with AI coding agents.  
+> **LLM API needed** — photo → smart cards needs an OpenAI-compatible vision key (`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_VISION_MODEL` in `.env`). Without it you only get on-device OCR, which is weaker on worksheets.
+
 <p align="center">
   <img src="screenshots/desktop-01-today.png" width="820" alt="Today dashboard on desktop">
 </p>
@@ -21,7 +24,7 @@ Merkster tracks the promise. It never moves money.
 
 ## Try it in two minutes
 
-No Google account. No API keys. Mock sign-in + mock vision:
+No Google account. No real LLM key. Mock sign-in + mock vision:
 
 ```bash
 make mock-env        # creates a mock .env (stop here if you already have one)
@@ -54,13 +57,14 @@ Done exploring? `make down`.
 
 ```bash
 make env
-$EDITOR .env    # set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET
+$EDITOR .env    # GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET, plus LLM_* for vision
 make up
 make health     # → http://localhost:8080
 ```
 
 OAuth redirect: `<PUBLIC_URL>/api/auth/google/callback`  
-Image: `ghcr.io/bandulix/merkster:latest` (also `0.1.2` / `0.1`) · every env var is in [`.env.example`](.env.example)
+Set `LLM_BASE_URL`, `LLM_API_KEY`, and `LLM_VISION_MODEL` for AI extraction (see [`.env.example`](.env.example)).  
+Image: `ghcr.io/bandulix/merkster:latest` (also `0.1.2` / `0.1`)
 
 HTTPS at home: set `DOMAIN` + `PUBLIC_URL`, then `make caddy`.
 
@@ -90,5 +94,3 @@ Export or delete under *Settings → Your data*. Host for others? Get parental c
 
 **AGPL-3.0-only** — see [`LICENSE`](LICENSE).  
 Network use of a modified Merkster must offer the corresponding source (`SOURCE_CODE_URL`).
-
-Merkster is vibe coded: built with AI coding agents.
