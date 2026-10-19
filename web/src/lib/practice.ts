@@ -11,7 +11,7 @@ export type Kind = 'study' | 'meaning' | 'produce' | 'qa' | 'forward' | 'backwar
 export interface QCard { kind: Kind; key?: string; keys?: string[]; almost?: number }
 export interface ItemRun { testId: string; itemId: string; struggled: boolean; met: boolean; morning: boolean; isNew: boolean; tries: number }
 export interface Spec { prompt?: string; pLang?: Lang | null; speakP?: boolean; ask: string; answer: string; aLang: Lang; strict: boolean; articles?: boolean; chip?: string; self?: boolean; cloze?: string; hint?: string }
-export interface Summary { done: number; total: number; firstTry: number; ms: number; activeMs: number; correct: number; tests: string[]; xpBefore?: number; xpAfter?: number; levelBefore?: number; levelAfter?: number }
+export interface Summary { done: number; total: number; firstTry: number; ms: number; activeMs: number; correct: number; tests: string[]; sessionId?: string; xpBefore?: number; xpAfter?: number; levelBefore?: number; levelAfter?: number }
 
 export function taskFor(test: Test, item: Card, e: { morning?: boolean }): Kind {
   const type = item.type || 'pair', f = test.format, lang = test.subject === 'languages', n = item.st?.sessions || 0;

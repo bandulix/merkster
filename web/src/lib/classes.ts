@@ -33,3 +33,24 @@ export interface SharedCards {
   cards: { type: 'pair' | 'qa' | 'cloze' | 'mc'; term: string; meaning: string; example: string; distractors: string[] }[];
   takenTestId: string | null; newer: boolean;
 }
+
+export interface BossContributor { id: string; name: string; avatar: string | null; damage: number; me: boolean }
+export interface ClassBoss {
+  id: string; shareId: string; shareName: string; cards: number; testDate: string | null;
+  myTestId: string | null; maxHp: number; hp: number;
+  status: 'open' | 'won' | 'cancelled' | 'expired';
+  endsAt: string; wonAt: string | null; createdBy: string; contributors: BossContributor[];
+}
+
+export interface ClashPerson { id: string; name: string; avatar: string | null }
+export interface ClashPlay { correct: number; ms: number; done: boolean }
+export interface ClashPrompt { position: number; type: string; term: string; meaning?: string }
+export interface ClassClash {
+  id: string; shareId: string; shareName: string; cards: number;
+  status: 'pending' | 'active' | 'done' | 'declined' | 'expired';
+  expiresAt: string; createdAt: string;
+  challenger: ClashPerson; opponent: ClashPerson;
+  me: 'challenger' | 'opponent' | null;
+  myPlay: ClashPlay | null; theirPlay: ClashPlay | null;
+  prompts?: ClashPrompt[]; winnerId?: string | null;
+}

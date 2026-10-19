@@ -5,14 +5,22 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { DraftRow } from '../../../shared/types';
 import { api, ApiError } from '../lib/api';
-import type { ClassDetail, ClassShare, ClassSummary, SharedCards } from '../lib/classes';
+import type { ClassBoss, ClassClash, ClassDetail, ClassShare, ClassSummary, SharedCards } from '../lib/classes';
 import { store } from '../lib/store';
 import * as S from '../lib/schedule';
 import { now, toast } from '../lib/util';
 import { Face, TopBar } from '../components/ui';
 import { t, testIcon, type Key } from '../i18n';
 
-const errText = (e: unknown) => t(('class_err_' + ((e as ApiError).code || 'not_found')) as Key);
+const errText = (e: unknown) => {
+  const code = (e as ApiError).code || 'not_found';
+  const keys = ['boss_err_' + code, 'clash_err_' + code, 'class_err_' + code] as Key[];
+  for (const k of keys) {
+    const s = t(k);
+    if (s !== k) return s;
+  }
+  return t('class_err_not_found');
+};
 
 export function Classes() {
   const q = useQuery({ queryKey: ['classes'], queryFn: () => api<{ classes: ClassSummary[] }>('/api/classes').then(r => r.classes), enabled: !!store.userId });
@@ -51,12 +59,64 @@ export function ClassPage() {
   const { id = '' } = useParams();
   const nav = useNavigate(), qc = useQueryClient();
   const q = useQuery({ queryKey: ['class', id], queryFn: () => api<ClassDetail>('/api/classes/' + id), enabled: !!id && !!store.userId });
+  const bossQ = useQuery({
+    queryKey: ['class-boss', id],
+    queryFn: () => api<{ boss: ClassBoss | null }>('/api/classes/' + id + '/boss').then(r => r.boss),
+    enabled: !!id && !!store.userId,
+    refetchInterval: (query) => (query.state.data?.status === 'open' ? 4000 : false)
+  });
+  const clashQ = useQuery({
+    queryKey: ['class-clashes', id],
+    queryFn: () => api<{ clashes: ClassClash[] }>('/api/classes/' + id + '/clashes').then(r => r.clashes),
+    enabled: !!id && !!store.userId,
+    refetchInterval: 8000
+  });
   const d = q.data;
   const [name, setName] = useState(''), [motto, setMotto] = useState(''), [url, setUrl] = useState(''), [busy, setBusy] = useState(false);
+  const [bossShare, setBossShare] = useState(''), [clashShare, setClashShare] = useState(''), [clashOpp, setClashOpp] = useState('');
   const file = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (d) { setName(d.class.name); setMotto(d.class.motto); } }, [d?.class.name, d?.class.motto]);
+  useEffect(() => { if (d) { setName(d.class.name); setMotto(d.class.motto); if (!bossShare && d.shares[0]) setBossShare(d.shares[0].id); if (!clashShare && d.shares[0]) setClashShare(d.shares[0].id); if (!clashOpp) { const o = d.board.find(b => !b.me); if (o) setClashOpp(o.id); } } }, [d?.class.name, d?.class.motto, d?.shares, d?.board]); // eslint-disable-line react-hooks/exhaustive-deps
   if (q.isError) return <section className="page narrow"><TopBar title={t('classes_title')} back="/classes" /><p className="err">{errText(q.error)}</p></section>;
   if (!d) return <section className="page narrow"><TopBar title={t('classes_title')} back="/classes" /><p className="muted">{t('loading')}</p></section>;
+  const boss = bossQ.data;
+  const clashes = clashQ.data || [];
+  const startBoss = async () => {
+    if (!bossShare) return;
+    setBusy(true);
+    try {
+      await api('/api/classes/' + id + '/boss', { body: { shareId: bossShare } });
+      await bossQ.refetch();
+      toast(t('boss_start'), 'ok');
+    } catch (e) { toast(errText(e), 'bad'); }
+    finally { setBusy(false); }
+  };
+  const cancelBoss = async () => {
+    if (!boss || boss.status !== 'open') return;
+    setBusy(true);
+    try { await api('/api/classes/' + id + '/boss/' + boss.id + '/cancel', { body: {} }); await bossQ.refetch(); }
+    catch (e) { toast(errText(e), 'bad'); }
+    finally { setBusy(false); }
+  };
+  const startClash = async () => {
+    if (!clashShare || !clashOpp) return;
+    setBusy(true);
+    try {
+      const r = await api<{ clash: ClassClash }>('/api/classes/' + id + '/clashes', { body: { shareId: clashShare, opponentId: clashOpp } });
+      await clashQ.refetch();
+      nav('/classes/' + id + '/clash/' + r.clash.id);
+    } catch (e) { toast(errText(e), 'bad'); }
+    finally { setBusy(false); }
+  };
+  const acceptClash = async (clashId: string) => {
+    setBusy(true);
+    try { await api('/api/classes/' + id + '/clashes/' + clashId + '/accept', { body: {} }); nav('/classes/' + id + '/clash/' + clashId); }
+    catch (e) { toast(errText(e), 'bad'); }
+    finally { setBusy(false); }
+  };
+  const declineClash = async (clashId: string) => {
+    try { await api('/api/classes/' + id + '/clashes/' + clashId + '/decline', { body: {} }); await clashQ.refetch(); }
+    catch (e) { toast(errText(e), 'bad'); }
+  };
   const save = async () => {
     setBusy(true);
     try { await api('/api/classes/' + id, { method: 'PATCH', body: { name, motto } }); await q.refetch(); toast(t('class_save'), 'ok'); }
@@ -136,6 +196,87 @@ export function ClassPage() {
             <span className="grow"><small className="muted">{t('class_uses', { u: i.uses, m: i.maxUses })}</small></span>
             {(i.mine || d.class.owner) && <button className="btn ghost sm" data-testid="class-revoke" onClick={() => void revoke(i.id)}>{t('class_revoke')}</button>}
           </li>))}</ul></div>}
+      <div className="card boss-card" data-testid="class-boss">
+        <h3>🐉 {t('boss_title')}</h3>
+        <p className="muted small">{t('boss_sub')}</p>
+        {boss && (boss.status === 'open' || boss.status === 'won') ? (
+          <>
+            <div className="boss-name"><b>{boss.shareName}</b></div>
+            <div className="boss-bar" role="progressbar" aria-valuenow={boss.hp} aria-valuemax={boss.maxHp} data-testid="boss-hp-bar">
+              <i style={{ width: Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100)) + '%' }} />
+            </div>
+            <p className="boss-hp" data-testid="boss-hp">{boss.status === 'won' ? t('boss_won') : t('boss_hp', { hp: boss.hp, max: boss.maxHp })}</p>
+            {boss.status === 'open' && (
+              boss.myTestId
+                ? <button className="btn primary wide" data-testid="boss-practise" onClick={() => nav('/test/' + boss.myTestId)}>{t('boss_practise')}</button>
+                : <button className="btn ghost wide" data-testid="boss-take-first" disabled={busy} onClick={() => { const s = d.shares.find(x => x.id === boss.shareId); if (s) void take(s); }}>{t('boss_take_first')}</button>
+            )}
+            {boss.status === 'open' && (boss.createdBy === store.userId || d.class.owner) && (
+              <button className="btn link bad sm" data-testid="boss-cancel" disabled={busy} onClick={() => void cancelBoss()}>{t('boss_cancel')}</button>
+            )}
+            {boss.contributors.length > 0 && (
+              <ul className="boss-contrib" data-testid="boss-contrib">
+                <li className="muted small">{t('boss_contrib')}</li>
+                {boss.contributors.slice(0, 8).map(c => (
+                  <li key={c.id}><Face src={c.avatar} name={c.name} size={28} /><span className="grow">{c.me ? t('class_you') : c.name}</span><b>−{c.damage}</b></li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="muted small">{t('boss_none')}</p>
+            {d.shares.length > 0 && (
+              <label className="field"><span>{t('boss_pick')}</span>
+                <select data-testid="boss-share" value={bossShare} onChange={e => setBossShare(e.target.value)}>
+                  {d.shares.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </label>
+            )}
+            <button className="btn primary wide" data-testid="boss-start" disabled={busy || !bossShare} onClick={() => void startBoss()}>{t('boss_start')}</button>
+          </>
+        )}
+      </div>
+      <div className="card clash-card" data-testid="class-clash">
+        <h3>⚔️ {t('clash_title')}</h3>
+        <p className="muted small">{t('clash_sub')}</p>
+        {d.shares.length > 0 && d.board.some(b => !b.me) && (
+          <div className="clash-form">
+            <label className="field"><span>{t('clash_pick_share')}</span>
+              <select data-testid="clash-share" value={clashShare} onChange={e => setClashShare(e.target.value)}>
+                {d.shares.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </label>
+            <label className="field"><span>{t('clash_pick_opp')}</span>
+              <select data-testid="clash-opp" value={clashOpp} onChange={e => setClashOpp(e.target.value)}>
+                {d.board.filter(b => !b.me).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </label>
+            <button className="btn primary wide" data-testid="clash-start" disabled={busy || !clashShare || !clashOpp} onClick={() => void startClash()}>{t('clash_start')}</button>
+          </div>
+        )}
+        {!clashes.length && <p className="muted small">{t('clash_empty')}</p>}
+        <ul className="clash-list">{clashes.slice(0, 8).map(cl => {
+          const other = cl.me === 'challenger' ? cl.opponent : cl.challenger;
+          return (
+            <li key={cl.id} className="clash-row" data-testid="clash-row" data-status={cl.status}>
+              <span className="grow">
+                <b>{t('clash_vs', { a: cl.challenger.name, b: cl.opponent.name })}</b>
+                <small className="muted">{cl.shareName} · {cl.status === 'pending' && cl.me === 'challenger' ? t('clash_pending', { name: other.name }) : cl.status}</small>
+              </span>
+              {cl.status === 'pending' && cl.me === 'opponent' && (
+                <>
+                  <button className="btn primary sm" data-testid="clash-accept" disabled={busy} onClick={() => void acceptClash(cl.id)}>{t('clash_accept')}</button>
+                  <button className="btn ghost sm" data-testid="clash-decline" onClick={() => void declineClash(cl.id)}>{t('clash_decline')}</button>
+                </>
+              )}
+              {(cl.status === 'active' || cl.status === 'done' || (cl.status === 'pending' && cl.me === 'challenger')) && (
+                <button className="btn ghost sm" data-testid="clash-open" onClick={() => nav('/classes/' + id + '/clash/' + cl.id)}>{cl.status === 'done' ? t('clash_score', { n: cl.myPlay?.correct ?? 0, total: cl.cards }) : t('clash_play')}</button>
+              )}
+            </li>
+          );
+        })}</ul>
+      </div>
       <div className="card">
         <h3>{t('class_board')}</h3>
         <p className="muted small">{t('class_board_sub')}</p>

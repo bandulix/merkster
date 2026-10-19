@@ -7,6 +7,7 @@ import { check, containsTerm } from '../lib/check';
 import { distractors, shuffle, type Practice, type QCard, type Spec } from '../lib/practice';
 import * as S from '../lib/schedule';
 import { finishPractice, getActive, getLast, quitPractice, touchActive } from '../lib/activeSession';
+import { reportBossDamage } from '../lib/classGames';
 import { canSpeak, confetti, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
 import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
@@ -251,6 +252,10 @@ export function SessionPage() {
 export function DonePage() {
   const nav = useNavigate(), d = useStore(), s = getLast(), ts = now();
   useEffect(() => { if (s) { confetti(); vibrate([20, 50, 20]); } }, [s]);
+  useEffect(() => {
+    if (!s?.sessionId || !s.correct) return;
+    void reportBossDamage({ sessionId: s.sessionId, correct: s.correct, tests: s.tests });
+  }, [s?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!s) return <Navigate to="/" replace />;
   const pct = s.done ? Math.round(s.firstTry / s.done * 100) : 0, mins = Math.max(1, Math.round(s.activeMs / 60000)), streak = store.liveStreak(ts);
   const gained = (s.xpAfter ?? 0) - (s.xpBefore ?? 0), li = levelInfo(s.xpAfter ?? 0), rank = rankFor(li.level);
