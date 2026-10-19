@@ -4,6 +4,10 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- README leads with the pitch, badges, a star line, and the two-minute mock plus Docker quick start.
+
 ### Added
 
 - Class boss fight: the class picks a shared test and chips a shared HP bar by practising that deck correctly.
