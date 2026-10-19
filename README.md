@@ -4,9 +4,8 @@
 
 **Snap it. Drill it. Own the test. Earn the reward.**
 
-Photo a worksheet, vocab list, or PDF — Merkster turns it into cards. Practise with successive relearning until exam day, track how practice maps to grades, and let family promise rewards for the results. Merkster only tracks those promises — it never moves money.
-
-Merkster is vibe coded: this app was written with AI coding agents.
+Photo a worksheet → practise until exam day → family can promise a reward for the grade.  
+Merkster tracks the promise. It never moves money.
 
 <p align="center">
   <img src="screenshots/desktop-01-today.png" width="820" alt="Today dashboard on desktop">
@@ -20,57 +19,76 @@ Merkster is vibe coded: this app was written with AI coding agents.
   <img src="screenshots/mobile-28-reward-pop.png" width="240" alt="Reward earned celebration">
 </p>
 
-## What you get
+## Try it in two minutes
 
-- **Import** — photo, PDF, or paste → review → cards (on-device OCR, or optional server vision LLM)
-- **Practice** — retry until correct, spaced to the test date, tolerant checking, EN/DE UI
-- **Results & report cards** — self-reported grades in 8 systems, Zeugnis photo → review → trends
-- **Family rewards** — invite supporters, set grade/practice/report-card rules; Merkster tracks, never pays out
-- **Offline PWA** — IndexedDB sync, installable, Google sign-in, GDPR export & delete
-
-## Quick start
+No Google account. No API keys. Mock sign-in + mock vision:
 
 ```bash
-make env            # .env from .env.example + random secrets
-$EDITOR .env        # GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (LLM optional)
-make up             # http://localhost:$PORT (default 8080)
-make health
+make mock-env        # creates a mock .env (stop here if you already have one)
+make mock
+make health          # → http://localhost:8080
 ```
 
-No Google or LLM handy? `make mock-env && make mock` runs mock OIDC + vision (refused when `NODE_ENV=production`).
+Open the app → sign in with the mock login → add a test → practise.  
+Done exploring? `make down`.
 
-HTTPS: set `DOMAIN` + `PUBLIC_URL` in `.env`, then `make caddy`.
+> Mock mode is for local try-outs only (`NODE_ENV=development`). Production refuses the mocks.
 
-Container: `docker pull ghcr.io/bandulix/merkster:latest` (also tagged `0.1.2` / `0.1`). Every env var is documented in [`.env.example`](.env.example).
+## Why people stick
 
-### Google redirect
+| Student | Family |
+|---|---|
+| Cards from a photo, not typing all night | Promise a reward for practice or the grade |
+| Practice that adapts to the test date | Cheer from your phone when they crush a session |
+| Class boss fights & vocab clashes with classmates | See grades/stats only if invited |
 
-Create a Web OAuth client and set the redirect URI to `<PUBLIC_URL>/api/auth/google/callback`. Optional gates: `SIGNUP_CODE`, `ALLOWED_EMAIL_DOMAINS`, `ALLOWLIST`, `REGISTRATION_OPEN`, `ADMIN_EMAILS`.
+## What you get
 
-## Development
+- **Import** — photo, PDF, or paste → review → cards  
+- **Practice** — successive relearning, tolerant checking, EN/DE  
+- **Class** — share one scan with the whole class; XP board, boss fights, 1v1 clashes  
+- **Family rewards** — rules for grades, practice, report cards (tracked, not paid out)  
+- **Offline PWA** — works without a signal; export or delete your data anytime  
+
+## Run for real (Google sign-in)
+
+```bash
+make env
+$EDITOR .env    # set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET
+make up
+make health     # → http://localhost:8080
+```
+
+OAuth redirect: `<PUBLIC_URL>/api/auth/google/callback`  
+Image: `ghcr.io/bandulix/merkster:latest` (also `0.1.2` / `0.1`) · every env var is in [`.env.example`](.env.example)
+
+HTTPS at home: set `DOMAIN` + `PUBLIC_URL`, then `make caddy`.
+
+## Develop
 
 ```bash
 npm ci && cp .env.example .env
-npm run mock-oidc & npm run mock-llm &   # optional
-npm run dev:server                       # :8080
-npm run dev:web                          # :5173 → proxies /api
+npm run mock-oidc & npm run mock-llm &
+npm run dev:server    # :8080
+npm run dev:web       # :5173 → proxies /api
 ```
 
 | | |
 |---|---|
-| `npm test` | Vitest unit tests |
-| `npm run typecheck` | TypeScript strict (web + server) |
-| `npx playwright test` | E2E (app + mocks; set `CHROME_PATH` for system Chrome) |
-| `make lint` | hadolint + compose config |
+| `npm test` | unit tests |
+| `npm run typecheck` | TypeScript |
+| `npx playwright test` | E2E (set `CHROME_PATH` if needed) |
 
-Layout: `web/` React PWA · `shared/` pure TS · `server/` Fastify + Postgres · `tools/` mocks. Details and contribution notes live in [CONTRIBUTING.md](CONTRIBUTING.md); release notes in [CHANGELOG.md](CHANGELOG.md).
+More in [CONTRIBUTING.md](CONTRIBUTING.md) · changes in [CHANGELOG.md](CHANGELOG.md).
 
 ## Privacy & kids
 
-No ads, no tracking scripts. Supporters see only what the student shares. Results are self-reported unless a supporter marks them verified. Export or delete everything under *Settings → Your data*. If you host Merkster for others, get appropriate parental consent where the law requires it, and keep AI photos on a provider you’re happy with — or leave AI off.
+No ads. No tracking scripts. Supporters see only what the student shares.  
+Export or delete under *Settings → Your data*. Host for others? Get parental consent where the law asks, and only send photos to an AI provider you’re fine with — or leave AI off.
 
 ## License
 
-Copyright (C) 2026 bandulix — **AGPL-3.0-only**, see [`LICENSE`](LICENSE).
+**AGPL-3.0-only** — see [`LICENSE`](LICENSE).  
+Network use of a modified Merkster must offer the corresponding source (`SOURCE_CODE_URL`).
 
-If you run a modified Merkster as a network service, AGPL §13 requires you to offer users the complete corresponding source. Set `SOURCE_CODE_URL` to the code you actually run (default: `https://github.com/bandulix/merkster`). Vendored Tesseract.js / PDF.js keep their own licenses under `web/public/vendor/`.
+Merkster is vibe coded: built with AI coding agents.
