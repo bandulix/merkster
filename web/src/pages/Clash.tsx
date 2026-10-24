@@ -5,9 +5,43 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '../lib/api';
 import type { ClassClash, ClashPrompt } from '../lib/classes';
 import { store } from '../lib/store';
-import { now, toast } from '../lib/util';
+import { confetti, now, toast } from '../lib/util';
 import { Face, TopBar } from '../components/ui';
 import { t, type Key } from '../i18n';
+
+function VersusBar({ clash, answered, onNudge, onCheer }: { clash: ClassClash; answered: number; onNudge: () => void; onCheer: () => void }) {
+  const me = clash.me === 'opponent' ? clash.opponent : clash.challenger;
+  const them = clash.me === 'opponent' ? clash.challenger : clash.opponent;
+  const total = Math.max(1, clash.cards);
+  const mineKnown = !!clash.myPlay?.done || answered > 0;
+  const theirKnown = !!clash.theirPlay?.done;
+  const mineN = clash.myPlay?.done ? clash.myPlay.correct : answered;
+  const theirN = clash.theirPlay?.done ? clash.theirPlay.correct : 0;
+  const width = (n: number) => Math.max(0, Math.min(50, n / total * 50)) + '%';
+  return (
+    <div className="versus" data-testid="clash-versus">
+      <div className="versus-row">
+        <span className="versus-face"><Face src={me.avatar} name={me.name} size={48} /></span>
+        <div className="versus-mid">
+          <div className="versus-track" aria-hidden="true">
+            <i className="you" style={{ width: width(mineN) }} />
+            <i className="gap" />
+            <i className="them" style={{ width: width(theirN) }} />
+          </div>
+          <div className="versus-legend">
+            <span><b>{clash.me ? t('clash_you') : me.name}</b> {mineKnown ? `${mineN}/${clash.cards}` : t('clash_waiting_short')}</span>
+            <span><b>{them.name}</b> {theirKnown ? `${theirN}/${clash.cards}` : t('clash_waiting_short')}</span>
+          </div>
+        </div>
+        <span className="versus-face"><Face src={them.avatar} name={them.name} size={48} /></span>
+      </div>
+      <div className="versus-actions">
+        <button type="button" className="btn ghost" data-testid="clash-nudge" onClick={onNudge}>👋 {t('clash_nudge')}</button>
+        <button type="button" className="btn primary" data-testid="clash-cheer" onClick={onCheer}>📣 {t('clash_cheer')}</button>
+      </div>
+    </div>
+  );
+}
 
 const errText = (e: unknown) => {
   const code = (e as ApiError).code || 'not_found';
@@ -81,17 +115,28 @@ export function ClashPage() {
     } catch (e) { toast(errText(e), 'bad'); }
     finally { setBusy(false); }
   };
+  const nudge = async (name: string) => {
+    const text = t('clash_nudge_text', { name });
+    const url = window.location.href;
+    try {
+      if (navigator.share) { await navigator.share({ text, url }); toast(t('clash_nudged'), 'ok'); return; }
+    } catch (e) { if ((e as Error).name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text + ' ' + url); toast(t('clash_nudged'), 'ok'); }
+    catch { toast(text, 'ok'); }
+  };
+  const cheer = (name: string) => { confetti(); toast(t('clash_cheered', { name }), 'ok'); };
 
   return (
     <section className="page narrow clash-page" data-testid="clash-page">
       <TopBar title={t('clash_title')} back={'/classes/' + id} />
       <div className="clash-head card">
-        <div className="clash-faces">
-          <Face src={clash.challenger.avatar} name={clash.challenger.name} size={48} />
-          <span className="muted">vs</span>
-          <Face src={clash.opponent.avatar} name={clash.opponent.name} size={48} />
-        </div>
-        <b>{t('clash_vs', { a: clash.challenger.name, b: clash.opponent.name })}</b>
+        {other ? <VersusBar clash={clash} answered={Object.keys(answers).length} onNudge={() => void nudge(other.name)} onCheer={() => cheer(other.name)} /> : (
+          <div className="clash-faces">
+            <Face src={clash.challenger.avatar} name={clash.challenger.name} size={48} />
+            <span className="muted">vs</span>
+            <Face src={clash.opponent.avatar} name={clash.opponent.name} size={48} />
+          </div>
+        )}
         <small className="muted">{clash.shareName} · {t('class_cards_n', { n: clash.cards })}</small>
       </div>
 

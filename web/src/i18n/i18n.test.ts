@@ -7,6 +7,8 @@ describe('tp plural forms', () => {
     expect(tp('n_cards', 1)).toBe('1 Karte');
     expect(tp('n_cards', 6)).toBe('6 Karten');
     expect(tp('hero_ready', 1)).toBe('1 Karte wartet auf dich');
+    expect(tp('done_sub', 1)).toBe('1 Karte abgerufen.');
+    expect(tp('done_sub', 4)).toBe('4 Karten abgerufen.');
   });
   it('picks one/other for EN', () => {
     setUiLang('en');

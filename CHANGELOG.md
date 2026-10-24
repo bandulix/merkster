@@ -4,6 +4,10 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- Practice, results, home, review, import, and vocab clash use a more tactile layout: segmented question progress, whole-tile answer feedback, stat chips with an XP glow, a daily-review hero, a stacked card preview, and a versus bar. Logo, palette, and type stay the same.
+
 ### Added
 
 - Class boss fight: the class picks a shared test and chips a shared HP bar by practising that deck correctly.

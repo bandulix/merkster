@@ -31,7 +31,7 @@ export const en3 = {
   share_no_video: 'This browser can’t record video – sharing the image instead.', share_downloaded: 'Saved – post it anywhere!',
   share_invite: 'Learn it and earn the reward with Merkster', share_k_best: 'New personal best', share_k_result: 'Exam result', share_k_level: 'Level up', share_k_streak: 'Streak',
   share_k_badge: 'Badge unlocked', share_k_week: 'My week', n_days: '{n} days', n_min: '{n} min', share_streak_sub: 'practising every day', share_week_sub: '{s} sessions on {d} days',
-  done_sub: '{n} cards recalled.', s_sound: 'Celebration sounds', s_export_all: 'Download all my data', privacy_short: 'Your data belongs to you. Export it any time, or delete your account and everything in it.',
+  done_sub: '{n} card recalled.;;{n} cards recalled.', s_sound: 'Celebration sounds', s_export_all: 'Download all my data', privacy_short: 'Your data belongs to you. Export it any time, or delete your account and everything in it.',
   delete_account: 'Delete account', delete_account_text: 'Deletes your account, all tests, cards, results and progress on the server – for good.',
   delete_account_type: 'Type DELETE to confirm', delete_word: 'DELETE', account_deleted: 'Account deleted.', n_tests: '{n} tests',
   admin_delete_user: 'Delete the account of {name} and all its data?', admin_hint: 'Admins come from ADMIN_EMAILS in the server’s .env.'
@@ -68,7 +68,7 @@ export const de3: Record<keyof typeof en3, string> = {
   share_no_video: 'Dieser Browser kann kein Video aufnehmen – stattdessen wird das Bild geteilt.', share_downloaded: 'Gespeichert – poste es, wo du willst!',
   share_invite: 'Lernen und die Belohnung holen mit Merkster', share_k_best: 'Neuer Rekord', share_k_result: 'Testergebnis', share_k_level: 'Level up', share_k_streak: 'Serie',
   share_k_badge: 'Abzeichen freigeschaltet', share_k_week: 'Meine Woche', n_days: '{n} Tage', n_min: '{n} Min.', share_streak_sub: 'jeden Tag geübt', share_week_sub: '{s} Runden an {d} Tagen',
-  done_sub: '{n} Karten abgerufen.', s_sound: 'Sounds bei Erfolgen', s_export_all: 'Alle meine Daten herunterladen', privacy_short: 'Deine Daten gehören dir. Exportiere sie jederzeit oder lösche dein Konto samt allem Inhalt.',
+  done_sub: '{n} Karte abgerufen.;;{n} Karten abgerufen.', s_sound: 'Sounds bei Erfolgen', s_export_all: 'Alle meine Daten herunterladen', privacy_short: 'Deine Daten gehören dir. Exportiere sie jederzeit oder lösche dein Konto samt allem Inhalt.',
   delete_account: 'Konto löschen', delete_account_text: 'Löscht dein Konto, alle Tests, Karten, Noten und Fortschritte auf dem Server – endgültig.',
   delete_account_type: 'Tippe LÖSCHEN zur Bestätigung', delete_word: 'LÖSCHEN', account_deleted: 'Konto gelöscht.', n_tests: '{n} Tests',
   admin_delete_user: 'Konto von {name} samt allen Daten löschen?', admin_hint: 'Admins kommen aus ADMIN_EMAILS in der .env des Servers.'

@@ -8,6 +8,27 @@ import { TopBar } from '../components/ui';
 import { flag, langName, localizeNote, t } from '../i18n';
 import type { Draft } from './Import';
 
+function DeckPeek({ rows }: { rows: DraftRow[] }) {
+  const good = rows.filter(r => r.a.trim() && r.b.trim());
+  const [i, setI] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  if (!good.length) return null;
+  const card = good[i % good.length];
+  return (
+    <div className="deck" data-testid="deck-preview">
+      <div className="card-stack">
+        <div className="stack-ghost g2" aria-hidden="true" /><div className="stack-ghost g1" aria-hidden="true" />
+        <button type="button" className={'deck-card' + (flipped ? ' flipped' : '')} aria-pressed={flipped} onClick={() => setFlipped(f => !f)}>
+          <span className="deck-face front" aria-hidden={flipped}>{card.a}</span>
+          <span className="deck-face back" aria-hidden={!flipped}>{card.b}</span>
+          <span className="sr-only">{t('flip_card')}</span>
+        </button>
+      </div>
+      {good.length > 1 && <button type="button" className="btn ghost deck-next" onClick={() => { setI(n => (n + 1) % good.length); setFlipped(false); }}>{t('deck_next')}</button>}
+    </div>
+  );
+}
+
 function AutoText(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { const el = ref.current; if (el) { el.style.height = 'auto'; el.style.height = Math.min(160, el.scrollHeight + 2) + 'px'; } }, [p.value]);
@@ -36,6 +57,7 @@ export function Review() {
         {draft.method === 'ocr' && !isLang && !cfg.data?.ai.configured && <div className="ai-banner strong small">✨ <span>{t('ai_better')} {t('ai_tip_admin')}</span></div>}
       </div>
       {draft.thumbs.length > 0 && <div className="thumbs">{draft.thumbs.map((src, i) => <img key={i} src={src} alt="" />)}</div>}
+      <DeckPeek rows={rows} />
       <div className="col-head"><span>{isLang ? `${flag(test.foreign)} ${langName(test.foreign)}` : t('col_front')}</span>
         {isLang ? <button className="icon-btn swap" data-testid="swap" title={t('swap')} onClick={() => { save({ ...draft, swapped: false, rows: rows.map(r => ({ ...r, a: r.b, b: r.a })) }); toast(t('swapped')); }}>⇄</button> : <span />}
         <span>{isLang ? `${flag(test.native)} ${langName(test.native)}` : t('col_back')}</span></div>

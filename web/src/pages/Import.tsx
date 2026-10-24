@@ -68,10 +68,22 @@ export function ImportPage() {
           <div className="bar big"><i style={{ width: Math.max(4, pct) + '%' }} /></div>
         </div>
       ) : error == null && (<>
-        <div className="import-tiles">
-          <label className="tile cam"><input type="file" accept="image/*" capture="environment" hidden onChange={e => onFiles([...(e.target.files || [])])} /><span className="ti">📸</span><b>{t('take_photo')}</b><small>{t('take_photo_sub')}</small></label>
-          <label className="tile"><input type="file" accept="image/*,application/pdf,.pdf" multiple hidden data-testid="file-input" onChange={e => onFiles([...(e.target.files || [])])} /><span className="ti">🖼️</span><b>{t('upload')}</b><small>{t('upload_sub')}</small></label>
-          <button className="tile" data-testid="paste-tile" onClick={() => nav(`/test/${test.id}/paste${merge ? '?merge=1' : ''}`)}><span className="ti">⌨️</span><b>{t('type_paste')}</b><small>{t('type_paste_sub')}</small></button>
+        <div className="import-empty" data-testid="import-empty">
+          <div className="import-orb" aria-hidden="true">
+            <svg viewBox="0 0 72 72" width="78" height="78">
+              <rect x="12" y="8" width="34" height="46" rx="6" fill="#fff" stroke="#0d0f1e" strokeWidth="2.5" />
+              <path d="M20 22h18M20 30h18M20 38h11" stroke="#0d0f1e" strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="48" cy="48" r="16" fill="#0d0f1e" />
+              <circle cx="48" cy="48" r="6.5" fill="#c6f432" />
+              <rect x="43" y="34" width="10" height="5" rx="1.5" fill="#0d0f1e" />
+            </svg>
+          </div>
+          <p className="import-line">{t('import_empty_line')}</p>
+          <div className="import-actions">
+            <label className="btn primary big wide"><input type="file" accept="image/*" capture="environment" hidden onChange={e => onFiles([...(e.target.files || [])])} />📸 {t('take_photo')}</label>
+            <label className="btn ghost big wide"><input type="file" accept="image/*,application/pdf,.pdf" multiple hidden data-testid="file-input" onChange={e => onFiles([...(e.target.files || [])])} />🖼️ {t('upload')}</label>
+            <button className="btn link" data-testid="paste-tile" onClick={() => nav(`/test/${test.id}/paste${merge ? '?merge=1' : ''}`)}>⌨️ {t('type_paste')}</button>
+          </div>
         </div>
         <p className="muted" data-testid="pictures-max">{t('pictures_max')}</p>
         <details className="tips"><summary>📷 {t('photo_tips')}</summary><ul><li>{t('tip1')}</li><li>{t('tip2')}</li><li>{t('tip3')}</li></ul></details>
