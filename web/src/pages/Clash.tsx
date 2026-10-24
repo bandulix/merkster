@@ -7,7 +7,7 @@ import type { ClassClash, ClashPrompt } from '../lib/classes';
 import { store } from '../lib/store';
 import { confetti, now, toast } from '../lib/util';
 import { Face, TopBar } from '../components/ui';
-import { t, type Key } from '../i18n';
+import { t, tp, type Key } from '../i18n';
 
 function VersusBar({ clash, answered, onNudge, onCheer }: { clash: ClassClash; answered: number; onNudge: () => void; onCheer: () => void }) {
   const me = clash.me === 'opponent' ? clash.opponent : clash.challenger;
@@ -137,7 +137,7 @@ export function ClashPage() {
             <Face src={clash.opponent.avatar} name={clash.opponent.name} size={48} />
           </div>
         )}
-        <small className="muted">{clash.shareName} · {t('class_cards_n', { n: clash.cards })}</small>
+        <small className="muted">{clash.shareName} · {tp('class_cards_n', clash.cards)}</small>
       </div>
 
       {clash.status === 'pending' && clash.me === 'opponent' && (

@@ -43,7 +43,7 @@ export function TestDetail() {
         <div><span className={'cd ' + cd.cls}>{cd.label}</span><p className="muted">{fmtDay(test.testDate)} · {tp('n_cards', test.items.length)}</p>
           <p className="small">{t('pb_line', { s: pb.sessions, d: pb.days, m: pb.minutes })}</p></div>
       </div>
-      {fresh && <div className="fresh-card pop-in"><h2>🎉 {t('fresh_title', { n: test.items.length })}</h2><p>{t('fresh_text', { n: plan.length })}</p></div>}
+      {fresh && <div className="fresh-card pop-in"><h2>🎉 {tp('fresh_title', test.items.length)}</h2><p>{tp('fresh_text', plan.length)}</p></div>}
       <ParentInvite />
       {ph === 'past' ? (
         test.result

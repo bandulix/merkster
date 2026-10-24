@@ -9,7 +9,7 @@ export const en5 = {
   owes_you: '{name} owes you {reward}! 🎉', promised_you: '{name} promised you: {reward}! 🎉', paid_you: '{name} marked {reward} as done ✅',
   reward_pop_title: 'Reward earned!', reward_pop_paid: 'Promise kept!', reward_more: '+{n} more',
   rw_open: 'Open', rw_paid: 'Done', rw_this_month: 'This month', rw_this_year: 'This year', rw_none_yet: 'Nothing earned yet – your next good result could change that!',
-  rw_total_open: '{amount} open', rw_total_paid: '{amount} done', rw_other_n: '{n} other rewards', rw_from: 'from {name}',
+  rw_total_open: '{amount} open', rw_total_paid: '{amount} done', rw_other_n: '{n} other reward;;{n} other rewards', rw_from: 'from {name}',
   rw_cap_left: '{n} of {cap} left this month', rw_cap_full: 'Limit reached this month', rw_for_test: 'Rewards for this test',
   // rule texts
   rule_grade_atleast: 'for every exam grade of {grade} or better', rule_grade_exactly: 'for every exam grade of {grade}', rule_in_subject: 'in {subject}',
@@ -46,10 +46,10 @@ export const de5: Record<keyof typeof en5, string> = {
   owes_you: '{name} schuldet dir {reward}! 🎉', promised_you: '{name} hat dir versprochen: {reward}! 🎉', paid_you: '{name} hat {reward} als erledigt markiert ✅',
   reward_pop_title: 'Belohnung verdient!', reward_pop_paid: 'Versprechen gehalten!', reward_more: '+{n} weitere',
   rw_open: 'Offen', rw_paid: 'Erledigt', rw_this_month: 'Diesen Monat', rw_this_year: 'Dieses Jahr', rw_none_yet: 'Noch nichts verdient – das nächste gute Ergebnis kann das ändern!',
-  rw_total_open: '{amount} offen', rw_total_paid: '{amount} erledigt', rw_other_n: '{n} andere Belohnungen', rw_from: 'von {name}',
+  rw_total_open: '{amount} offen', rw_total_paid: '{amount} erledigt', rw_other_n: '{n} andere Belohnung;;{n} andere Belohnungen', rw_from: 'von {name}',
   rw_cap_left: 'noch {n} von {cap} diesen Monat', rw_cap_full: 'Limit für diesen Monat erreicht', rw_for_test: 'Belohnungen für diesen Test',
   rule_grade_atleast: 'für jede Klausur mit {grade} oder besser', rule_grade_exactly: 'für jede Klausur mit {grade}', rule_in_subject: 'in {subject}',
-  rule_personal_best: 'für eine neue Bestleistung', rule_improvement: 'wenn du dein letztes Ergebnis schlägst', rule_improvement_n: 'wenn du dich um {n}+ Punkte verbesserst', rule_streak: 'für {n} Tage am Stück', rule_level: 'für Level {n}',
+  rule_personal_best: 'für eine neue Bestleistung', rule_improvement: 'wenn du dein letztes Ergebnis schlägst', rule_improvement_n: 'wenn du dich um {n}+ Punkte verbesserst', rule_streak: 'für {n} Tag am Stück;;für {n} Tage am Stück', rule_level: 'für Level {n}',
   rule_converted: 'Festgelegt als {orig} ({sys}) – {name} nutzt jetzt {cur}, daher umgerechnet.', rule_paused: 'pausiert', rule_cap: 'max. {n}× pro Monat',
   kid_rewards: 'Belohnungen für {name}', rule_new: 'Belohnung hinzufügen', rule_none: 'Noch keine Belohnungen. Ein kleines Versprechen kann viel motivieren!',
   rule_when: 'Wann…', rt_grade: 'Note', rt_personal_best: 'Bestleistung', rt_improvement: 'Verbesserung', rt_streak: 'Serie', rt_level: 'Level',
@@ -67,7 +67,7 @@ export const de5: Record<keyof typeof en5, string> = {
   sync_all: 'Alle Belohnungen teilen', sync_all_sub: 'Wenn das an ist, bleibt jede Belohnung, bei der eine von euch dabei ist, dieselbe — auch neue. Oma und Opa sehen dann zum Beispiel immer dieselben Versprechen.', sync_invite: 'Zu allen Belohnungen einladen',
   open_rewards: 'Offene Belohnungen', open_rewards_n: '{n} offen', given_title: 'Versprochene Belohnungen', given_none: 'Noch nichts verdient.',
   given_earned: '{name} hat {reward} verdient', given_for: 'für {what}', mark_paid: 'Als erledigt markieren', mark_open: 'Wieder öffnen', marked_paid: 'Als erledigt markiert 🎉',
-  reward_notice: '{name} hat eine Belohnung von dir verdient!', what_result: '{test}: {grade}', what_streak: '{n} Tage am Stück', what_level: 'Level {n}',
+  reward_notice: '{name} hat eine Belohnung von dir verdient!', what_result: '{test}: {grade}', what_streak: '{n} Tag am Stück;;{n} Tage am Stück', what_level: 'Level {n}',
   photo_add: 'Foto der benoteten Arbeit hinzufügen', photo_change: 'Foto ändern', photo_remove: 'Foto entfernen', photo_saved: 'Foto gespeichert', photo_hint: 'Nur Fans, denen du es erlaubst, können es sehen.',
   cancel: 'Abbrechen', photo_view: 'Foto der Arbeit', photo_need_login: 'Melde dich an, um ein Foto anzuhängen.', sees_photos: 'Sieht Fotos benoteter Arbeiten'
 };

@@ -8,7 +8,7 @@ import { distractors, shuffle, type Practice, type QCard, type Spec } from '../l
 import * as S from '../lib/schedule';
 import { finishPractice, getActive, getLast, quitPractice, touchActive } from '../lib/activeSession';
 import { reportBossDamage } from '../lib/classGames';
-import { canSpeak, confetti, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
+import { canSpeak, confetti, fmtDur, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
 import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
 import { pick, subjectIcon, t, tp, uiLang, type Key } from '../i18n';
@@ -284,7 +284,7 @@ export function DonePage() {
     void reportBossDamage({ sessionId: s.sessionId, correct: s.correct, tests: s.tests });
   }, [s?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!s) return <Navigate to="/" replace />;
-  const pct = s.done ? Math.round(s.firstTry / s.done * 100) : 0, mins = Math.max(1, Math.round(s.activeMs / 60000)), streak = store.liveStreak(ts);
+  const pct = s.done ? Math.round(s.firstTry / s.done * 100) : 0, streak = store.liveStreak(ts);
   const gained = (s.xpAfter ?? 0) - (s.xpBefore ?? 0), li = levelInfo(s.xpAfter ?? 0), rank = rankFor(li.level);
   const tests = s.tests.map(id => store.test(id)).filter((x): x is Test => !!x);
   const nexts = tests.map(x => S.nextDueAt(x, ts)).filter((x): x is number => x != null).sort((a, b) => a - b);
@@ -306,10 +306,10 @@ export function DonePage() {
       <div className="stat-chips">
         <div className="schip lime"><span className="schip-h">{t('stat_xp')}</span><b>+{gained}</b></div>
         <div className="schip teal"><span className="schip-h">{t('stat_accuracy')}</span><b>{pct}%</b></div>
-        <div className="schip blue"><span className="schip-h">{t('stat_time')}</span><b>{mins}</b></div>
+        <div className="schip blue"><span className="schip-h">{t('stat_time')}</span><b>{fmtDur(s.activeMs)}</b></div>
       </div>
-      {streak > 0 && <p className="done-streak">🔥 {t('streak_days', { n: streak })}</p>}
-      <div className="done-next">{left > 0 ? t('more_today', { n: left }) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('all_done')}</div>
+      {streak > 0 && <p className="done-streak">🔥 {tp('streak_days', streak)}</p>}
+      <div className="done-next">{left > 0 ? tp('more_today', left) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('all_done')}</div>
       <div className="row-btns col">{tests.map(x => <div key={x.id} className="mini-test"><span>{x.name}</span><Ring pct={S.mastery(x)} size={38} stroke={4} /></div>)}</div>
       <button className="btn primary big wide" data-testid="done-home" onClick={() => nav('/', { replace: true })}>{t('continue')}</button>
     </section>

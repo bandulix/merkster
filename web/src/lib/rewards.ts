@@ -6,7 +6,7 @@ import { fmtReward, monthOf, thresholdIn, totals, type EarnedView, type PersonLi
 import { api } from './api';
 import { runSync } from './sync';
 import { store } from './store';
-import { subjectName, t, uiLang, type Key } from '../i18n';
+import { subjectName, t, tp, uiLang, type Key } from '../i18n';
 import { whoName } from './supporters';
 import { fmtAvg } from '../../../shared/reportcards';
 import { fmtGrade, LOCALE, subjName, termName } from './reportcards';
@@ -37,7 +37,7 @@ export function ruleWhen(tr: RewardTrigger, kidSystem: GradeSystem): string {
     case 'grade': { const th = thresholdIn(tr, kidSystem); return t(tr.mode === 'exactly' ? 'rule_grade_exactly' : 'rule_grade_atleast', { grade: th.label }) + subj; }
     case 'personal_best': return t('rule_personal_best') + subj;
     case 'improvement': return (tr.minDelta ? t('rule_improvement_n', { n: tr.minDelta }) : t('rule_improvement')) + subj;
-    case 'streak': return t('rule_streak', { n: tr.days });
+    case 'streak': return tp('rule_streak', tr.days);
     case 'level': return t('rule_level', { n: tr.level });
     case 'rc_each': return t(tr.mode === 'exactly' ? 'rule_rc_each_exactly' : 'rule_rc_each', { grade: thresholdIn({ ...tr, kind: 'grade' }, kidSystem).label }) + scope;
     case 'rc_subject': return t('rule_rc_subject', { grade: thresholdIn({ ...tr, kind: 'grade' }, kidSystem).label, subject: subjName(tr.subjectId) }) + scope;
@@ -71,7 +71,7 @@ export function earnedLine(e: EarnedView & { supporter: PersonLite }) {
 }
 /** what an earned reward was for (student or supporter view) */
 export function earnedWhat(e: EarnedView): string {
-  if (e.sourceKey.startsWith('streak:')) return t('what_streak', { n: e.sourceKey.split(':')[1] });
+  if (e.sourceKey.startsWith('streak:')) return tp('what_streak', Number(e.sourceKey.split(':')[1]) || 0);
   if (e.sourceKey.startsWith('level:')) return t('what_level', { n: e.sourceKey.split(':')[1] });
   if (e.test) return e.test.result ? t('what_result', { test: e.test.name, grade: fmtResult(e.test.result) }) : e.test.name;
   if (e.card) {

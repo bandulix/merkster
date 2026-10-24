@@ -22,7 +22,7 @@ import { GrandTotal, SupporterBreakdownList } from '../components/Totals';
 import { MiniAvatar } from '../components/Cheers';
 import type { KidResult } from '../../../shared/supporters';
 import { kidUser, rankById, Upcoming } from './Cheer';
-import { subjectIcon, t, uiLang } from '../i18n';
+import { subjectIcon, t, tp, uiLang } from '../i18n';
 
 export default function KidDetail() {
   const { id = '' } = useParams(); const q = useKid(id); const qc = useQueryClient(); const d = useStore(); const L = uiLang();
@@ -73,7 +73,7 @@ export default function KidDetail() {
       <div className="me-hero kid-hero pop-in" style={{ ['--c1' as string]: rank.c1, ['--c2' as string]: rank.c2, ['--glow' as string]: rank.glow }}>
         <div className="me-top"><Avatar user={kidUser(k)} rank={rank} size={72} />
           <div><h1>{k.name}</h1>{p && <p className="me-rank"><RankBadge rank={rank} size={26} /> {t('lvl')} {p.level} · {rank.name[L]}</p>}</div></div>
-        {p && <div className="stat-row small-stats light"><div className="stat"><b>🔥 {p.streak}</b><span>{t('day_streak')}</span></div><div className="stat"><b>{p.weekMinutes}</b><span>{t('active_min')}</span></div><div className="stat"><b>{p.badges}</b><span>{t('badges')}</span></div></div>}
+        {p && <div className="stat-row small-stats light"><div className="stat"><b>🔥 {p.streak}</b><span>{tp('day_streak', p.streak)}</span></div><div className="stat"><b>{p.weekMinutes}</b><span>{t('active_min')}</span></div><div className="stat"><b>{p.badges}</b><span>{t('badges')}</span></div></div>}
       </div>
       {!p && !k.results && <p className="muted center">{t('kid_shares_nothing', { name: k.name })}</p>}
       {latest && <div className="card kid-latest" data-testid="kid-result" data-test={latest.name}>
@@ -96,7 +96,7 @@ export default function KidDetail() {
         {kr.data.others.length ? kr.data.others.map(o => (
           <div key={o.supporter.id} className="sb-row" data-testid="kid-other" data-name={whoName(o.supporter)}>
             <div className="sb-head"><MiniAvatar src={o.supporter.avatar} name={o.supporter.name} size={32} /><b className="grow">{whoName(o.supporter)}</b>
-              <span className="sb-sub" data-testid="kid-other-total">{moneyList(o.open) || '–'}{o.otherOpen ? ' + ' + t('rw_other_n', { n: o.otherOpen }) : ''}</span></div>
+              <span className="sb-sub" data-testid="kid-other-total">{moneyList(o.open) || '–'}{o.otherOpen ? ' + ' + tp('rw_other_n', o.otherOpen) : ''}</span></div>
             <ul className="sb-items">{o.rules.map(r => <li key={r.id}><b>{rewardText(r.reward)}</b> <span className="muted">{ruleWhen(r.trigger, k.grading)}</span></li>)}</ul>
           </div>)) : <p className="muted small">–</p>}</div>
         : <p className="muted small center" data-testid="kid-others-hidden">🔒 {t('others_hidden')}</p>)}

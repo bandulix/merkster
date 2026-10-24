@@ -30,7 +30,7 @@ function HeroMeta({ streak, days, today, doneToday, goal }: { streak: number; da
   return (
     <>
       <div className="hero-streak">
-        <div className="hero-streak-num" data-testid="home-streak"><b>{streak}</b><span>{t('day_streak')}</span></div>
+        <div className="hero-streak-num" data-testid="home-streak"><b>{streak}</b><span>{tp('day_streak', streak)}</span></div>
         <WeekDots days={days} today={today} />
       </div>
       {goal > 0 && <div className="goal">
@@ -93,7 +93,7 @@ export function Home() {
         <p className="hero-sub">{later ? tp('later_today', later, { time: fmtTime(nexts[0]) }) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('add_test_hint')}</p>
         {active.some(x => x.items.length) && extra.length > 0 && (
           <button className="btn start sm extra-cta" data-testid="extra-round" onClick={() => go(extra)}>
-            {t('extra_round')}<small>{t('extra_round_sub', { n: extra.length, m: extraMins })}</small>
+            {t('extra_round')}<small>{tp('extra_round_sub', extra.length, { m: extraMins })}</small>
           </button>
         )}
       </div>);

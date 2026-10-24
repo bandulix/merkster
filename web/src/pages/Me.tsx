@@ -6,7 +6,7 @@ import { store } from '../lib/store';
 import { AvatarEdit } from '../components/AvatarEdit';
 import { Avatar, RankBadge } from '../components/ui';
 import { ShareSheet, type ShareWhat } from '../components/Share';
-import { t, uiLang } from '../i18n';
+import { t, tp, uiLang } from '../i18n';
 import { cheerLine, reactionText, useCheers, useMarkCheersSeen, useSupporters, whoName } from '../lib/supporters';
 import { MiniAvatar } from '../components/Cheers';
 import { moneyList, periodTotals, useMyRewards } from '../lib/rewards';
@@ -39,9 +39,9 @@ export function Me() {
       <div className="me-grid">
         <div className="card streak-card">
           <div className="flame" data-on={p.streak.activeToday ? '1' : '0'}>🔥</div>
-          <div><b className="big-num" data-testid="me-streak">{p.streak.current}</b> <span>{t('day_streak')}</span>
+          <div><b className="big-num" data-testid="me-streak">{p.streak.current}</b> <span>{tp('day_streak', p.streak.current)}</span>
             <p className="muted small">{p.streak.activeToday ? t('streak_safe') : p.streak.current ? t('streak_today') : t('streak_start')}</p>
-            <p className="small">🧊 {t('freezes_n', { n: p.streak.freezes })} · 🏁 {t('next_milestone', { n: p.streak.next })} · {t('best_streak')}: {p.streak.best}</p>
+            <p className="small">🧊 {tp('freezes_n', p.streak.freezes)} · 🏁 {tp('next_milestone', p.streak.next)} · {t('best_streak')}: {p.streak.best}</p>
           </div>
           <button className="btn link" onClick={() => setShare({ kind: 'streak' })}>📤</button>
         </div>
@@ -60,7 +60,7 @@ export function Me() {
         <Link to="/supporters" className="card sup-card" data-testid="my-supporters">
           <h3>📣 {t('my_supporters')}</h3>
           <div className="sup-avs">{(sup.data || []).slice(0, 6).map(s => <MiniAvatar key={s.id} src={s.avatar} name={whoName(s)} size={36} />)}{!sup.data?.length && <span className="muted small">{t('no_supporters')}</span>}</div>
-          <span className="btn primary sm">{sup.data?.length ? t('fans_n', { n: sup.data.length }) : t('invite_supporter')}</span>
+          <span className="btn primary sm">{sup.data?.length ? tp('fans_n', sup.data.length) : t('invite_supporter')}</span>
         </Link>
         <div className="card feed-card" data-testid="cheer-feed">
           <h3>🎉 {t('cheers')} {unseen > 0 && <span className="chip hot">{t('cheers_new', { n: unseen })}</span>}</h3>

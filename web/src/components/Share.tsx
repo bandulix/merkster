@@ -10,7 +10,7 @@ import { LOCALE, termName } from '../lib/reportcards';
 import { store } from '../lib/store';
 import { renderPng, renderVideo, shareFile, videoMime, whatsappLink, type ShareData, type ShareFormat } from '../lib/shareCard';
 import { toast } from '../lib/util';
-import { subjectName, t, uiLang } from '../i18n';
+import { subjectName, t, tp, uiLang } from '../i18n';
 import { Modal } from './ui';
 
 export type ShareWhat = { kind: 'result'; test: Test; best?: boolean } | { kind: 'level' } | { kind: 'streak' } | { kind: 'badge'; id: string } | { kind: 'week' }
@@ -25,11 +25,11 @@ function build(what: ShareWhat, user: User | null, opt: { hideName: boolean; hid
       return { ...base, kind: 'result', kicker: what.best ? t('share_k_best') : t('share_k_result'), hero: opt.hideGrade ? (pct >= 50 ? '✅' : '💪') : fmtResult(r), heroSub: `${subjectName(what.test.subject)} · ${what.test.name}`, stats: practiceStats(what.test) };
     }
     case 'level': return { ...base, kind: 'level', kicker: t('share_k_level'), hero: `${t('lvl')} ${p.level}`, heroSub: p.rank.name[L], stats: [[t('xp'), String(p.xp)], [t('streak'), '🔥 ' + p.streak.current], [t('badges'), String(p.badges.length)]] };
-    case 'streak': return { ...base, kind: 'streak', emoji: '🔥', kicker: t('share_k_streak'), hero: t('n_days', { n: p.streak.current }), heroSub: t('share_streak_sub'), stats: [[t('best_streak'), String(p.streak.best)], [t('freezes'), '🧊 ' + p.streak.freezes], [t('lvl'), String(p.level)]] };
+    case 'streak': return { ...base, kind: 'streak', emoji: '🔥', kicker: t('share_k_streak'), hero: tp('n_days', p.streak.current), heroSub: t('share_streak_sub'), stats: [[t('best_streak'), String(p.streak.best)], [t('freezes'), '🧊 ' + p.streak.freezes], [t('lvl'), String(p.level)]] };
     case 'badge': { const b = badgeDef(what.id)!; return { ...base, kind: 'badge', emoji: b.icon, kicker: t('share_k_badge'), hero: b.name[L], heroSub: b.desc[L], stats: [[t('badges'), String(p.badges.length)], [t('lvl'), String(p.level)]] }; }
     case 'report': {
-      const c = what.card, stats: [string, string][] = [[t('report_card'), t('rc_n_subjects', { n: c.lines.length })]];
-      if (what.improved) stats.push(['▲', t('rc_improved_n', { n: what.improved })]);
+      const c = what.card, stats: [string, string][] = [[t('report_card'), tp('rc_n_subjects', c.lines.length)]];
+      if (what.improved) stats.push(['▲', tp('rc_improved_n', what.improved)]);
       if (what.money && !opt.hideGrade) stats.push(['🎁', what.money]);
       return { ...base, kind: 'report', emoji: '📜', kicker: what.best ? t('rc_best_yet') : t('rc_unbox_kicker'), hero: opt.hideGrade ? (what.improved ? '📈 +' + what.improved : '📜') : 'Ø ' + fmtAvg(c.system, c.avgScore, LOCALE()), heroSub: termName(c), stats };
     }

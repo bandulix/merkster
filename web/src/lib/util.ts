@@ -1,6 +1,6 @@
 /* Small shared helpers (time, speech, haptics, confetti, formatting) */
 import type { Lang, Test } from '../../../shared/types';
-import { LANGS, t, uiLang } from '../i18n';
+import { LANGS, t, tp, uiLang } from '../i18n';
 import { stripPlural } from './check';
 import * as S from './schedule';
 
@@ -50,8 +50,16 @@ export function confetti() {
     if (i % 3 === 0) p.style.borderRadius = '50%';
     box.appendChild(p);
   }
-  document.body.appendChild(box);
+  const host = document.querySelector('.celebrate');
+  (host || document.body).appendChild(box);
   setTimeout(() => box.remove(), 3500);
+}
+
+/** Session length for a stat chip: clock under a minute, otherwise whole minutes. */
+export function fmtDur(ms: number): string {
+  const sec = Math.max(0, Math.round((ms || 0) / 1000));
+  if (sec < 60) return `0:${String(sec).padStart(2, '0')}`;
+  return tp('dur_min', Math.max(1, Math.round(sec / 60)));
 }
 
 const loc = () => (uiLang() === 'de' ? 'de-DE' : 'en-GB');
@@ -68,7 +76,7 @@ export function countdown(test: Pick<Test, 'testDate'>): { cls: string; label: s
   if (dl < 0) return { cls: 'past', label: t('cd_past') };
   if (dl === 0) return { cls: 'today', label: t('cd_today') };
   if (dl === 1) return { cls: 'soon', label: t('cd_tomorrow') };
-  return { cls: dl <= 3 ? 'soon' : '', label: t('cd_days', { n: dl }) };
+  return { cls: dl <= 3 ? 'soon' : '', label: tp('cd_days', dl) };
 }
 export function download(filename: string, text: string, type = 'application/json') {
   const a = document.createElement('a');

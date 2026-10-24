@@ -59,7 +59,8 @@ export const en9 = {
   clash_waiting_short: 'waiting',
   stat_xp: 'Total XP',
   stat_accuracy: 'Accuracy',
-  stat_time: 'Time'
+  stat_time: 'Time',
+  dur_min: '{n} min'
 } as const;
 export const de9: Record<keyof typeof en9, string> = {
   boss_title: 'Klassen-Boss',
@@ -122,5 +123,6 @@ export const de9: Record<keyof typeof en9, string> = {
   clash_waiting_short: 'wartet',
   stat_xp: 'XP gesamt',
   stat_accuracy: 'Treffer',
-  stat_time: 'Zeit'
+  stat_time: 'Zeit',
+  dur_min: '{n} Min'
 };

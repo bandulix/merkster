@@ -10,7 +10,7 @@ import { store } from '../lib/store';
 import * as S from '../lib/schedule';
 import { now, toast } from '../lib/util';
 import { Face, TopBar } from '../components/ui';
-import { t, testIcon, type Key } from '../i18n';
+import { t, tp, testIcon, type Key } from '../i18n';
 
 const errText = (e: unknown) => {
   const code = (e as ApiError).code || 'not_found';
@@ -48,7 +48,7 @@ export function Classes() {
       <ul className="class-list">{list.map(c => (
         <li key={c.id}><Link to={'/classes/' + c.id} className="card class-link" data-testid="class-card">
           {c.cover ? <img src={c.cover} alt="" /> : <span className="class-ph" aria-hidden>🏫</span>}
-          <span className="grow"><b>{c.name}</b><small className="muted">{c.motto || t('class_members_n', { n: c.members })}</small></span>
+          <span className="grow"><b>{c.name}</b><small className="muted">{c.motto || tp('class_members_n', c.members)}</small></span>
         </Link></li>
       ))}</ul>
     </section>
@@ -293,7 +293,7 @@ export function ClassPage() {
       <ul className="class-shares">{d.shares.map(s => (
         <li key={s.id} className="card share-row" data-testid="class-share" data-name={s.name}>
           <span className="tc-icon">{testIcon(s)}</span>
-          <span className="grow"><b>{s.name}</b><small className="muted">{t('class_cards_n', { n: s.cards })} · {t('class_by', { name: s.author.name })}</small></span>
+          <span className="grow"><b>{s.name}</b><small className="muted">{tp('class_cards_n', s.cards)} · {t('class_by', { name: s.author.name })}</small></span>
           {s.mine && !s.takenTestId
             ? <span className="chip" data-testid="class-shared-mine">{t('class_mine')}</span>
             : <button className="btn primary sm" data-testid={s.takenTestId && !s.newer ? 'class-taken' : s.newer ? 'class-newer' : 'class-take'} disabled={busy} onClick={() => void take(s)}>

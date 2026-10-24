@@ -8,7 +8,7 @@ import { store } from '../lib/store';
 import * as S from '../lib/schedule';
 import { now } from '../lib/util';
 import { TopBar } from '../components/ui';
-import { flag, formatsFor, langName, SUBJECTS, t, uiLang } from '../i18n';
+import { flag, formatsFor, langName, SUBJECTS, t, tp, uiLang } from '../i18n';
 
 const ART: Partial<Record<Lang, string>> = { de: 'der/die/das', fr: 'le/la', es: 'el/la' };
 export function NewTest() {
@@ -72,7 +72,7 @@ export function NewTest() {
     <h2 className="q">{t('wiz_when')}</h2>
     <div className="chips">{([[1, 'q_tomorrow'], [3, 'q_3days'], [7, 'q_week'], [14, 'q_2weeks']] as const).map(([n, k]) => <button key={n} data-testid={'qdate-' + n} className={'pill' + (w.testDate === S.addDays(today, n) ? ' on' : '')} onClick={() => up({ testDate: S.addDays(today, n) })}>{t(k)}</button>)}</div>
     <label className="field"><span>{t('wiz_date')}</span><input type="date" min={today} value={w.testDate} onChange={e => e.target.value && up({ testDate: e.target.value })} /></label>
-    <p className="muted">{t('wiz_when_hint', { n: Math.max(0, S.daysBetween(today, w.testDate)) })}</p>
+    <p className="muted">{tp('wiz_when_hint', Math.max(0, S.daysBetween(today, w.testDate)))}</p>
   </>);
   else body = (<>
     <h2 className="q">{t('wiz_format')}</h2><p className="muted">{t('wiz_format_hint')}</p>

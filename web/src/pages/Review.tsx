@@ -5,7 +5,7 @@ import { useConfig } from '../hooks';
 import { store } from '../lib/store';
 import { canSpeak, speak, toast } from '../lib/util';
 import { TopBar } from '../components/ui';
-import { flag, langName, localizeNote, t } from '../i18n';
+import { flag, langName, localizeNote, t, tp } from '../i18n';
 import type { Draft } from './Import';
 
 function DeckPeek({ rows }: { rows: DraftRow[] }) {
@@ -84,7 +84,7 @@ export function Review() {
       </div>
       <div className="sticky-foot">
         <button className="btn link" onClick={() => { if (confirm(t('discard_confirm'))) { store.setDraft(null); nav('/test/' + test.id, { replace: true }); } }}>{t('discard')}</button>
-        <button className="btn primary big" data-testid="save-cards" disabled={!good} onClick={() => { store.addItems(test, rows); store.setDraft(null); nav(`/test/${test.id}?fresh=1`, { replace: true }); }}>{t('save_n', { n: good })}</button>
+        <button className="btn primary big" data-testid="save-cards" disabled={!good} onClick={() => { store.addItems(test, rows); store.setDraft(null); nav(`/test/${test.id}?fresh=1`, { replace: true }); }}>{tp('save_n', good)}</button>
       </div>
     </section>
   );

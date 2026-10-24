@@ -7,6 +7,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 ### Changed
 
 - Practice, results, home, review, import, and vocab clash use a more tactile layout: segmented question progress, whole-tile answer feedback, stat chips with an XP glow, a daily-review hero, a stacked card preview, and a versus bar. Logo, palette, and type stay the same.
+- Count labels use the singular when the number is 1 (for example “1 Tag in Folge”). The session time chip shows a duration, and confetti stays behind buttons.
 
 ### Added
 

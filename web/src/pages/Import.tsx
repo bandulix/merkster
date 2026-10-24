@@ -8,7 +8,7 @@ import { orient, parseGeneral, parseText } from '../lib/parse';
 import { ApiError } from '../lib/api';
 import { toast } from '../lib/util';
 import { Logo, TopBar } from '../components/ui';
-import { demoRows, t } from '../i18n';
+import { demoRows, t, tp } from '../i18n';
 
 export interface Draft { testId: string; rows: DraftRow[]; thumbs: string[]; method: string; swapped?: boolean; unreadable: string[]; unused?: number; aiError?: string | null }
 
@@ -41,7 +41,7 @@ export function ImportPage() {
     try {
       const res = await processFiles(files, test, ai, s => setStatus(s));
       if (res.aiError) toast(res.aiError === 'ai_rate_limited' ? t('ai_rate_limited') : t('ai_failed'), 'bad');
-      if (res.pictureDropped) toast(t('picture_limit_left', { n: res.pictureDropped }), 'bad');
+      if (res.pictureDropped) toast(tp('picture_limit_left', res.pictureDropped), 'bad');
       toReview(test, res, merge);
       nav('/test/' + test.id + '/review', { replace: true });
     } catch (e) {

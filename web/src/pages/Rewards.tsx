@@ -14,7 +14,7 @@ import { ParentInvite } from '../components/ParentInvite';
 import { EarnCards } from '../components/Rewards';
 import { earnedBreakdown, GrandTotal, SupporterBreakdownList } from '../components/Totals';
 import { TopBar } from '../components/ui';
-import { t, uiLang } from '../i18n';
+import { t, tp, uiLang } from '../i18n';
 
 type Status = 'all' | 'open' | 'paid'; type Range = 'term' | 'year' | 'all';
 export default function Rewards() {
@@ -33,8 +33,8 @@ export default function Rewards() {
   const sys = store.data.settings.grading;
   const Tot = ({ p, tid, label }: { p: ReturnType<typeof periodTotals>; tid: string; label: string }) => (
     <div className="tile-stat rw-total" data-testid={tid}><span>{label}</span>
-      <b data-testid={tid + '-open'}>{p.open.length ? moneyList(p.open) : p.otherOpen ? '' : '–'}{p.otherOpen ? (p.open.length ? ' + ' : '') + t('rw_other_n', { n: p.otherOpen }) : ''}</b>
-      <small>{t('rw_open')} · {t('rw_paid')}: <span data-testid={tid + '-paid'}>{p.paid.length ? moneyList(p.paid) : '–'}{p.otherPaid ? ' + ' + t('rw_other_n', { n: p.otherPaid }) : ''}</span></small></div>);
+      <b data-testid={tid + '-open'}>{p.open.length ? moneyList(p.open) : p.otherOpen ? '' : '–'}{p.otherOpen ? (p.open.length ? ' + ' : '') + tp('rw_other_n', p.otherOpen) : ''}</b>
+      <small>{t('rw_open')} · {t('rw_paid')}: <span data-testid={tid + '-paid'}>{p.paid.length ? moneyList(p.paid) : '–'}{p.otherPaid ? ' + ' + tp('rw_other_n', p.otherPaid) : ''}</span></small></div>);
   const Seg = <T extends string>({ v, set, opts, tid }: { v: T; set: (x: T) => void; opts: [T, string][]; tid: string }) =>
     <div className="seg" data-testid={tid}>{opts.map(([k, l]) => <button key={k} className={'pill sm' + (v === k ? ' on' : '')} data-testid={tid + '-' + k} onClick={() => set(k)}>{l}</button>)}</div>;
   return (
