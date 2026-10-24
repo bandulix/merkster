@@ -8,10 +8,10 @@ import { distractors, shuffle, type Practice, type QCard, type Spec } from '../l
 import * as S from '../lib/schedule';
 import { finishPractice, getActive, getLast, quitPractice, touchActive } from '../lib/activeSession';
 import { reportBossDamage } from '../lib/classGames';
-import { canSpeak, confetti, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
+import { canSpeak, confetti, fmtDur, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
 import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
-import { pick, subjectIcon, t, uiLang, type Key } from '../i18n';
+import { pick, subjectIcon, t, tp, uiLang, type Key } from '../i18n';
 
 type Btn = { label: string; act: () => void; kind?: 'primary' | 'ghost' | 'bad'; testid?: string };
 interface SheetS { kind: 'ok' | 'almost' | 'bad' | 'neutral'; title: string; body?: React.ReactNode; buttons: Btn[]; auto?: boolean }
@@ -63,7 +63,9 @@ function useAnim() {
 function StudyCard({ p, card, next, tts }: CardProps) {
   const { test, item } = p.ctx(card.key!), lang = test.subject === 'languages', type = item.type || 'pair';
   useEffect(() => { if (type !== 'cloze') autoSpeak(tts, test, item.term); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return (<div className="qcard pop-in" data-testid="card-study">
+  return (<div className="card-stack">
+    <div className="stack-ghost g2" aria-hidden="true" /><div className="stack-ghost g1" aria-hidden="true" />
+    <div className="qcard pop-in" data-testid="card-study">
     <Tag test={test} /><div className="ask"><span className="chip new">✨ {t('new_card')}</span></div>
     {type === 'cloze' ? <Cloze text={item.term} reveal /> : <>
       <div className={'prompt' + (lang ? artClass(test, item.term) : '') + (isLong(item.term) ? ' long' : '')}>{item.term} {lang && <SpeakBtn text={item.term} lang={test.foreign} />}</div>
@@ -72,7 +74,7 @@ function StudyCard({ p, card, next, tts }: CardProps) {
     {type === 'mc' && !!item.distractors?.length && <div className="hint-line">{t('not_answers')}: {item.distractors.join(' · ')}</div>}
     <p className="muted center small">{t('study_hint')}</p>
     <div className="row-btns"><button className="btn primary big" autoFocus data-testid="studied" onClick={next}>{t('got_it')} →</button></div>
-  </div>);
+  </div></div>);
 }
 
 function TypedCard({ p, card, next, tts }: CardProps) {
@@ -156,7 +158,13 @@ function McCard({ p, card, next, tts }: CardProps) {
       {phase === 'think' ? <>
         <div className="think-bubble">🤔 {t('mc_think_hint')}</div>
         <div className="row-btns"><button className="btn primary big" autoFocus data-testid="mc-show" onClick={() => setPhase('choose')}>{t('show_options')}</button></div>
-      </> : <div className="opts">{opts.map((o, i) => <button key={i} data-testid="mc-opt" disabled={picked != null} className={'opt' + (picked != null && o === item.meaning ? ' right' : picked === i ? ' wrong' : '')} onClick={() => choose(i)}><b>{'ABCD'[i]}</b><span>{o}</span></button>)}</div>}
+      </> : <div className="opts">{opts.map((o, i) => {
+        const correct = picked != null && o === item.meaning;
+        const wrong = picked === i && o !== item.meaning;
+        return <button key={i} data-testid="mc-opt" disabled={picked != null} className={'opt' + (correct ? ' right' : '') + (wrong ? ' wrong' : '') + (picked === i ? ' picked' : '')} onClick={() => choose(i)}>
+          <span className="opt-letter">{'ABCD'[i]}</span><span className="opt-txt">{o}</span>{correct && <span className="opt-mark" aria-hidden="true">✓</span>}{wrong && <span className="opt-mark" aria-hidden="true">✕</span>}
+        </button>;
+      })}</div>}
     </div>
     <Sheet s={sheet} />
   </>);
@@ -235,18 +243,37 @@ export function SessionPage() {
   const mine = step;
   const next = () => { if (stepRef.current !== mine) return; stepRef.current++; p.next(); setStep(stepRef.current); };
   const props: CardProps = { p, card, next, tts: d.settings.tts };
-  const pct = p.total ? Math.round(p.done / p.total * 100) : 0;
+  const qNow = Math.min(p.queue.length, p.pos + 1);
+  const qLabel = t('q_of', { n: qNow, total: p.queue.length });
   const view = card.kind === 'study' ? <StudyCard {...props} /> : card.kind === 'mc' ? <McCard {...props} /> : card.kind === 'match' ? <MatchCard {...props} /> : card.kind === 'sentence' ? <SentenceCard {...props} /> : <TypedCard {...props} />;
   return (
     <div className="ses" data-testid="session" onPointerDownCapture={touchActive} onKeyDownCapture={touchActive}>
       <div className="ses-top">
         <button className="icon-btn" aria-label={t('close')} data-testid="quit" onClick={() => { if (p.done === 0 || confirm(t('quit_confirm'))) { quitPractice(); nav('/', { replace: true }); } }}>✕</button>
-        <div className="bar"><i style={{ width: pct + '%' }} /></div>
-        <span className="ses-count" data-testid="ses-count">{p.done}/{p.total}</span>
+        <div className="ses-meta">
+          <div className="ses-qline"><span className="ses-q">{qLabel}</span><span className="ses-count" data-testid="ses-count">{p.done}/{p.total}</span></div>
+          <div className={'segbar' + (p.outcomes.length > 16 ? ' dense' : '')} role="progressbar" aria-valuemin={0} aria-valuenow={p.done} aria-valuemax={Math.max(p.total, 1)} aria-label={qLabel}>
+            {p.outcomes.map((o, i) => <i key={i} className={i === p.pos ? 'now' : o} />)}
+          </div>
+        </div>
       </div>
       <div className="ses-stage" key={step}>{view}</div>
     </div>
   );
+}
+
+const SPARKS = [
+  { x: '4%', y: '18%', c: 'var(--coral)', s: '1.15rem', d: '0s' },
+  { x: '18%', y: '6%', c: 'var(--sun)', s: '.85rem', d: '.08s' },
+  { x: '78%', y: '8%', c: 'var(--coral)', s: '1.35rem', d: '.04s' },
+  { x: '90%', y: '28%', c: 'var(--sun)', s: '.95rem', d: '.12s' },
+  { x: '8%', y: '72%', c: 'var(--sun)', s: '1.05rem', d: '.16s' },
+  { x: '22%', y: '86%', c: 'var(--coral)', s: '.75rem', d: '.02s' },
+  { x: '80%', y: '78%', c: 'var(--coral)', s: '1.2rem', d: '.1s' },
+  { x: '92%', y: '62%', c: 'var(--sun)', s: '.8rem', d: '.18s' }
+];
+function Sparkles() {
+  return <div className="sparkles" aria-hidden="true">{SPARKS.map((p, i) => <span key={i} className="spark" style={{ left: p.x, top: p.y, color: p.c, fontSize: p.s, animationDelay: p.d }}>{i % 2 ? '✧' : '✦'}</span>)}</div>;
 }
 
 export function DonePage() {
@@ -257,27 +284,34 @@ export function DonePage() {
     void reportBossDamage({ sessionId: s.sessionId, correct: s.correct, tests: s.tests });
   }, [s?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!s) return <Navigate to="/" replace />;
-  const pct = s.done ? Math.round(s.firstTry / s.done * 100) : 0, mins = Math.max(1, Math.round(s.activeMs / 60000)), streak = store.liveStreak(ts);
+  const pct = s.done ? Math.round(s.firstTry / s.done * 100) : 0, streak = store.liveStreak(ts);
   const gained = (s.xpAfter ?? 0) - (s.xpBefore ?? 0), li = levelInfo(s.xpAfter ?? 0), rank = rankFor(li.level);
   const tests = s.tests.map(id => store.test(id)).filter((x): x is Test => !!x);
   const nexts = tests.map(x => S.nextDueAt(x, ts)).filter((x): x is number => x != null).sort((a, b) => a - b);
   const left = S.buildSession(d.tests, ts, d.settings.sessionSize).entries.length;
   return (
     <section className="done page narrow" data-testid="done">
-      <div className="done-hero pop-in"><Logo size={88} className="bounce-in" /><h1>{pick('cheers')}</h1><p className="muted">{t('done_sub', { n: s.done })}</p></div>
-      <div className="xp-gain pop-in" data-testid="xp-gain" style={{ ['--c1' as string]: rank.c1, ['--c2' as string]: rank.c2 }}>
-        <RankBadge rank={rank} size={54} />
-        <div><b className="xp-plus">+{gained} XP</b><span className="muted small">{t('lvl')} {li.level} · {rank.name[uiLang()]} · {t('xp_to_next', { n: li.next - li.xp, l: li.level + 1 })}</span>
-          <div className="xpbar big"><i style={{ width: li.pct + '%' }} /></div></div>
+      <div className="done-moment pop-in">
+        <Logo size={52} className="bounce-in" />
+        <div className="xp-orb" data-testid="xp-gain" style={{ ['--c1' as string]: rank.c1, ['--c2' as string]: rank.c2 }}>
+          <Sparkles />
+          <span className="xp-kicker">XP</span>
+          <b className="xp-num">+{gained}</b>
+        </div>
+        <h1>{pick('cheers')}</h1>
+        <p className="muted">{tp('done_sub', s.done)}</p>
+        <p className="done-level"><RankBadge rank={rank} size={28} /><span>{t('lvl')} {li.level} · {rank.name[uiLang()]} · {t('xp_to_next', { n: li.next - li.xp, l: li.level + 1 })}</span></p>
+        <div className="xpbar big"><i style={{ width: li.pct + '%' }} /></div>
       </div>
-      <div className="stat-row">
-        <div className="stat"><Ring pct={pct} size={74} stroke={7} label={pct + '%'} /><span>{t('first_try')}</span></div>
-        <div className="stat"><b className="big-num">{mins}</b><span>{t('minutes')}</span></div>
-        <div className="stat"><b className="big-num">🔥{streak}</b><span>{t('streak')}</span></div>
+      <div className="stat-chips">
+        <div className="schip lime"><span className="schip-h">{t('stat_xp')}</span><b>+{gained}</b></div>
+        <div className="schip teal"><span className="schip-h">{t('stat_accuracy')}</span><b>{pct}%</b></div>
+        <div className="schip blue"><span className="schip-h">{t('stat_time')}</span><b>{fmtDur(s.activeMs)}</b></div>
       </div>
-      <div className="done-next">{left > 0 ? t('more_today', { n: left }) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('all_done')}</div>
+      {streak > 0 && <p className="done-streak">🔥 {tp('streak_days', streak)}</p>}
+      <div className="done-next">{left > 0 ? tp('more_today', left) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('all_done')}</div>
       <div className="row-btns col">{tests.map(x => <div key={x.id} className="mini-test"><span>{x.name}</span><Ring pct={S.mastery(x)} size={38} stroke={4} /></div>)}</div>
-      <button className="btn primary big wide" data-testid="done-home" onClick={() => nav('/', { replace: true })}>{t('finish')}</button>
+      <button className="btn primary big wide" data-testid="done-home" onClick={() => nav('/', { replace: true })}>{t('continue')}</button>
     </section>
   );
 }

@@ -12,6 +12,35 @@ import { LevelChip, Logo, Ring, SyncBadge } from '../components/ui';
 import { t, tp, testIcon } from '../i18n';
 import type { Test } from '../../../shared/types';
 
+function WeekDots({ days, today }: { days: Set<string>; today: string }) {
+  const dow = (new Date(today + 'T12:00:00').getDay() + 6) % 7;
+  const cells = t('week_letters').split('|').map((lab, i) => {
+    const iso = S.addDays(today, i - dow);
+    return { lab, iso, on: days.has(iso), today: iso === today };
+  });
+  return (
+    <div className="week-dots" role="img" aria-label={t('this_week')}>
+      {cells.map(c => <span key={c.iso} className={'wd' + (c.on ? ' on' : '') + (c.today ? ' today' : '')}><i />{c.lab}</span>)}
+    </div>
+  );
+}
+
+function HeroMeta({ streak, days, today, doneToday, goal }: { streak: number; days: Set<string>; today: string; doneToday: number; goal: number }) {
+  const pct = goal > 0 ? Math.min(100, Math.round(doneToday / goal * 100)) : 0;
+  return (
+    <>
+      <div className="hero-streak">
+        <div className="hero-streak-num" data-testid="home-streak"><b>{streak}</b><span>{tp('day_streak', streak)}</span></div>
+        <WeekDots days={days} today={today} />
+      </div>
+      {goal > 0 && <div className="goal">
+        <div className="goal-top"><span>{t('daily_goal')}</span><b>{doneToday}/{goal}</b></div>
+        <div className="goal-bar" role="progressbar" aria-valuemin={0} aria-valuenow={Math.min(doneToday, goal)} aria-valuemax={goal}><i style={{ width: pct + '%' }} /></div>
+      </div>}
+    </>
+  );
+}
+
 export function Home() {
   const d = useStore(), nav = useNavigate(), ts = now();
   const [ask, setAsk] = useState<Test | null>(null);
@@ -19,6 +48,11 @@ export function Home() {
   const streak = store.liveStreak(ts);
   const sess = S.buildSession(d.tests, ts, d.settings.sessionSize);
   const total = S.todayCount(d.tests, ts);
+  const todayIso = S.dayISO(ts);
+  const doneToday = d.history.filter(h => h.day === todayIso).reduce((n, h) => n + (h.n || 0), 0);
+  const goal = doneToday + total;
+  const practised = new Set(d.history.map(h => h.day));
+  const meta = <HeroMeta streak={streak} days={practised} today={todayIso} doneToday={doneToday} goal={goal} />;
   const hr = new Date(ts).getHours();
   const greet = hr < 11 ? t('greet_morning') : hr < 18 ? t('greet_day') : t('greet_evening');
   const active = d.tests.filter(x => S.phase(x, ts) !== 'past').sort((a, b) => a.testDate.localeCompare(b.testDate));
@@ -38,7 +72,8 @@ export function Home() {
     const night = active.filter(x => S.phase(x, ts) === 'nightBefore').map(x => x.name), morning = active.filter(x => S.phase(x, ts) === 'testDay').map(x => x.name);
     hero = (
       <div className="hero-card pop-in" data-testid="hero">
-        <div className="hero-top"><span className="hero-k">{t('today')}</span>{streak > 0 && <span className="streak">🔥 {streak}</span>}</div>
+        <div className="hero-top"><span className="hero-k">{t('daily_review')}</span></div>
+        {meta}
         <h2>{tp('hero_ready', sess.entries.length)}</h2>
         <p className="hero-sub">{t('hero_sub', { m: mins })}{rest > 0 ? ' · ' + t('hero_more', { n: rest }) : ''}</p>
         {night.length > 0 && <div className="hero-note">🌙 {t('night_note', { tests: night.join(', ') })}</div>}
@@ -52,12 +87,13 @@ export function Home() {
     const extraMins = Math.max(2, Math.round(extra.length * 0.45));
     hero = (
       <div className="hero-card done pop-in" data-testid="hero-done">
-        <div className="hero-top"><span className="hero-k">{t('today')}</span>{streak > 0 && <span className="streak">🔥 {streak}</span>}</div>
+        <div className="hero-top"><span className="hero-k">{t('daily_review')}</span></div>
+        {meta}
         <h2>{active.length ? t('all_done') : t('no_active')}</h2>
         <p className="hero-sub">{later ? tp('later_today', later, { time: fmtTime(nexts[0]) }) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('add_test_hint')}</p>
         {active.some(x => x.items.length) && extra.length > 0 && (
           <button className="btn start sm extra-cta" data-testid="extra-round" onClick={() => go(extra)}>
-            {t('extra_round')}<small>{t('extra_round_sub', { n: extra.length, m: extraMins })}</small>
+            {t('extra_round')}<small>{tp('extra_round_sub', extra.length, { m: extraMins })}</small>
           </button>
         )}
       </div>);
@@ -83,7 +119,12 @@ export function Home() {
         <div className="home-main">{askable.map(x => (
           <button key={x.id} className="ask-card pop-in" data-testid="ask-result" onClick={() => setAsk(x)}>
             <span className="tc-icon">{testIcon(x)}</span><span><b>{t('how_did_it_go')}</b><small>{x.name}</small></span><span className="btn primary sm">{t('enter_result')}</span>
-          </button>))}{hero}<ParentInvite /><EarnCards /></div>
+          </button>))}{hero}
+          {active.length > 0 && <>
+            <div className="sec-head carousel-head"><h3>{t('your_tests')}</h3></div>
+            <div className="test-carousel" data-testid="test-carousel">{active.map(card)}</div>
+          </>}
+          <ParentInvite /><EarnCards /></div>
         {(active.length > 0 || past.length > 0) && <div className="home-side">
           <div className="sec-head"><h3>{t('your_tests')}</h3><button className="btn link only-mobile" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
           {active.length > 0 && <div className="test-list">{active.map(card)}</div>}

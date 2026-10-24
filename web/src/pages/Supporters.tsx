@@ -12,7 +12,7 @@ import { toast } from '../lib/util';
 import { useConfig, useMe } from '../hooks';
 import { Modal, TopBar } from '../components/ui';
 import { MiniAvatar } from '../components/Cheers';
-import { t, uiLang } from '../i18n';
+import { t, tp, uiLang } from '../i18n';
 
 const isLoopbackUrl = (url: string) => {
   try { const h = new URL(url).hostname; return h === 'localhost' || h === '127.0.0.1' || h === '::1'; } catch { return false; }
@@ -59,11 +59,11 @@ function InviteModal({ onClose, startAs = 'grandma' }: { onClose: () => void; st
             <option value="all">{t('invite_joint_all')}</option>
             {rules.map(r => <option key={r.id} value={r.id}>{rewardText(r.reward)} · {ruleWhen(r.trigger, store.data.settings.grading)}</option>)}
           </select></label>}
-        <p className="muted small">⏳ {t('invite_valid', { n: INVITE_DAYS_DEFAULT })}</p>
+        <p className="muted small">⏳ {tp('invite_valid', INVITE_DAYS_DEFAULT)}</p>
         <button className="btn primary big wide" data-testid="inv-create" disabled={busy} onClick={create}>🔗 {t('invite_create')}</button>
       </> : <>
         <h2>🔗 {t('invite_ready')}</h2>
-        <p className="muted small">{REL_ICON[inv.relation]} {inv.label || relName(inv.relation)} · {t('invite_valid', { n: INVITE_DAYS_DEFAULT })}</p>
+        <p className="muted small">{REL_ICON[inv.relation]} {inv.label || relName(inv.relation)} · {tp('invite_valid', INVITE_DAYS_DEFAULT)}</p>
         {loopback
           ? <p className="ai-banner strong" data-testid="invite-loopback" role="alert">{t('invite_loopback')}</p>
           : <>

@@ -12,7 +12,7 @@ import { warmOfflineCache } from '../lib/ocr';
 import { download, toast } from '../lib/util';
 import { AvatarEdit } from '../components/AvatarEdit';
 import { fanfare } from '../components/Celebrate';
-import { t } from '../i18n';
+import { t, tp } from '../i18n';
 import { uiLang } from '../i18n';
 
 type AdminUser = { id: string; name: string; email: string | null; isAdmin: boolean; lastLoginAt: string | null; tests: number; ai30d: number };
@@ -63,7 +63,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
       </div>
 
       {user.isAdmin && <div className="card"><h3>{t('s_users')}</h3>
-        <ul className="user-list">{users.data?.users.map(u => <li key={u.id}><b>{u.name || u.email}</b> <span className="muted small">{u.email} · {t('n_tests', { n: u.tests })} · AI 30d: {u.ai30d}</span>{u.isAdmin && <span className="chip warm">{t('admin_badge')}</span>}
+        <ul className="user-list">{users.data?.users.map(u => <li key={u.id}><b>{u.name || u.email}</b> <span className="muted small">{u.email} · {tp('n_tests', u.tests)} · AI 30d: {u.ai30d}</span>{u.isAdmin && <span className="chip warm">{t('admin_badge')}</span>}
           {u.id !== user.id && <button className="btn link bad sm" onClick={async () => { if (confirm(t('admin_delete_user', { name: u.email || u.name }))) { await api('/api/admin/users/' + u.id, { method: 'DELETE' }); users.refetch(); } }}>{t('delete')}</button>}</li>)}</ul>
         <p className="muted small">{t('admin_hint')}</p></div>}
 

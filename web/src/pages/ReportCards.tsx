@@ -19,7 +19,7 @@ import { ShareSheet, type ShareWhat } from '../components/Share';
 import { earnedBreakdown, fmtMoney, GrandTotal, SupporterBreakdownList } from '../components/Totals';
 import { TopBar } from '../components/ui';
 import { fanfare } from '../components/Celebrate';
-import { t, type Key } from '../i18n';
+import { t, tp, type Key } from '../i18n';
 
 const short = (c: ReportCard) => (c.term === 'h1' ? 'HJ ' : c.term === 'final' ? '' : (c.termLabel || '').slice(0, 8) + ' ') + (c.schoolYear || c.issuedOn.slice(0, 4));
 
@@ -71,7 +71,7 @@ export default function ReportCards() {
         {latest && <Nudges card={latest} />}
         <div className="rc-list">{[...cards].reverse().map(c => (
           <Link key={c.id} to={'/reports/' + c.id} className="card rc-item" data-testid="rc-item">
-            <span className="rc-env">📜</span><span className="grow"><b>{termName(c)}</b><small className="muted">{t('rc_n_subjects', { n: c.lines.length })} · {new Date(c.issuedOn).toLocaleDateString(LOCALE())}</small></span>
+            <span className="rc-env">📜</span><span className="grow"><b>{termName(c)}</b><small className="muted">{tp('rc_n_subjects', c.lines.length)} · {new Date(c.issuedOn).toLocaleDateString(LOCALE())}</small></span>
             <b className="rc-avg" data-testid="rc-item-avg">Ø {fmtAvg(c.system, c.avgScore, LOCALE())}</b>
           </Link>))}</div>
       </>}
@@ -107,7 +107,7 @@ export function ReportDetail() {
     const e = ex.get(l.subjectId), gap = gapKind(e?.avg ?? null, l.score), delta = cmp.per[i]?.delta, p = prev?.lines.find(x => x.subjectId === l.subjectId);
     return { l, e, gap, delta, p };
   });
-  const badges = [cmp.improved >= 3 && { ic: '📈', txt: t('rc_improved_n', { n: cmp.improved }), tid: 'rc-badge-improved' }, best && { ic: '🏆', txt: t('rc_best_yet'), tid: 'rc-badge-best' }].filter(Boolean) as { ic: string; txt: string; tid: string }[];
+  const badges = [cmp.improved >= 3 && { ic: '📈', txt: tp('rc_improved_n', cmp.improved), tid: 'rc-badge-improved' }, best && { ic: '🏆', txt: t('rc_best_yet'), tid: 'rc-badge-best' }].filter(Boolean) as { ic: string; txt: string; tid: string }[];
 
   if (unbox) return (
     <div className={'celebrate unbox' + (opened ? ' open' : '')} data-testid="rc-unbox">

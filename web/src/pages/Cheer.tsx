@@ -9,15 +9,15 @@ import { fmtDay } from '../lib/util';
 import { earnedWhat, rewardText, useGivenRewards } from '../lib/rewards';
 import { MiniAvatar } from '../components/Cheers';
 import { Avatar, RankBadge } from '../components/ui';
-import { subjectIcon, t, uiLang } from '../i18n';
+import { subjectIcon, t, tp, uiLang } from '../i18n';
 
 export const rankById = (id?: string) => RANKS.find(r => r.id === id) || RANKS[0];
-export const daysLeftLabel = (n: number) => (n <= 0 ? t('is_today') : n === 1 ? t('in_1_day') : t('in_days', { n }));
+export const daysLeftLabel = (n: number) => (n <= 0 ? t('is_today') : n === 1 ? t('in_1_day') : tp('in_days', n));
 export const kidUser = (k: KidSummary) => ({ id: k.id, name: k.name, avatar: k.avatar, email: null, isAdmin: false }) as User;
 
 export function Upcoming({ list }: { list: KidUpcoming[] }) {
   return <ul className="kid-upcoming">{list.map((u, i) => (
-    <li key={i}><span className="tc-icon sm">{subjectIcon(u.subject)}</span><span className="grow"><b>{u.name}</b><small>{fmtDay(u.testDate)}{u.practisedDays ? ' · ' + t('practised_days', { n: u.practisedDays }) : ''}</small></span>
+    <li key={i}><span className="tc-icon sm">{subjectIcon(u.subject)}</span><span className="grow"><b>{u.name}</b><small>{fmtDay(u.testDate)}{u.practisedDays ? ' · ' + tp('practised_days', u.practisedDays) : ''}</small></span>
       <span className={'cd ' + (u.daysLeft <= 1 ? 'hot' : u.daysLeft <= 3 ? 'warm' : '')}>{daysLeftLabel(u.daysLeft)}</span></li>))}</ul>;
 }
 
@@ -29,7 +29,7 @@ function KidCard({ k }: { k: KidSummary }) {
         <Avatar user={kidUser(k)} rank={rank} size={58} />
         <div className="grow"><h2>{k.name}</h2>
           {p ? <p className="kid-rank"><RankBadge rank={rank} size={22} /> {t('lvl')} {p.level} · {rank.name[L]}</p> : <p className="muted small">{relName(k.relation)}</p>}</div>
-        {p && <div className="kid-streak" title={t('day_streak')}><span>🔥</span><b data-testid="kid-streak">{p.streak}</b></div>}
+        {p && <div className="kid-streak" title={tp('day_streak', p.streak)}><span>🔥</span><b data-testid="kid-streak">{p.streak}</b></div>}
       </div>
       {!p && !k.results && <p className="muted">{t('kid_shares_nothing', { name: k.name })}</p>}
       {p && <p className="small kid-week">⏱️ {t('kid_week', { m: p.weekMinutes })} · 🏅 {p.badges}</p>}

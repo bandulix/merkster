@@ -44,8 +44,11 @@ export function distractors(test: Test, item: Card): string[] {
 }
 export const shuffle = <T,>(a: T[]): T[] => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
+export type Mark = 'ok' | 'bad' | 'study' | 'open';
 export class Practice {
   queue: QCard[] = []; pos = 0; items: Record<string, ItemRun> = {}; total = 0; done = 0; firstTry = 0; answers = 0;
+  /** one mark per queue card: correct, missed, study preview, or not yet played */
+  outcomes: Mark[] = [];
   tests = new Set<string>(); startedAt: number;
   /** active practice time: gaps longer than IDLE_MS (90 s) between interactions don't count – no idle farming */
   activeMs = 0; correct = 0; private lastTouch: number;
@@ -53,8 +56,8 @@ export class Practice {
   constructor(private getTest: (id: string) => Test | undefined, entries: S.SessionEntry[], nowTs: number, private onMeet: (test: Test, item: Card, struggled: boolean) => void) {
     this.startedAt = nowTs; this.lastTouch = nowTs;
     const deferred: { at: number; card: QCard }[] = [], boards: Record<string, string[]> = {};
-    const flush = (all: boolean) => { for (let k = 0; k < deferred.length; k++) if (all || deferred[k].at <= this.queue.length) { this.queue.push(deferred[k].card); deferred.splice(k--, 1); } };
-    const push = (c: QCard) => { this.queue.push(c); flush(false); };
+    const flush = (all: boolean) => { for (let k = 0; k < deferred.length; k++) if (all || deferred[k].at <= this.queue.length) { this.queue.push(deferred[k].card); this.outcomes.push('open'); deferred.splice(k--, 1); } };
+    const push = (c: QCard) => { this.queue.push(c); this.outcomes.push('open'); flush(false); };
     for (const e of entries) {
       const test = getTest(e.testId); const item = test?.items.find(i => i.id === e.itemId);
       if (!test || !item) continue;
@@ -71,17 +74,25 @@ export class Practice {
     flush(true);
     for (const id in boards) {
       const ks = boards[id];
-      if (ks.length >= 3) this.queue.push({ kind: 'match', keys: ks }); else ks.forEach(k => this.queue.push({ kind: 'meaning', key: k }));
+      if (ks.length >= 3) push({ kind: 'match', keys: ks }); else ks.forEach(k => push({ kind: 'meaning', key: k }));
     }
   }
   ctx(key: string) { const it = this.items[key]; const test = this.getTest(it.testId)!; return { it, test, item: test.items.find(i => i.id === it.itemId)! }; }
   private cardDone(c: QCard) { if (c.kind === 'study') return false; if (c.kind === 'match') return c.keys!.every(k => this.items[k].met); return this.items[c.key!].met; }
   /** move to the next card that still needs work; null = session finished */
   current(): QCard | null {
-    while (this.pos < this.queue.length && this.cardDone(this.queue[this.pos])) this.pos++;
+    while (this.pos < this.queue.length && this.cardDone(this.queue[this.pos])) {
+      if (this.outcomes[this.pos] === 'open') this.outcomes[this.pos] = 'ok';
+      this.pos++;
+    }
     return this.pos < this.queue.length ? this.queue[this.pos] : null;
   }
-  next() { this.pos++; return this.current(); }
+  next() {
+    const c = this.queue[this.pos];
+    if (c?.kind === 'study' && this.outcomes[this.pos] === 'open') this.outcomes[this.pos] = 'study';
+    this.pos++;
+    return this.current();
+  }
   meet(key: string) {
     const it = this.items[key]; if (it.met) return;
     it.met = true; this.done++;
@@ -91,20 +102,30 @@ export class Practice {
   /** record an answer; wrong answers come back 3 cards later (except on test morning: written once) */
   answered(key: string, ok: boolean) {
     const it = this.items[key]; it.tries++; this.answers++;
+    if (this.pos < this.outcomes.length) this.outcomes[this.pos] = ok ? 'ok' : 'bad';
     if (ok) { this.correct++; if (it.tries === 1 && !it.struggled) this.firstTry++; this.meet(key); }
     else { it.struggled = true; if (it.morning) this.meet(key); else this.requeue(); }
   }
-  requeue() { const c = { ...this.queue[this.pos], almost: 0 }; this.queue.splice(Math.min(this.pos + 3, this.queue.length), 0, c); }
+  requeue() {
+    const c = { ...this.queue[this.pos], almost: 0 };
+    const at = Math.min(this.pos + 3, this.queue.length);
+    this.queue.splice(at, 0, c);
+    this.outcomes.splice(at, 0, 'open');
+  }
   /** "I was right" – undo the requeue + struggle caused by the last answer */
   override(key: string) {
     const card = this.queue[this.pos], it = this.items[key];
     const idx = this.queue.findIndex((c, i) => i > this.pos && c.key === key && c.kind === card.kind);
-    if (idx > 0) this.queue.splice(idx, 1);
+    if (idx > 0) { this.queue.splice(idx, 1); this.outcomes.splice(idx, 1); }
+    if (this.outcomes[this.pos] !== undefined) this.outcomes[this.pos] = 'ok';
     if (it.tries === 1) { it.struggled = false; this.firstTry++; }
     this.correct++;
     this.meet(key);
   }
-  matchDone(keys: string[]) { keys.forEach(k => { const it = this.items[k]; it.tries++; this.correct++; if (!it.struggled) this.firstTry++; this.meet(k); }); }
+  matchDone(keys: string[]) {
+    if (this.pos < this.outcomes.length) this.outcomes[this.pos] = 'ok';
+    keys.forEach(k => { const it = this.items[k]; it.tries++; this.correct++; if (!it.struggled) this.firstTry++; this.meet(k); });
+  }
   summary(nowTs: number): Summary { this.touch(nowTs); return { done: this.done, total: this.total, firstTry: this.firstTry, ms: nowTs - this.startedAt, activeMs: Math.round(this.activeMs), correct: this.correct, tests: [...this.tests] }; }
 
   spec(card: QCard): Spec | null {

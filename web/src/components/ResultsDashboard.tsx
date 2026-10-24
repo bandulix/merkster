@@ -4,7 +4,7 @@ import { Bar, CartesianGrid, ComposedChart, Legend, Line, LineChart, ResponsiveC
 import type { ExamResult, GradeSystem, Subject } from '../../../shared/types';
 import { fmtPctIn, fmtResult, fromPct, GRADE_SPECS, toPct } from '../../../shared/grades';
 import { fmtDay } from '../lib/util';
-import { subjectIcon, subjectName, t } from '../i18n';
+import { subjectIcon, subjectName, t, tp } from '../i18n';
 
 export interface ResItem { id: string; name: string; subject: Subject; testDate: string; result: ExamResult; icon: string; practice?: { sessions: number; days: number; minutes: number } | null }
 const COLORS = ['#3d5afe', '#ff5a36', '#00c2a8', '#a6e00f', '#ffd23f', '#0d0f1e', '#7a8cff', '#ff9a7f'];
@@ -37,7 +37,7 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
       <div className="tile-stat"><span>{t('trend')}</span><b className={'trend ' + (trend || '')}>{trend === 'up' ? '↗' : trend === 'down' ? '↘' : trend === 'flat' ? '→' : '–'}</b><small>{trend ? t(('trend_' + trend) as 'trend_up') : t('trend_need')}</small></div>
       <div className="tile-stat"><span>{t('results_n')}</span><b>{shown.length}</b></div>
     </div>
-    {!chartsReady && <p className="muted small" data-testid="charts-locked">{t('charts_need_more', { n: Math.max(1, 2 - shown.length) })}</p>}
+    {!chartsReady && <p className="muted small" data-testid="charts-locked">{tp('charts_need_more', Math.max(1, 2 - shown.length))}</p>}
     {chartsReady && <div className="card chart-card" data-testid="chart-over-time"><h3>{t('over_time')}</h3>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={timeline} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
@@ -65,7 +65,7 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
         </ComposedChart>
       </ResponsiveContainer>
     </div>}
-    {perSubject.length > 0 && <div className="subj-grid">{perSubject.map(x => <div key={x.s} className="card subj-card"><span className="tc-icon">{subjectIcon(x.s)}</span><b>{subjectName(x.s)}</b><span>⌀ {fmtPctIn(x.avg, sys)}</span><small>{t('best_result')}: {fmtPctIn(x.best, sys)} · {t('results_count', { n: x.n })}</small></div>)}</div>}
+    {perSubject.length > 0 && <div className="subj-grid">{perSubject.map(x => <div key={x.s} className="card subj-card"><span className="tc-icon">{subjectIcon(x.s)}</span><b>{subjectName(x.s)}</b><span>⌀ {fmtPctIn(x.avg, sys)}</span><small>{t('best_result')}: {fmtPctIn(x.best, sys)} · {tp('results_count', x.n)}</small></div>)}</div>}
     <h3 className="sec-title">{t('history')}</h3>
     <div className="res-list" data-testid="result-history">{[...shown].reverse().map(x => (
       <div key={x.id} className="res-item" data-testid="res-item">
