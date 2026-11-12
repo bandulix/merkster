@@ -105,7 +105,8 @@ test('student journey: login → import → practice → level up → result →
   await page.screenshot({ path: path.join(SHOTS, 'mobile-13-share-sheet.png') });
   for (const fmt of ['story', 'square'] as const) {
     await page.getByTestId('fmt-' + fmt).click();
-    await page.waitForTimeout(300);
+    const want = fmt === 'story' ? { w: 1080, h: 1920 } : { w: 1080, h: 1080 };
+    await expect.poll(() => preview.evaluate((img: HTMLImageElement) => ({ w: img.naturalWidth, h: img.naturalHeight }))).toEqual(want);
     const dl = page.waitForEvent('download');
     await page.getByTestId('share-png').click();
     const file = path.join(OUT, `share-result-${fmt}.png`);
