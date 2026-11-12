@@ -77,7 +77,7 @@ function StudyCard({ p, card, next, tts }: CardProps) {
     {item.example && type !== 'cloze' && <div className="example">“{item.example}”</div>}
     {type === 'mc' && !!item.distractors?.length && <div className="hint-line">{t('not_answers')}: {item.distractors.join(' · ')}</div>}
     <p className="muted center small">{t('study_hint')}</p>
-    <div className="row-btns"><button className="btn primary big" autoFocus data-testid="studied" onClick={next}>{t('got_it')} →</button></div>
+    <div className="row-btns"><button className="btn primary big wide" autoFocus data-testid="studied" onClick={next}>{t('got_it')} →</button></div>
   </div></div>);
 }
 
