@@ -1,3 +1,4 @@
+import { weekKey as isoWeek } from './challenge';
 /* Progression: XP, levels, ranks, streaks (with freezes) and badges.
    Everything is DERIVED deterministically from the practice history + tests, so it syncs for free,
    can be recomputed on the server, and can't drift. XP rewards effortful retrieval, not idle time:
@@ -84,18 +85,24 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100, 200, 365];
 
 /** a confirmed report card, reduced to what progression needs (improved = subjects better than on the previous card, best = best average so far) */
 export interface CardLite { id: string; at: number; improved: number; best: boolean }
-export function computeProgress(history: HistoryEntry[], tests: Test[], nowTs: number, cheers: CheerLite[] = [], cards: CardLite[] = []): Progress {
+export function computeProgress(history: HistoryEntry[], tests: Test[], nowTs: number, cheers: CheerLite[] = [], cards: CardLite[] = [], bonusJokers = 0): Progress {
   const today = dayOf(nowTs);
   const sessions = [...history].sort((a, b) => sessionAt(a) - sessionAt(b));
   const activeDays = new Set(sessions.map(s => s.day));
 
-  /* streak pass: every 7 practice days in a row earn a freeze (max 2); a missed day uses one */
+  /* One joker each ISO week, used automatically on a missed day. A finished challenge can add one more. */
   const streakOn: Record<string, number> = {}; const frozenDays: string[] = [];
-  let streak = 0, best = 0, freezes = 0, earn = 0;
+  let streak = 0, best = 0, freezes = 0, bonusLeft = bonusJokers > 0 ? 1 : 0, granted = '';
   const first = sessions.length ? sessions[0].day : today;
   for (let d = first, guard = 0; d <= today && guard < 3000; d = plusDays(d, 1), guard++) {
-    if (activeDays.has(d)) { streak++; earn++; if (earn >= 7) { freezes = Math.min(2, freezes + 1); earn = 0; } best = Math.max(best, streak); }
-    else if (d !== today) { if (streak > 0 && freezes > 0) { freezes--; frozenDays.push(d); } else { streak = 0; earn = 0; } }
+    const week = isoWeek(new Date(d + 'T12:00:00Z'));
+    if (week !== granted) {
+      granted = week;
+      if (freezes < 1) freezes = 1;
+      if (bonusLeft && freezes < 2) { freezes++; bonusLeft = 0; }
+    }
+    if (activeDays.has(d)) { streak++; best = Math.max(best, streak); }
+    else if (d !== today) { if (streak > 0 && freezes > 0) { freezes--; frozenDays.push(d); } else { streak = 0; } }
     streakOn[d] = streak;
   }
 

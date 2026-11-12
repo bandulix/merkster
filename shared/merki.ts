@@ -2,11 +2,11 @@
    Speech is one-way. Nothing here is a chat. */
 export type AgeBand = 'young' | 'mid' | 'teen';
 export type MerkiPose = 'happy' | 'cheering' | 'thinking' | 'nudging' | 'sleepy' | 'proud';
-export type MerkiTrigger = 'home' | 'nudge' | 'session_start' | 'session_done' | 'plan_created' | 'behind' | 'exam_soon' | 'grade' | 'friend' | 'mock_done';
+export type MerkiTrigger = 'home' | 'nudge' | 'session_start' | 'session_done' | 'plan_created' | 'behind' | 'exam_soon' | 'grade' | 'friend' | 'mock_done' | 'joker';
 
 export const AGE_BANDS: AgeBand[] = ['young', 'mid', 'teen'];
 export const MERKI_POSES: MerkiPose[] = ['happy', 'cheering', 'thinking', 'nudging', 'sleepy', 'proud'];
-export const MERKI_TRIGGERS: MerkiTrigger[] = ['home', 'nudge', 'session_start', 'session_done', 'plan_created', 'behind', 'exam_soon', 'grade', 'friend', 'mock_done'];
+export const MERKI_TRIGGERS: MerkiTrigger[] = ['home', 'nudge', 'session_start', 'session_done', 'plan_created', 'behind', 'exam_soon', 'grade', 'friend', 'mock_done', 'joker'];
 
 /** Klassenstufe wins. Otherwise age from birth year. Unknown stays unset so the app can ask once. */
 export function ageBand(input: { schoolYear?: number | null; birthYear?: number | null; nowYear: number }): AgeBand | null {
@@ -75,7 +75,7 @@ export function poseFor(trigger: MerkiTrigger, hour: number): MerkiPose {
     case 'nudge': case 'behind': return 'nudging';
     case 'session_start': case 'exam_soon': return 'thinking';
     case 'session_done': case 'friend': return 'cheering';
-    case 'plan_created': case 'grade': case 'mock_done': return 'proud';
+    case 'plan_created': case 'grade': case 'mock_done': case 'joker': return 'proud';
     default: return 'happy';
   }
 }
@@ -106,7 +106,8 @@ const DE: Pack = {
   exam_soon: { young: 'Noch {exam} Tage! Wir wiederholen nur, was wackelt.', mid: 'Noch {exam} Tage. Wiederholen, nichts Neues pauken.', teen: 'Noch {exam} Tage. Nur Wiederholung.' },
   grade: { young: 'Note ist drin, {name}! Ich bin stolz, dass du sie eingetragen hast.', mid: 'Note gespeichert. Das zählt für deine Erfolgsquote.', teen: 'Note ist notiert. Daraus wird die Quote.' },
   friend: { young: '{friend} hat heute geübt. Ihr seid ein gutes Team!', mid: '{friend} war heute dabei. Schön, dass ihr denselben Plan habt.', teen: '{friend} hat heute geübt. Läuft bei euch.' },
-  mock_done: { young: 'Probe geschafft, {name}! Wir üben noch, was wackelt.', mid: 'Probe ist durch. Die wackeligen Ziele kommen noch einmal dran.', teen: 'Probe sitzt. Die Lücken üben wir noch kurz.' }
+  mock_done: { young: 'Probe geschafft, {name}! Wir üben noch, was wackelt.', mid: 'Probe ist durch. Die wackeligen Ziele kommen noch einmal dran.', teen: 'Probe sitzt. Die Lücken üben wir noch kurz.' },
+  joker: { young: 'Dein Joker hat die Serie gehalten, {name}. Morgen bist du wieder dran.', mid: 'Der Joker hat die Serie gehalten. Morgen reicht eine kurze Runde.', teen: 'Joker benutzt. Serie bleibt. Morgen eine Runde.' }
 };
 const EN: Pack = {
   home: { young: 'Hi {name}! A tiny round is waiting today.', mid: 'Hey {name}. One short round and you are done.', teen: '{name}. Short round, then you are clear.' },
@@ -118,7 +119,8 @@ const EN: Pack = {
   exam_soon: { young: '{exam} days left! We only revisit what wobbles.', mid: '{exam} days left. Review, no new cramming.', teen: '{exam} days. Review only.' },
   grade: { young: 'Grade saved, {name}! Proud you wrote it down.', mid: 'Grade saved. It counts toward your success rate.', teen: 'Grade logged. That’s the rate.' },
   friend: { young: '{friend} practised today. You make a good team!', mid: '{friend} showed up today. Same plan, nice.', teen: '{friend} practised today. Solid.' },
-  mock_done: { young: 'Practice test done, {name}! We will revisit what wobbled.', mid: 'Practice test is in. The shaky goals get another round.', teen: 'Practice test is in. We patch the gaps.' }
+  mock_done: { young: 'Practice test done, {name}! We will revisit what wobbled.', mid: 'Practice test is in. The shaky goals get another round.', teen: 'Practice test is in. We patch the gaps.' },
+  joker: { young: 'Your joker kept the streak, {name}. Tomorrow you are back.', mid: 'The joker kept the streak. A short round tomorrow is enough.', teen: 'Joker used. Streak stays. One round tomorrow.' }
 };
 
 export function fallbackLine(ctx: MerkiContext, trigger: MerkiTrigger): { line: string; pose: MerkiPose } {

@@ -1,4 +1,5 @@
 /* Shared-plan card: each person's progress, a nudge, and a short feed. First names only. */
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { Test } from '../../../shared/types';
@@ -18,6 +19,11 @@ function line(e: PlanEvent) {
   if (e.kind === 'nudge') return t('feed_nudge', { name });
   if (e.kind === 'cheer') return t('feed_cheer', { name, goal: e.goal ? ' · ' + e.goal : '' });
   return name;
+}
+
+function ChallengeBonus() {
+  useEffect(() => { if (!store.data.settings.challengeBonus) store.setSettings({ challengeBonus: true }); }, []);
+  return null;
 }
 
 export function SharedPlan({ test }: { test: Test }) {
@@ -42,6 +48,7 @@ export function SharedPlan({ test }: { test: Test }) {
           <div className="member-bar" role="progressbar" aria-valuenow={Math.min(ch.total, ch.target)} aria-valuemax={ch.target}><i style={{ width: Math.min(100, Math.round(ch.total / ch.target * 100)) + '%' }} /></div>
           <p className="small" data-testid="challenge-count">{ch.total}/{ch.target}</p>
           {ch.reached && <><p data-testid="challenge-done">{t('challenge_done')}</p><MerkiSay trigger="friend" placement="inline" /></>}
+          {ch.reached && <ChallengeBonus />}
           <ul className="challenge-people">{ch.people.filter(p => !p.optedOut).map(p => <li key={p.name}>{p.name} · {p.units}</li>)}</ul>
           <button type="button" className="btn ghost sm" data-testid="challenge-opt" onClick={() => api('/api/plans/' + id + '/challenge/opt', { body: { out: !me?.optedOut } }).then(() => challenge.refetch())}>{me?.optedOut ? t('challenge_in') : t('challenge_out')}</button>
         </div>

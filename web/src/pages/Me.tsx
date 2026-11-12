@@ -7,6 +7,7 @@ import { AvatarEdit } from '../components/AvatarEdit';
 import { Avatar, RankBadge } from '../components/ui';
 import { ShareSheet, type ShareWhat } from '../components/Share';
 import { t, tp, uiLang } from '../i18n';
+import { MerkiSay } from '../components/MerkiSay';
 
 export function Me() {
   useStore(); const me = useMe(); const L = uiLang();
@@ -33,7 +34,9 @@ export function Me() {
           <div className="flame" data-on={p.streak.activeToday ? '1' : '0'}>🔥</div>
           <div><b className="big-num" data-testid="me-streak">{p.streak.current}</b> <span>{tp('day_streak', p.streak.current)}</span>
             <p className="muted small">{p.streak.activeToday ? t('streak_safe') : p.streak.current ? t('streak_today') : t('streak_start')}</p>
-            <p className="small">🧊 {tp('freezes_n', p.streak.freezes)} · 🏁 {tp('next_milestone', p.streak.next)} · {t('best_streak')}: {p.streak.best}</p>
+            <p className="small" data-testid="joker-line">🧊 {tp('freezes_n', p.streak.freezes)} · 🏁 {tp('next_milestone', p.streak.next)} · {t('best_streak')}: {p.streak.best}</p>
+            <p className="small muted" data-testid="joker-help">{t('joker_help')}</p>
+            {p.streak.frozenDays.length > 0 && <MerkiSay trigger="joker" placement="inline" />}
           </div>
           <button className="btn link" onClick={() => setShare({ kind: 'streak' })}>📤</button>
         </div>

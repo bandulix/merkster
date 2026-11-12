@@ -15,6 +15,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 - Explain it another way: example, memory hook, steps, or a small sketch. Cached per card and style. Unsafe lines fall back to a fixed sentence.
 - Offline pack for the cards already on the device, and a merge that keeps the further-along review. Web Push reminders are opt-in, once a day, with quiet hours from 20:00 to 07:00.
 - Cooperative weekly challenge on a shared plan: 20 units together, contributions without a ranking, and a way to sit the week out.
+- One streak joker per week, applied automatically on a missed day. Finishing a group challenge earns one more. Merki comments when a joker is used.
 
 ### Removed
 
