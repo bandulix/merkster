@@ -314,8 +314,11 @@ textarea { resize: vertical; }
 .lvl-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18px; } .lvl-num { font-size: 2.2rem; font-weight: 900; }
 .me-hero .xpbar i { background: linear-gradient(90deg, var(--c1), var(--glow)); } .me-hero .small { color: #d6dbf3; }
 .me-grid { display: grid; gap: 0 14px; } @media (min-width: 700px) { .me-grid { grid-template-columns: 1fr 1fr; } }
-.streak-card { display: flex; gap: 14px; align-items: center; } .streak-card > div { flex: 1; } .streak-card p { margin: 3px 0; }
-.flame { font-size: 2.8rem; filter: grayscale(.8); opacity: .6; transition: all .3s; } .flame[data-on='1'] { filter: none; opacity: 1; animation: flame 1.4s ease-in-out infinite; }
+.streak-card { display: grid; gap: 12px; } .streak-card p { margin: 4px 0; }
+.streak-head { display: flex; gap: 12px; align-items: flex-start; }
+.streak-copy { flex: 1; min-width: 0; }
+.streak-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 0; }
+.flame { font-size: 1.7rem; line-height: 1.2; flex: none; filter: grayscale(.8); opacity: .6; transition: all .3s; } .flame[data-on='1'] { filter: none; opacity: 1; animation: flame 1.4s ease-in-out infinite; }
 .week-card h3 { margin-bottom: 4px; } .small-stats .stat { box-shadow: none; background: var(--card2); padding: 10px 6px; } .small-stats b { font-size: 1.3rem; }
 .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 .badge-tile { display: grid; justify-items: center; text-align: center; gap: 4px; padding: 14px 10px; border-radius: 18px; border: 0; background: var(--card); box-shadow: var(--shadow); opacity: .5; filter: grayscale(1); cursor: default; }
@@ -553,7 +556,7 @@ textarea { resize: vertical; }
 .explain-box .chips { display: grid; grid-template-columns: 1fr 1fr; }
 .explain-box .pill { justify-content: center; }
 .offline-banner { margin: 8px 0 12px; padding: 12px 14px; border-radius: 16px; background: var(--ink); color: var(--lime); font-weight: 800; }
-.joker-note { margin: 8px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--card2); color: var(--text); font-weight: 650; }
+.joker-note { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--card2); color: var(--text); font-weight: 650; width: 100%; box-sizing: border-box; }
 .challenge-bar { height: 14px; }
 .explain-text { white-space: pre-wrap; font-weight: 650; }
 .explain-sketch { max-width: 320px; background: var(--card2); border-radius: 16px; }

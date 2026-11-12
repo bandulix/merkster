@@ -47,7 +47,7 @@ export function SharedPlan({ test }: { test: Test }) {
           <b>{ch.title}</b>
           <div className="member-bar challenge-bar" role="progressbar" aria-valuenow={Math.min(ch.total, ch.target)} aria-valuemax={ch.target}><i style={{ width: Math.min(100, Math.round(ch.total / ch.target * 100)) + '%' }} /></div>
           <p className="small" data-testid="challenge-count">{ch.total}/{ch.target}</p>
-          {ch.total === 0 && <p>{t('challenge_zero')}</p>}
+          {ch.total === 0 && <p data-testid="challenge-zero">{t('challenge_zero')}</p>}
           {ch.reached && <><p data-testid="challenge-done">{t('challenge_done')}</p><MerkiSay trigger="friend" placement="inline" /></>}
           {ch.reached && <ChallengeBonus />}
           <ul className="challenge-people">{ch.people.filter(p => !p.optedOut).map(p => <li key={p.name}>{p.name} · {p.units}</li>)}</ul>
