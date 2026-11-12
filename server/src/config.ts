@@ -75,6 +75,7 @@ export const config = {
     apiKey: env('LLM_API_KEY'),
     visionModel: env('LLM_VISION_MODEL'),
     textModel: env('LLM_TEXT_MODEL') || env('LLM_VISION_MODEL'),
+    imageModel: env('LLM_IMAGE_MODEL'),
     timeoutMs: int('LLM_TIMEOUT_MS', 120000),
     jsonMode: env('LLM_JSON_MODE', 'auto') as 'auto' | 'on' | 'off',
     maxTokens: int('LLM_MAX_TOKENS', 4000)
@@ -112,7 +113,7 @@ export function validateConfig(log: { error: (m: string) => void; info: (m: stri
 /** The only configuration the browser ever sees – never the key or URL of the LLM. */
 export function publicConfig(): PublicConfig {
   return {
-    ai: { configured: config.aiConfigured, model: config.aiConfigured ? config.llm.visionModel : null },
+    ai: { configured: config.aiConfigured, model: config.aiConfigured ? config.llm.visionModel : null, image: !!(config.aiConfigured && config.llm.imageModel) },
     auth: { google: config.googleConfigured, testProvider: config.google.testIssuer, signupCode: !!config.signupCode },
     registrationOpen: config.registrationOpen,
     maxUploadMB: config.maxUploadMB,

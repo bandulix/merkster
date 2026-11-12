@@ -10,6 +10,7 @@ import { de8, en8 } from './strings8';
 import { de9, en9 } from './strings9';
 import { de10, en10 } from './strings10';
 import { de11, en11 } from './strings11';
+import { de12, en12 } from './strings12';
 
 const en2 = {
     login_btn: 'Log in', register_btn: 'Create account', to_register: 'New here? Create an account', to_login: 'Already have an account? Log in',
@@ -41,7 +42,7 @@ const de2: Record<keyof typeof en2, string> = {
   update_ready: 'Eine neue Version der App ist bereit.', update_now: 'Aktualisieren', offline_ready: 'Bereit für die Offline-Nutzung.', loading: 'Lädt…', later: 'Später',
   not_found: 'Seite nicht gefunden', tab_new: 'Neu', s_offline_hint: 'Lädt die Texterkennung und Sprachdaten (~17 MB), damit der Foto-Import ohne Internet klappt.'
 };
-export const STRINGS = { en: { ...en1, ...en2, ...en3, ...en4, ...en5, ...en7, ...en8, ...en9, ...en10, ...en11 }, de: { ...de1, ...de2, ...de3, ...de4, ...de5, ...de7, ...de8, ...de9, ...de10, ...de11 } };
+export const STRINGS = { en: { ...en1, ...en2, ...en3, ...en4, ...en5, ...en7, ...en8, ...en9, ...en10, ...en11, ...en12 }, de: { ...de1, ...de2, ...de3, ...de4, ...de5, ...de7, ...de8, ...de9, ...de10, ...de11, ...de12 } };
 export type Key = keyof typeof STRINGS.en;
 
 /* ---- current UI language (set by the app from the user's settings) ---- */

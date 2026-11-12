@@ -13,6 +13,7 @@ import * as S from '../lib/schedule';
 import { now } from '../lib/util';
 import { t, uiLang } from '../i18n';
 import { Merki } from './Merki';
+import { CompanionFace } from './CompanionFace';
 
 type MomentTrigger = 'plan_created' | 'grade' | 'exam_soon';
 let moment: MomentTrigger | null = null;
@@ -73,8 +74,16 @@ export function MerkiSay({ trigger, placement = 'hero', localOnly = false }: { t
   const ctx = merkiContext();
   const local = fallbackLine(ctx, trigger);
   const day = S.dayISO(now());
+  const active = useQuery({
+    queryKey: ['companion-active'],
+    enabled: !localOnly,
+    staleTime: 30_000,
+    retry: 0,
+    queryFn: () => api<{ companion: { id: string; name: string; preset: string | null; picture: string | null } | null }>('/api/companions/active')
+  });
+  const speaker = active.data?.companion || null;
   const q = useQuery({
-    queryKey: ['merki', trigger, day, ctx.band, ctx.lang],
+    queryKey: ['merki', trigger, day, ctx.band, ctx.lang, speaker?.id || ''],
     enabled: !muted && !localOnly,
     staleTime: 6 * 3600e3,
     retry: 0,
@@ -91,14 +100,17 @@ export function MerkiSay({ trigger, placement = 'hero', localOnly = false }: { t
   if (open && !muted && placement !== 'moment') return null;
   const line = q.data?.line || local.line;
   const pose = (q.data?.pose as typeof local.pose) || local.pose;
+  const face = (size: number) => speaker
+    ? <CompanionFace name={speaker.name} preset={speaker.preset} src={speaker.picture} size={size} />
+    : <Merki band={ctx.band} pose={pose} size={size} />;
   if (muted && placement !== 'moment') {
     if (placement === 'inline') return null;
-    return <div className="merki-quiet" data-testid="merki-quiet"><Merki band={ctx.band} pose="sleepy" size={48} /></div>;
+    return <div className="merki-quiet" data-testid="merki-quiet">{face(48)}</div>;
   }
   if (placement === 'moment') {
     return (
       <div className="merki-moment" data-testid="merki-moment">
-        <Merki band={ctx.band} pose={pose} size={180} />
+        {face(180)}
         <p className="merki-bubble" data-testid="merki-bubble">{line}</p>
       </div>
     );
@@ -106,7 +118,7 @@ export function MerkiSay({ trigger, placement = 'hero', localOnly = false }: { t
   const nudge = placement === 'nudge';
   return (
     <div className={'merki-say merki-say-' + placement + (nudge ? ' merki-nudge' : '')} data-testid={nudge ? 'merki-nudge' : placement === 'inline' ? 'merki-inline' : 'merki-home'}>
-      <Merki band={ctx.band} pose={pose} size={placement === 'inline' ? 56 : nudge ? 84 : 112} />
+      {face(placement === 'inline' ? 56 : nudge ? 84 : 112)}
       <p className="merki-bubble" data-testid="merki-bubble">{line}</p>
     </div>
   );
