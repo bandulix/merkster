@@ -53,7 +53,7 @@ Done exploring? `make down`.
 - **Grades** — enter the mark after the exam (1–6, points, or percent) and see a success rate, trend, and plan vs no plan  
 - **Practice** — successive relearning, tolerant checking, EN/DE  
 - **Class** — share one scan with the whole class; XP board, boss fights, 1v1 clashes  
-- **Offline PWA** — works without a signal; export or delete your data anytime  
+- **Merki** — an alien who speaks in one short bubble (no chat). Today gets a greeting or a “time to learn” card; a plan, a session, and the grade stats get a small line beside the content; a new plan, a saved grade, and exam day get a full-screen moment. The line is written on the server from the student’s name, year, streak, and plan, cached for the day, and replaced by a fixed line if the model fails. Years 1–4 get a bouncy Merki, years 5–7 a middle one, year 8 and up a calm one with a visor. Quiet mode is in Settings. One bubble at a time.  
 
 ## Run for real (Google sign-in)
 

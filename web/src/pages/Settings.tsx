@@ -58,6 +58,18 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
         <label className="toggle"><input type="checkbox" checked={s.sound} onChange={e => { store.setSettings({ sound: e.target.checked }); if (e.target.checked) fanfare(false); }} /><span>{t('s_sound')}</span></label>
       </div>
 
+      <div className="card" data-testid="merki-settings">
+        <h3>Merki</h3>
+        <p className="small muted">{t('merki_year')}</p>
+        <div className="chips">
+          <button type="button" className={'pill sm' + (s.schoolYear === 4 ? ' on' : '')} data-testid="set-year-young" onClick={() => store.setSettings({ schoolYear: 4, ageAsked: true })}>{t('merki_young')}</button>
+          <button type="button" className={'pill sm' + (s.schoolYear === 6 ? ' on' : '')} data-testid="set-year-mid" onClick={() => store.setSettings({ schoolYear: 6, ageAsked: true })}>{t('merki_mid')}</button>
+          <button type="button" className={'pill sm' + (s.schoolYear === 10 ? ' on' : '')} data-testid="set-year-teen" onClick={() => store.setSettings({ schoolYear: 10, ageAsked: true })}>{t('merki_teen')}</button>
+        </div>
+        <label className="toggle"><input type="checkbox" data-testid="merki-mute" checked={!!s.merkiMuted} onChange={e => store.setSettings({ merkiMuted: e.target.checked })} /><span>{t('merki_mute')}</span></label>
+        <p className="small muted">{t('merki_mute_sub')}</p>
+      </div>
+
       <div className="card" data-testid="grade-privacy">
         <h3>{t('privacy_title')}</h3>
         <p className="small muted">{t('privacy_sub')}</p>

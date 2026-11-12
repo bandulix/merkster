@@ -74,6 +74,13 @@ export interface Settings {
   gradePrivacy?: 'hide' | 'summary' | 'grades';
   /** minimum normalised score (0–100, higher = better) that counts as a success, per subject */
   gradeTargets?: Partial<Record<Subject, number>>;
+  /** Klassenstufe 1–13. Drives which Merki you see. */
+  schoolYear?: number;
+  birthYear?: number;
+  /** Merki draws no speech bubbles. */
+  merkiMuted?: boolean;
+  /** The year question was dismissed. */
+  ageAsked?: boolean;
 }
 export interface Streak { count: number; best: number; lastDay: string | null; }
 export interface Stats { sessions: number; answers: number; firstTry: number; ms: number; }

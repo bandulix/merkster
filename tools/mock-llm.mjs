@@ -105,6 +105,22 @@ http.createServer((req, res) => {
     last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: sys.slice(0, 80) };
     calls.push({ system: sys.slice(0, 32), prompt: text.slice(0, 180) });
     if (calls.length > 12) calls.shift();
+    if (sys.includes('MERKI_LINE')) {
+      const teen = /Age band: teen/.test(text);
+      const young = /Age band: young/.test(text);
+      const plan = (text.match(/Plan: ([^.\n]+)/) || [])[1] || '';
+      let line = teen ? 'Kurz und klar. Heute reicht eine Runde.' : young ? 'Hallo! Heute wird bunt und leicht.' : 'Eine Runde, dann hast du Luft.';
+      if (/Trigger: home/.test(text) && plan && plan !== 'none') line = teen ? `${plan}. Eine Runde, dann frei.` : `${plan} wartet. Eine kleine Runde reicht.`;
+      else if (/Trigger: grade/.test(text)) line = teen ? 'Note sitzt. Sauber eingetragen.' : 'Die Note ist da. Ich bin stolz auf dich.';
+      else if (/Trigger: plan_created/.test(text)) line = teen ? 'Plan steht. Wir gehen das ruhig an.' : 'Dein Plan ist fertig. Wir üben bis zur Prüfung.';
+      else if (/Trigger: friend/.test(text)) line = teen ? 'Jemand aus dem Plan war heute dabei. Läuft.' : 'Jemand aus dem Plan hat heute geübt. Ihr seid ein Team.';
+      let pose = 'happy';
+      if (/Trigger: nudge|Trigger: behind/.test(text)) pose = 'nudging';
+      else if (/Trigger: grade|Trigger: plan_created/.test(text)) pose = 'proud';
+      else if (/Trigger: session_done|Trigger: friend/.test(text)) pose = 'cheering';
+      else if (/Trigger: exam_soon|Trigger: session_start/.test(text)) pose = 'thinking';
+      return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ line, pose }) } }] });
+    }
     if (/Reply with OK/.test(text)) return send(200, { choices: [{ message: { role: 'assistant', content: 'OK' } }] });
     if (sys.includes('SAME_SHEET')) {
       const same = !/MOCK_DIFFERENT/.test(text);

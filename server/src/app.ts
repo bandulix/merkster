@@ -13,6 +13,7 @@ import { aiPlugin } from './ai';
 import { goalsAiPlugin } from './goalsAi';
 import { plansPlugin } from './plans';
 import { gradesPlugin } from './gradesApi';
+import { merkiPlugin } from './merkiApi';
 import { avatarsPlugin, initAvatars } from './avatars';
 import { classesPlugin } from './classes';
 import { classGamesPlugin } from './classGames';
@@ -74,6 +75,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await goalsAiPlugin(app, { pool, config });
   await plansPlugin(app, { pool, config });
   await gradesPlugin(app, { pool });
+  await merkiPlugin(app, { pool, config });
   await classesPlugin(app, { pool, config });
   await classGamesPlugin(app, { pool, config });
   initAvatars(config);
