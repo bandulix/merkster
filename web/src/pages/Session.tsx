@@ -14,6 +14,7 @@ import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
 import { pick, subjectIcon, t, tp, uiLang, type Key } from '../i18n';
 import { MerkiSay } from '../components/MerkiSay';
+import { ExplainBox } from '../components/ExplainBox';
 
 type Btn = { label: string; act: () => void; kind?: 'primary' | 'ghost' | 'bad'; testid?: string };
 interface SheetS { kind: 'ok' | 'almost' | 'bad' | 'neutral'; title: string; body?: React.ReactNode; buttons: Btn[]; auto?: boolean }
@@ -150,7 +151,7 @@ function McCard({ p, card, next, tts }: CardProps) {
     const ok = opts[i] === item.meaning; setPicked(i); p.answered(key, ok);
     if (lang) autoSpeak(tts, test, item.term);
     if (ok) { vibrate(15); setSheet({ kind: 'ok', title: '✅ ' + pick('praise'), buttons: [{ label: t('continue'), act: next, kind: 'primary', testid: 'next' }], auto: true }); }
-    else { vibrate([30, 40, 30]); setSheet({ kind: 'bad', title: '❌ ' + t('not_quite'), body: <>{t('correct_answer')}<div className="sol">{item.meaning}</div>{!it.morning && <div className="small">{t('comes_back')}</div>}</>, buttons: [{ label: t('got_it'), act: next, kind: 'primary', testid: 'next' }] }); }
+    else { vibrate([30, 40, 30]); setSheet({ kind: 'bad', title: '❌ ' + t('not_quite'), body: <>{t('correct_answer')}<div className="sol">{item.meaning}</div>{!it.morning && <div className="small">{t('comes_back')}</div>}<ExplainBox term={item.term} meaning={item.meaning} /></>, buttons: [{ label: t('got_it'), act: next, kind: 'primary', testid: 'next' }] }); }
   };
   return (<>
     <div className="qcard pop-in" data-testid="card-mc">
@@ -260,6 +261,7 @@ export function SessionPage() {
         </div>
       </div>
       <MerkiSay trigger="session_start" placement="inline" />
+      {card.key && <ExplainBox term={p.ctx(card.key).item.term} meaning={p.ctx(card.key).item.meaning} />}
       <div className="ses-stage" key={step}>{view}</div>
     </div>
   );

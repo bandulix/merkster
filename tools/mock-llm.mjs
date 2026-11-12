@@ -105,6 +105,11 @@ http.createServer((req, res) => {
     last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: sys.slice(0, 80) };
     calls.push({ system: sys.slice(0, 32), prompt: text.slice(0, 180) });
     if (calls.length > 12) calls.shift();
+    if (sys.includes('EXPLAIN_CARD')) {
+      const style = (text.match(/Style: (\w+)/) || [])[1];
+      const textOut = style === 'sketch' ? 'Zellkern → DNA' : style === 'steps' ? 'Lies das Wort. Denk an die DNA. Sag es in einem Satz.' : style === 'mnemonic' ? 'Stell dir den Kern als Tresor vor.' : 'Der Kern ist wie ein Tresor für die DNA.';
+      return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ text: textOut }) } }] });
+    }
     if (sys.includes('MOCK_GRADE')) {
       const ok = /Student: .{12,}/s.test(text);
       return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ score: ok ? 1 : 0 }) } }] });
