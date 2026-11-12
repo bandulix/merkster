@@ -8,8 +8,8 @@ export function isStyle(v: unknown): v is ExplainStyle {
   return (EXPLAIN_STYLES as readonly string[]).includes(String(v));
 }
 
-export function explainKey(term: string, meaning: string, style: ExplainStyle, band: string): string {
-  const raw = `${band}|${style}|${term.trim().toLowerCase()}|${meaning.trim().toLowerCase()}`;
+export function explainKey(term: string, meaning: string, style: ExplainStyle, band: string, lang = 'de'): string {
+  const raw = `${lang}|${band}|${style}|${term.trim().toLowerCase()}|${meaning.trim().toLowerCase()}`;
   let h = 0x811c9dc5;
   for (let i = 0; i < raw.length; i++) { h ^= raw.charCodeAt(i); h = Math.imul(h, 0x01000193); }
   return (h >>> 0).toString(36);

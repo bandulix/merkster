@@ -1,5 +1,5 @@
 /* Class XP board: recompute progress from the same history the app uses.
-   No supporter reactions and no report cards. */
+   Classmates see XP only. Grades and notes stay on the student. */
 import type pg from 'pg';
 import type { HistoryEntry, Test } from '../../shared/types';
 import { computeProgress, type Progress } from '../../shared/gamification';

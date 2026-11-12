@@ -9,6 +9,7 @@ describe('another explanation', () => {
     expect(a).not.toBe(b);
     expect(a).not.toBe(c);
     expect(explainKey('Zellkern', 'DNA', 'example', 'young')).toBe(a);
+    expect(explainKey('Zellkern', 'DNA', 'example', 'young', 'en')).not.toBe(a);
   });
   it('keeps a kind line and drops a link or a shove', () => {
     expect(acceptExplain('Der Kern ist wie ein Tresor für die DNA.', 'example')?.text).toMatch(/Tresor/);

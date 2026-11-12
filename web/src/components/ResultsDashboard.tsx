@@ -1,4 +1,4 @@
-/* Results dashboard (charts, tiles, history) – used by the student's own Results page and, read-only, by supporters. */
+/* Results dashboard (charts, tiles, history) for the student's own Results page. */
 import { useState, type ReactNode } from 'react';
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ExamResult, GradeSystem, Subject } from '../../../shared/types';

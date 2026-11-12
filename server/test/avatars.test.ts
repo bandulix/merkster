@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keepUserAvatar, pictureAllowed, prepareAvatarUpload, sizedPictureUrl } from '../src/avatars';
+import { keepUserAvatar, pictureAllowed, prepareAvatarUpload, sizedPictureUrl, stripPngMeta } from '../src/avatars';
 
 describe('profile pictures', () => {
   it('asks Google for a 256 px square', () => {
@@ -42,5 +42,11 @@ describe('profile pictures', () => {
     expect(prepareAvatarUpload(Buffer.concat([Buffer.from([0xff, 0xd8]), Buffer.alloc(8)]))).toBeNull();
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
     expect(prepareAvatarUpload(png)?.type).toBe('image/png');
+    const text = Buffer.from('tEXtcommentSECRET_NOTE');
+    const chunk = Buffer.concat([Buffer.from([0, 0, 0, text.length]), Buffer.from('tEXt'), text, Buffer.alloc(4)]);
+    const iend = png.lastIndexOf(Buffer.from('IEND')) - 4;
+    const withNote = Buffer.concat([png.subarray(0, iend), chunk, png.subarray(iend)]);
+    expect(stripPngMeta(withNote).includes(Buffer.from('SECRET_NOTE'))).toBe(false);
+    expect(prepareAvatarUpload(withNote)?.bytes.includes(Buffer.from('SECRET_NOTE'))).toBe(false);
   });
 });
