@@ -16,6 +16,7 @@ import { ShareWithClass } from '../components/ShareWithClass';
 import { SharedPlan, goalLine } from '../components/SharedPlan';
 import { formatsFor, t, tp, testIcon, type Key } from '../i18n';
 import { MerkiSay } from '../components/MerkiSay';
+import { leadDays, mockOpen } from '../../../shared/mockexam';
 
 const PK: Record<string, Key> = { first: 'pk_first', next: 'pk_next', relearn: 'pk_relearn', night: 'pk_night', morning: 'pk_morning', 'first+night': 'pk_first' };
 
@@ -45,6 +46,7 @@ export function TestDetail() {
       {test.result && <div className="card res-card"><span>{t('your_result')}</span><b className="big-num" data-testid="td-result">{fmtResult(test.result)}</b><div className="row-btns"><button className="btn ghost sm" onClick={() => setResult(true)}>✏️ {t('edit')}</button><button className="btn ghost sm" data-testid="td-share" onClick={() => setShare({ kind: 'result', test })}>📤 {t('share')}</button></div></div>}
       {ph === 'past' && !test.result && <button className="ask-card" data-testid="td-ask-result" onClick={() => setResult(true)}><span className="tc-icon">📝</span><span><b>{t('grade_prompt')}</b><small>{t('grade_add')}</small></span><span className="btn primary sm">{t('enter_result')}</span></button>}
       {ph !== 'past' && test.items.length > 0 && <button className="btn primary big wide" data-testid="practice-test" onClick={go}>▶ {due ? t('practice_now') + ` (${due})` : t('practice_extra')}</button>}
+      {mockOpen(S.daysLeft(test, ts), leadDays(d.settings.mockLead)) && test.items.length > 0 && <button className="btn ghost wide" data-testid="mock-open" onClick={() => nav('/test/' + test.id + '/mock')}>{t('mock_open')}</button>}
       {!test.result && <button className="btn ghost wide" data-testid="add-grade-plan" onClick={() => setResult(true)}>{t('grade_add')}</button>}
       <div className="row-btns wrap">
         <button className="btn ghost" data-testid="add-cards" onClick={() => nav(`/test/${test.id}/import`)}>📸 {t('add_cards')}</button>

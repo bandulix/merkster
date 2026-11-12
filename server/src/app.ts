@@ -15,6 +15,7 @@ import { plansPlugin } from './plans';
 import { gradesPlugin } from './gradesApi';
 import { merkiPlugin } from './merkiApi';
 import { companionsPlugin } from './companionsApi';
+import { mockExamPlugin } from './mockExamApi';
 import { avatarsPlugin, initAvatars } from './avatars';
 import { classesPlugin } from './classes';
 import { classGamesPlugin } from './classGames';
@@ -78,6 +79,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await gradesPlugin(app, { pool });
   await merkiPlugin(app, { pool, config });
   await companionsPlugin(app, { pool, config });
+  await mockExamPlugin(app, { pool, config });
   await classesPlugin(app, { pool, config });
   await classGamesPlugin(app, { pool, config });
   initAvatars(config);

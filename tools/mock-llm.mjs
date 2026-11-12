@@ -105,6 +105,10 @@ http.createServer((req, res) => {
     last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: sys.slice(0, 80) };
     calls.push({ system: sys.slice(0, 32), prompt: text.slice(0, 180) });
     if (calls.length > 12) calls.shift();
+    if (sys.includes('MOCK_GRADE')) {
+      const ok = /Student: .{12,}/s.test(text);
+      return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ score: ok ? 1 : 0 }) } }] });
+    }
     if (sys.includes('MODERATE_COMPANION')) {
       const ok = !/MOCK_BLOCK|https?:\/\//i.test(text);
       return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ ok }) } }] });
@@ -122,6 +126,7 @@ http.createServer((req, res) => {
       else if (/Trigger: grade/.test(text)) line = teen ? 'Note sitzt. Sauber eingetragen.' : 'Die Note ist da. Ich bin stolz auf dich.';
       else if (/Trigger: plan_created/.test(text)) line = teen ? 'Plan steht. Wir gehen das ruhig an.' : 'Dein Plan ist fertig. Wir üben bis zur Prüfung.';
       else if (/Trigger: friend/.test(text)) line = teen ? 'Jemand aus dem Plan war heute dabei. Läuft.' : 'Jemand aus dem Plan hat heute geübt. Ihr seid ein Team.';
+      else if (/Trigger: mock_done/.test(text)) line = teen ? 'Probe sitzt. Die Lücken üben wir noch kurz.' : 'Probe geschafft! Wir üben noch, was wackelt.';
       let pose = 'happy';
       if (/Trigger: nudge|Trigger: behind/.test(text)) pose = 'nudging';
       else if (/Trigger: grade|Trigger: plan_created/.test(text)) pose = 'proud';
