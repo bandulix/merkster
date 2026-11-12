@@ -5,7 +5,6 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import type { GradeSystem, Test } from '../../../shared/types';
 import { adherenceBands, adherencePct, averageScore, bySubject, collectGrades, erfolgsquote, formatScore, planEffect, targetFor, trendOf, DEFAULT_TARGET_SCORE } from '../../../shared/gradebook';
 import { practiceBefore } from '../../../shared/gamification';
-import { fmtResult, GRADE_SPECS } from '../../../shared/grades';
 import { useStore } from '../hooks';
 import { store } from '../lib/store';
 import { fmtDay, now } from '../lib/util';
@@ -35,7 +34,6 @@ export default function Results() {
   const pending = d.tests.filter(x => (S.phase(x, ts) === 'past' || x.testDate === S.dayISO(ts)) && !x.result && x.items.length && !(d.grades || []).some(g => g.testId === x.id && !g.deleted));
   const items: ResItem[] = d.tests.filter(x => x.result).map(x => ({ id: x.id, name: x.name, subject: x.subject, testDate: x.testDate, result: x.result!, icon: subjectIcon(x.subject), practice: practiceBefore(x, d.history) }));
   const targetScore = targets && Object.values(targets)[0] != null ? Object.values(targets)[0]! : DEFAULT_TARGET_SCORE;
-  const spec = GRADE_SPECS[sys];
   const points = grades.map(g => ({ label: fmtDay(g.date), score: g.score, name: g.title }));
   return (
     <section className="results page">
@@ -53,20 +51,27 @@ export default function Results() {
         <div className="tiles" data-testid="erfolg-tiles">
           <div className="tile-stat"><span>{t('erfolg_title')}</span><b data-testid="erfolgsquote">{Math.round(quote.rate * 100)}%</b><small>{quote.hit}/{quote.total}</small></div>
           <div className="tile-stat"><span>{t('stats_avg')}</span><b>{avg == null ? '–' : formatScore(avg, sys)}</b></div>
-          <div className="tile-stat"><span>{t('trend')}</span><b>{trend === 'up' ? '↗' : trend === 'down' ? '↘' : trend === 'flat' ? '→' : '–'}</b></div>
+          <div className="tile-stat"><span>{t('trend')}</span><b>{grades.length < 2 ? t('chart_one_label') : trend === 'up' ? '↗' : trend === 'down' ? '↘' : '→'}</b></div>
           <div className="tile-stat"><span>{t('stats_best')}</span><b>{formatScore(Math.max(...grades.map(g => g.score)), sys)}</b></div>
         </div>
         <p className="muted small">{t('erfolg_sub')}</p>
+        {grades.length === 1 && <div className="card chart-card chart-spot" data-testid="grade-one">
+          <h3>{t('over_time')}</h3>
+          <b>{formatScore(grades[0].score, sys)}</b>
+          <div className="spot-bar" aria-hidden><i style={{ width: Math.max(8, Math.round(grades[0].score)) + '%' }} /></div>
+          <p>{grades[0].title} · {fmtDay(grades[0].date)}</p>
+          <p className="muted">{t('chart_one')}</p>
+        </div>}
         {grades.length >= 2 && <div className="card chart-card" data-testid="grade-trend">
           <h3>{t('over_time')}</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={points} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+            <LineChart data={points} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke="#e2e5da" strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#12131f' }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#12131f' }} width={32} />
               <Tooltip />
-              <ReferenceLine y={targetScore} stroke="#c6f432" strokeDasharray="4 4" />
-              <Line type="monotone" dataKey="score" stroke="#3d5afe" strokeWidth={3} dot={{ r: 4 }} />
+              <ReferenceLine y={targetScore} stroke="#7eae08" strokeDasharray="4 4" />
+              <Line type="monotone" dataKey="score" stroke="#0d0f1e" strokeWidth={3} dot={{ r: 5, fill: '#3d5afe' }} />
             </LineChart>
           </ResponsiveContainer>
         </div>}
@@ -85,13 +90,12 @@ export default function Results() {
           <div key={s.subject} className="card subj-card"><span className="tc-icon">{subjectIcon(s.subject)}</span><b>{subjectName(s.subject)}</b><span>⌀ {formatScore(s.avg, sys)}</span><small>{Math.round(s.rate * 100)}% · {t('erfolg_target')}: {formatScore(targetFor(s.subject, targets), 'de_grade')}</small></div>
         ))}</div>}
       </>}
-      {items.length > 0 && <ResultsDashboard items={items} sys={sys} charts={grades.length < 2} />}
+      {items.length > 0 && <ResultsDashboard items={items} sys={sys} charts={false} />}
       {(people.data?.people.length || 0) > 0 && <div className="card"><h3>{t('compare_open')}</h3>
         {(people.data?.people || []).map(p => <Link key={p.id} className="member" data-testid="person-link" to={'/compare/' + p.id}><span className="avatar-letter">{p.name.slice(0, 1)}</span><b>{p.name}</b></Link>)}
       </div>}
       {edit && <ResultDialog test={edit} onClose={() => setEdit(null)} />}
       {free && <GradeSheet onClose={() => setFree(false)} />}
-      <p className="muted small">{spec.lowerIsBetter ? t('erfolg_sub') : ''}</p>
     </section>
   );
 }
