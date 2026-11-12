@@ -12,11 +12,8 @@ import { extraEntries, startPractice } from '../lib/activeSession';
 import { Ring, TopBar } from '../components/ui';
 import { ResultDialog } from '../components/ResultDialog';
 import { ShareSheet, type ShareWhat } from '../components/Share';
-import { CheerChips } from '../components/Cheers';
-import { ParentInvite } from '../components/ParentInvite';
 import { ShareWithClass } from '../components/ShareWithClass';
-import { EarnCards, ResultExtras } from '../components/Rewards';
-import { cheersFor, useCheers } from '../lib/supporters';
+import { SharedPlan, goalLine } from '../components/SharedPlan';
 import { formatsFor, t, tp, testIcon, type Key } from '../i18n';
 
 const PK: Record<string, Key> = { first: 'pk_first', next: 'pk_next', relearn: 'pk_relearn', night: 'pk_night', morning: 'pk_morning', 'first+night': 'pk_first' };
@@ -26,7 +23,6 @@ export function TestDetail() {
   const test = store.test(id); const ts = now(), today = S.dayISO(ts);
   const [q, setQ] = useState(''), [edit, setEdit] = useState<string | null>(null), [showSettings, setShowSettings] = useState(false);
   const [result, setResult] = useState(false), [share, setShare] = useState<ShareWhat | null>(null);
-  const cheers = useCheers();
   if (!test) return <Navigate to="/" replace />;
   const cd = countdown(test), m = S.mastery(test), ph = S.phase(test, ts);
   const due = S.dueReviews(test, ts).length + S.newItems(test, ts).length;
@@ -44,13 +40,10 @@ export function TestDetail() {
           <p className="small">{t('pb_line', { s: pb.sessions, d: pb.days, m: pb.minutes })}</p></div>
       </div>
       {fresh && <div className="fresh-card pop-in"><h2>🎉 {tp('fresh_title', test.items.length)}</h2><p>{tp('fresh_text', plan.length)}</p></div>}
-      <ParentInvite />
-      {ph === 'past' ? (
-        test.result
-          ? <div className="card res-card"><span>{t('your_result')}</span><b className="big-num" data-testid="td-result">{fmtResult(test.result)}</b><div className="row-btns"><button className="btn ghost sm" onClick={() => setResult(true)}>✏️ {t('edit')}</button><button className="btn ghost sm" data-testid="td-share" onClick={() => setShare({ kind: 'result', test })}>📤 {t('share')}</button></div><CheerChips groups={cheersFor(cheers.data, 'result', test.id)} /><ResultExtras test={test} /></div>
-          : <button className="ask-card" data-testid="td-ask-result" onClick={() => setResult(true)}><span className="tc-icon">📝</span><span><b>{t('how_did_it_go')}</b><small>{t('result_xp_hint')}</small></span><span className="btn primary sm">{t('enter_result')}</span></button>
-      ) : test.items.length > 0 && <button className="btn primary big wide" data-testid="practice-test" onClick={go}>▶ {due ? t('practice_now') + ` (${due})` : t('practice_extra')}</button>}
-      {!test.result && <EarnCards subject={test.subject} test={test} />}
+      {test.result && <div className="card res-card"><span>{t('your_result')}</span><b className="big-num" data-testid="td-result">{fmtResult(test.result)}</b><div className="row-btns"><button className="btn ghost sm" onClick={() => setResult(true)}>✏️ {t('edit')}</button><button className="btn ghost sm" data-testid="td-share" onClick={() => setShare({ kind: 'result', test })}>📤 {t('share')}</button></div></div>}
+      {ph === 'past' && !test.result && <button className="ask-card" data-testid="td-ask-result" onClick={() => setResult(true)}><span className="tc-icon">📝</span><span><b>{t('grade_prompt')}</b><small>{t('grade_add')}</small></span><span className="btn primary sm">{t('enter_result')}</span></button>}
+      {ph !== 'past' && test.items.length > 0 && <button className="btn primary big wide" data-testid="practice-test" onClick={go}>▶ {due ? t('practice_now') + ` (${due})` : t('practice_extra')}</button>}
+      {!test.result && <button className="btn ghost wide" data-testid="add-grade-plan" onClick={() => setResult(true)}>{t('grade_add')}</button>}
       <div className="row-btns wrap">
         <button className="btn ghost" data-testid="add-cards" onClick={() => nav(`/test/${test.id}/import`)}>📸 {t('add_cards')}</button>
         <ShareWithClass testId={test.id} cards={test.items.length} />
@@ -64,6 +57,8 @@ export function TestDetail() {
         <label className="field"><span>{t('td_grading')}</span><select data-testid="td-grading" value={test.grading || ''} onChange={e => store.updateTest(test.id, { grading: (e.target.value || null) as GradeSystem | null })}><option value="">{t('td_grading_default', { sys: t(('gs_' + d.settings.grading) as 'gs_de_grade') })}</option>{GRADE_SYSTEMS.map(g => <option key={g} value={g}>{t(('gs_' + g) as 'gs_de_grade')}</option>)}</select></label>
         <button className="btn link bad" onClick={() => { if (confirm(t('delete_confirm', { name: test.name }))) { store.deleteTest(test.id); nav('/', { replace: true }); } }}>🗑 {t('delete_test')}</button>
       </div>}
+      {goalLine(test)}
+      {test.study?.sharedPlanId && <SharedPlan test={test} />}
       {plan.length > 0 && <div className="card"><h3>{t('plan_title')}</h3>
         <ol className="timeline">{plan.map((p, i) => { const st = p.day < today ? (test.days.includes(p.day) ? 'done' : 'missed') : p.day === today ? 'today' : 'future'; return (
           <li key={i} className={'tl ' + st}><i /><span><b>{p.day === today ? t('due_today') : fmtDay(p.day)}</b><small>{t(PK[p.kind])}</small></span>{st === 'done' && '✓'}</li>); })}</ol>

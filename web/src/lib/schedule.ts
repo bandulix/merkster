@@ -24,17 +24,40 @@ export function phase(test: Pick<Test, 'testDate'>, now: number): Phase {
 export const freshState = (): CardState => ({ introduced: false, sessions: 0, lapses: 0, dueAt: null, struggledLast: false });
 export function st(item: Pick<Card, 'st'>): CardState { return item.st || ((item as Card).st = freshState()); }
 
+const heldBack = (item: Card, today: string) => !!(item.study?.readyOn && item.study.readyOn > today);
+function interleave(items: Card[]): Card[] {
+  if (!items.some(i => i.study?.goalId)) return items;
+  const groups = new Map<string, Card[]>();
+  const order: string[] = [];
+  for (const item of items) {
+    const k = item.study?.goalId || '';
+    if (!groups.has(k)) { groups.set(k, []); order.push(k); }
+    groups.get(k)!.push(item);
+  }
+  const out: Card[] = [];
+  let left = items.length;
+  while (left > 0) {
+    for (const k of order) {
+      const g = groups.get(k)!;
+      if (g.length) { out.push(g.shift()!); left--; }
+    }
+  }
+  return out;
+}
 export function newQuota(test: TestLike, now: number): number {
   const dl = daysLeft(test, now);
   if (dl <= 0) return 0;
   const today = dayISO(now);
-  const notIntro = test.items.filter(i => !st(i).introduced).length;
+  const notIntro = test.items.filter(i => !st(i).introduced && !heldBack(i, today)).length;
   if (!notIntro) return 0;
   const introToday = test.items.filter(i => st(i).introducedDay === today).length;
   const daysAvail = Math.max(1, dl - 1); // finish introducing before the night before
   return Math.max(0, Math.ceil((notIntro + introToday) / daysAvail) - introToday);
 }
-export const newItems = (test: TestLike, now: number) => test.items.filter(i => !st(i).introduced).slice(0, newQuota(test, now));
+export const newItems = (test: TestLike, now: number) => {
+  const today = dayISO(now);
+  return interleave(test.items.filter(i => !st(i).introduced && !heldBack(i, today))).slice(0, newQuota(test, now));
+};
 export function dueReviews(test: TestLike, now: number): Card[] {
   const ph = phase(test, now);
   if (ph === 'past') return [];

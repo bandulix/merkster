@@ -12,6 +12,7 @@ import { Login } from './pages/Login';
 import { Onboarding } from './pages/Onboarding';
 import { Home } from './pages/Home';
 import { NewTest } from './pages/NewTest';
+import { GoalsPage } from './pages/Goals';
 import { ImportPage, PastePage } from './pages/Import';
 import { Review } from './pages/Review';
 import { TestDetail } from './pages/TestDetail';
@@ -19,22 +20,11 @@ import { SessionPage, DonePage } from './pages/Session';
 import { Settings } from './pages/Settings';
 import { Me } from './pages/Me';
 import { Celebrations } from './components/Celebrate';
-import { Join } from './pages/Join';
 import { ClassJoin } from './pages/ClassJoin';
 import { ClassPage, Classes } from './pages/Classes';
 import { ClashPage } from './pages/Clash';
-import { CheerHome } from './pages/Cheer';
-import { Supporters } from './pages/Supporters';
-import { useCheers } from './lib/supporters';
-import { useGivenRewards, useMyRewards } from './lib/rewards';
+import { ComparePage } from './pages/Compare';
 const Results = lazy(() => import('./pages/Results'));
-const KidDetail = lazy(() => import('./pages/Results').then(m => ({ default: m.KidDetail })));
-const RewardsPage = lazy(() => import('./pages/Results').then(m => ({ default: m.Rewards })));
-const GivenRewards = lazy(() => import('./pages/Results').then(m => ({ default: m.GivenRewards })));
-const ReportCardsPage = lazy(() => import('./pages/Results').then(m => ({ default: m.ReportCards })));
-const ReportDetail = lazy(() => import('./pages/Results').then(m => ({ default: m.ReportDetail })));
-const ReportNew = lazy(() => import('./pages/Results').then(m => ({ default: m.ReportNew })));
-const Simulator = lazy(() => import('./pages/Results').then(m => ({ default: m.Simulator })));
 
 function Splash() { return <div className="splash"><Logo size={72} className="pulse" /><p className="muted">{t('loading')}</p></div>; }
 
@@ -47,10 +37,6 @@ export function App() {
   const [openFor, setOpenFor] = useState<string | null>(null);
   useTheme(data.settings.theme);
   useEffect(() => { clearToasts(); }, [loc.pathname]);
-  const cheers = useCheers(!!user && !me.data?.offline);
-  const myRewards = useMyRewards(!!user && !me.data?.offline);
-  const given = useGivenRewards(!!user?.isSupporter && !me.data?.offline);
-
   useEffect(() => {
     let cancelled = false;
     if (!user) { if (store.userId) { stopSync(); store.close(); } setOpenFor(null); return; }
@@ -67,28 +53,26 @@ export function App() {
 
   if (me.isLoading) return <Splash />;
   if (!user) {
-    return (<><Routes><Route path="/login" element={<Login />} /><Route path="/join" element={<Join user={null} />} /><Route path="/class" element={<ClassJoin user={null} />} /><Route path="*" element={<Navigate to={loc.pathname === '/' ? '/login' : '/login?next=' + encodeURIComponent(loc.pathname)} replace />} /></Routes><Toasts /><UpdatePrompt /></>);
+    return (<><Routes><Route path="/login" element={<Login />} /><Route path="/class" element={<ClassJoin user={null} />} /><Route path="*" element={<Navigate to={loc.pathname === '/' ? '/login' : '/login?next=' + encodeURIComponent(loc.pathname)} replace />} /></Routes><Toasts /><UpdatePrompt /></>);
   }
   if (openFor !== user.id) return <Splash />;
   const p = loc.pathname;
   // a supporter who never started learning lands on the cheering overview instead of the student onboarding
-  const supporterOnly = !!user.isSupporter && !data.settings.onboarded && data.tests.length === 0;
-  const mode = supporterOnly ? 'supporter' : user.isSupporter ? 'both' : 'student';
-  const free = ['/welcome', '/new', '/test', '/settings', '/me', '/results', '/join', '/cheer', '/supporters', '/rewards', '/class'].some(x => p.startsWith(x));
-  if (!data.settings.onboarded && !free) return <Navigate to={supporterOnly ? '/cheer' : '/welcome/1'} replace />;
-  const chrome = !/^\/(practice|done|welcome|join)/.test(p) && p !== '/class';
-  const unseen = (cheers.data || []).filter(c => !c.seen).length + (myRewards.data?.earned || []).filter(e => !e.seen).length;
-  const rewardDot = given.data?.unseen || 0;
+  const mode = 'student' as const;
+  const free = ['/welcome', '/new', '/goals', '/test', '/settings', '/me', '/results', '/compare', '/class'].some(x => p.startsWith(x));
+  if (!data.settings.onboarded && !free) return <Navigate to="/welcome/1" replace />;
+  const chrome = !/^\/(practice|done|welcome)/.test(p) && p !== '/class';
   return (
     <div className={'app' + (chrome ? ' with-nav' : '')}>
       <a className="skip-link" href="#main">{t('skip_to_main')}</a>
-      {chrome && <Nav mode={mode} unseen={unseen} rewardDot={rewardDot} />}
+      {chrome && <Nav mode={mode} />}
       <main className="main" id="main" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/welcome/:step" element={<Onboarding />} />
           <Route path="/new" element={<NewTest />} />
+          <Route path="/goals" element={<GoalsPage />} />
           <Route path="/test/:id" element={<TestDetail />} />
           <Route path="/test/:id/import" element={<ImportPage />} />
           <Route path="/test/:id/paste" element={<PastePage />} />
@@ -96,21 +80,12 @@ export function App() {
           <Route path="/practice" element={<SessionPage />} />
           <Route path="/done" element={<DonePage />} />
           <Route path="/results" element={<Suspense fallback={<Splash />}><Results /></Suspense>} />
-          <Route path="/reports" element={<Suspense fallback={<Splash />}><ReportCardsPage /></Suspense>} />
-          <Route path="/reports/new" element={<Suspense fallback={<Splash />}><ReportNew /></Suspense>} />
-          <Route path="/reports/simulate" element={<Suspense fallback={<Splash />}><Simulator /></Suspense>} />
-          <Route path="/reports/:id" element={<Suspense fallback={<Splash />}><ReportDetail /></Suspense>} />
+          <Route path="/compare/:id" element={<ComparePage />} />
           <Route path="/me" element={<Me />} />
-          <Route path="/supporters" element={<Supporters />} />
           <Route path="/classes" element={<Classes />} />
           <Route path="/classes/:id" element={<ClassPage />} />
           <Route path="/classes/:id/clash/:clashId" element={<ClashPage />} />
-          <Route path="/join" element={<Join user={user} />} />
           <Route path="/class" element={<ClassJoin user={user} />} />
-          <Route path="/cheer" element={<CheerHome />} />
-          <Route path="/rewards" element={<Suspense fallback={<Splash />}><RewardsPage /></Suspense>} />
-          <Route path="/cheer/rewards" element={<Suspense fallback={<Splash />}><GivenRewards /></Suspense>} />
-          <Route path="/cheer/:id" element={<Suspense fallback={<Splash />}><KidDetail /></Suspense>} />
           <Route path="/settings" element={<Settings user={user} offline={!!me.data?.offline} />} />
           <Route path="*" element={<div className="empty-hero"><h2>{t('not_found')}</h2></div>} />
         </Routes>

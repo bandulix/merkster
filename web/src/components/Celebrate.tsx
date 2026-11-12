@@ -10,12 +10,6 @@ import { confetti, now, vibrate } from '../lib/util';
 import { t, uiLang } from '../i18n';
 import { RankBadge } from './ui';
 import { ShareSheet, type ShareWhat } from './Share';
-import { MiniAvatar } from './Cheers';
-import { earnedBreakdown, fmtMoney, SupporterBreakdownList } from './Totals';
-import { cheerLine, isMessage, reactionText, useCheers, useMarkCheersSeen } from '../lib/supporters';
-import { earnedLine, earnedWhat, rewardText, useMyRewards } from '../lib/rewards';
-import { api } from '../lib/api';
-import { useQueryClient } from '@tanstack/react-query';
 
 type Moment = { kind: 'level'; level: number; newRank: boolean } | { kind: 'badge'; id: string };
 
@@ -35,19 +29,7 @@ export function fanfare(big = true) {
 export function Celebrations() {
   const d = useStore(), loc = useLocation();
   const [m, setM] = useState<Moment | null>(null), [share, setShare] = useState<ShareWhat | null>(null);
-  const busy = /^\/(practice|welcome|join)/.test(loc.pathname) || loc.search.includes('unbox=1');
-  const cheers = useCheers(), markSeen = useMarkCheersSeen(), [closedTop, setClosedTop] = useState('');
-  const freshTop = (cheers.data || []).find(c => !c.seen)?.id || '';
-  const rewards = useMyRewards(!!store.userId), qc = useQueryClient(), [closedRw, setClosedRw] = useState('');
-  const freshRw = (rewards.data?.earned || []).filter(e => !e.seen);
-  const topRw = freshRw[0]?.id || '';
-  useEffect(() => { if (topRw && topRw !== closedRw && !busy) { confetti(); setTimeout(confetti, 600); vibrate([40, 60, 40, 60, 120]); if (d.settings.sound) fanfare(true); } }, [topRw, busy]); // eslint-disable-line react-hooks/exhaustive-deps
-  const closeRewards = async () => {
-    setClosedRw(topRw);
-    await api('/api/rewards/seen', { body: {} }).catch(() => undefined);
-    qc.setQueryData(['rewards'], (old: typeof rewards.data) => old && { ...old, earned: old.earned.map(e => ({ ...e, seen: true })) });
-  };
-  useEffect(() => { if (freshTop && freshTop !== closedTop && !busy && loc.pathname !== '/me') { confetti(); vibrate([20, 40, 20]); } }, [freshTop, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+  const busy = /^\/(practice|welcome)/.test(loc.pathname);
   useEffect(() => {
     if (m || share || busy) return;
     const p = store.progress(), s = d.settings, recent = (at: number) => now() - at < 20 * 60e3;
@@ -75,39 +57,6 @@ export function Celebrations() {
     return () => clearTimeout(id);
   }, [m]); // eslint-disable-line react-hooks/exhaustive-deps
   if (share) return <ShareSheet what={share} onClose={() => setShare(null)} />;
-  if (!m && freshRw.length && !busy && topRw !== closedRw) {
-    const e = freshRw[0], paid = e.status === 'paid';
-    const bd = earnedBreakdown(freshRw.filter(x => x.status === e.status));
-    return (
-      <div className="celebrate reward-pop" data-testid="reward-pop">
-        <div className="cheer-float" aria-hidden>{Array.from({ length: 22 }, (_, i) => <span key={i} style={{ ['--i' as string]: i, ['--x' as string]: (i * 41) % 100 }}>{['🎁', '🎉', '⭐', e.reward.type === 'money' ? '💶' : '🍕'][i % 4]}</span>)}</div>
-        <div className="cel-rays" aria-hidden /><div className="cel-inner">
-          <p className="cel-kicker">{paid ? '✅ ' + t('reward_pop_paid') : '🎁 ' + t('reward_pop_title')}</p>
-          <div className="cheer-avs">{bd.perSupporter.slice(0, 4).map(x => <MiniAvatar key={x.supporter.id} src={x.supporter.avatar} name={x.supporter.name} size={bd.perSupporter.length > 1 ? 64 : 84} />)}</div>
-          <div className="reward-amount" data-testid="reward-pop-amount">{bd.grand.length ? fmtMoney(bd.grand) : rewardText(e.reward)}</div>
-          <h2 className="cel-title sm" data-testid="reward-pop-line">{freshRw.length === 1 ? earnedLine(e) : t('reward_pop_multi', { n: freshRw.length, s: bd.perSupporter.length })}</h2>
-          {freshRw.length === 1 ? <p className="cel-sub">{t('given_for', { what: earnedWhat(e) })}</p> : <div className="pop-breakdown"><SupporterBreakdownList b={bd} sys={store.data.settings.grading} testid="reward-pop-breakdown" /></div>}
-          <p className="cel-note">🤝 {t('rewards_disclaimer')}</p>
-          <div className="row-btns"><button className="btn start" autoFocus data-testid="reward-ok" onClick={() => void closeRewards()}>🎉 {t('awesome')}</button></div>
-        </div>
-      </div>);
-  }
-  const fresh = (cheers.data || []).filter(c => !c.seen);
-  if (!m && fresh.length && !busy && fresh[0].id !== closedTop && loc.pathname !== '/me') {
-    const c = fresh[0], emojis = [...new Set(fresh.filter(x => !isMessage(x.reaction)).map(x => x.reaction))].slice(0, 8);
-    return (
-      <div className="celebrate cheer-pop" data-testid="cheer-pop">
-        <div className="cheer-float" aria-hidden>{Array.from({ length: 18 }, (_, i) => <span key={i} style={{ ['--i' as string]: i, ['--x' as string]: (i * 37) % 100 }}>{(emojis.length ? emojis : ['🎉'])[i % Math.max(1, emojis.length)]}</span>)}</div>
-        <div className="cel-inner">
-          <p className="cel-kicker">📣 {t('cheer_pop_title')}</p>
-          <div className="cheer-avs">{[...new Map(fresh.map(x => [x.from.id, x.from])).values()].slice(0, 4).map(f => <MiniAvatar key={f.id} src={f.avatar} name={f.name} size={64} />)}</div>
-          <h2 className="cel-title sm" data-testid="cheer-pop-line">{cheerLine(c, id => store.test(id)?.name || null)}</h2>
-          <p className="cel-emojis">{fresh.filter(x => x.from.id === c.from.id && x.targetId === c.targetId).map(x => reactionText(x.reaction)).join(' ')}</p>
-          {fresh.length > 1 && <p className="cel-sub">{t('cheer_pop_more', { n: fresh.length - 1 })}</p>}
-          <div className="row-btns"><button className="btn start" autoFocus data-testid="cheer-ok" onClick={() => { setClosedTop(fresh[0].id); void markSeen(); }}>💚 {t('awesome')}</button></div>
-        </div>
-      </div>);
-  }
   if (!m) return null;
   const L = uiLang();
   if (m.kind === 'level') {

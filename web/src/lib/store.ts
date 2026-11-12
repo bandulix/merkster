@@ -1,5 +1,6 @@
 /* Local, offline-first data store for the logged-in user. Source of truth on the device; mirrored to
    IndexedDB on every change and synced to the server in the background (see sync.ts). */
+import type { GradeEntry } from '../../../shared/gradebook';
 import type { AppData, Card, CardType, DraftRow, HistoryEntry, Settings, Test } from '../../../shared/types';
 import { APP_SLUG } from '../../../shared/brand';
 import { setUiLang } from '../i18n';
@@ -11,11 +12,12 @@ import { computeProgress, type CardLite, type CheerLite, type Progress } from '.
 const isDe = () => typeof navigator !== 'undefined' && (navigator.language || '').toLowerCase().startsWith('de');
 export const defaults = (): AppData => ({
   v: 2,
-  settings: { uiLang: isDe() ? 'de' : 'en', theme: 'auto', sessionSize: 15, tts: true, onboarded: false, grading: isDe() ? 'de_grade' : 'percent', sound: false, ackLevel: 1, ackBadges: [], termStarts: [8, 2] },
+  settings: { uiLang: isDe() ? 'de' : 'en', theme: 'auto', sessionSize: 15, tts: true, onboarded: false, grading: isDe() ? 'de_grade' : 'percent', sound: false, ackLevel: 1, ackBadges: [], termStarts: [8, 2], gradePrivacy: 'summary', gradeTargets: {} },
   streak: { count: 0, best: 0, lastDay: null },
   stats: { sessions: 0, answers: 0, firstTry: 0, ms: 0 },
   history: [],
-  tests: []
+  tests: [],
+  grades: []
 });
 export function normalize(raw: unknown): AppData {
   const d = (raw && typeof raw === 'object' ? raw : {}) as Partial<AppData>;
@@ -26,8 +28,11 @@ export function normalize(raw: unknown): AppData {
     streak: { ...def.streak, ...(d.streak || {}) },
     stats: { ...def.stats, ...(d.stats || {}) },
     history: (d.history || []).map(h => ({ ...h, id: h.id || uid() })),
-    tests: Array.isArray(d.tests) ? d.tests : []
+    tests: Array.isArray(d.tests) ? d.tests : [],
+    grades: Array.isArray(d.grades) ? d.grades.filter(g => g && g.id) : []
   };
+  if (!out.settings.gradePrivacy) out.settings.gradePrivacy = 'summary';
+  if (!out.settings.gradeTargets) out.settings.gradeTargets = {};
   delete (out.settings as unknown as Record<string, unknown>).ai; // v0 stored an API key here – never keep it
   for (const t of out.tests) { t.items = (t.items || []).map(c => ({ ...c, type: c.type || 'pair', st: c.st || S.freshState() })); t.days = t.days || []; t.subject = t.subject || 'languages'; }
   return out;
@@ -117,6 +122,7 @@ class Store {
         seen.add(k);
         const card: Card = { id: uid(), type, term, meaning, example: (r.example || '').trim(), st: S.freshState() };
         if (type === 'mc') card.distractors = (r.distractors || []).filter(Boolean).slice(0, 4);
+        if (r.goalId && r.method && r.activity) card.study = { goalId: r.goalId, method: r.method, activity: r.activity, ...(r.readyOn ? { readyOn: r.readyOn } : {}), ...(r.phase ? { phase: r.phase } : {}) };
         test.items.push(card); added++;
       }
     });
@@ -125,6 +131,8 @@ class Store {
   updateCard(testId: string, cardId: string, patch: Partial<Card>) { this.commit(() => { const c = this.test(testId)?.items.find(i => i.id === cardId); if (c) Object.assign(c, patch); }); }
   deleteCard(testId: string, cardId: string) { this.commit(() => { const t = this.test(testId); if (t) t.items = t.items.filter(i => i.id !== cardId); }); }
   setSettings(patch: Partial<Settings>) { this.commit(d => { d.settings = { ...d.settings, ...patch }; }); }
+  upsertGrade(g: GradeEntry) { this.commit(d => { const list = d.grades || (d.grades = []); const i = list.findIndex(x => x.id === g.id); if (i >= 0) list[i] = g; else list.push(g); }); }
+  removeGrade(id: string) { this.commit(d => { const g = (d.grades || []).find(x => x.id === id); if (g) { g.deleted = true; g.updatedAt = Date.now(); } }); }
 
   markStreak(ts: number) {
     const today = S.dayISO(ts), s = this.data.streak;

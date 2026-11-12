@@ -1,4 +1,6 @@
 /* Merkster – domain types shared by the web app and the server */
+import type { GradeEntry } from './gradebook';
+export type { GradeEntry };
 export type Lang = 'en' | 'de' | 'fr' | 'es' | 'la';
 export type UiLang = 'en' | 'de';
 export type CardType = 'pair' | 'qa' | 'cloze' | 'mc';
@@ -22,6 +24,13 @@ export interface CardState {
   lastAt?: number;
   log?: number[];
 }
+export type KnowledgeKind = 'facts' | 'concepts' | 'procedures' | 'transfer' | 'essay' | 'sequence';
+export type StudyMethod = 'retrieval' | 'worked' | 'elaboration' | 'essay' | 'timeline' | 'mixed';
+export type StudyActivity = 'recall' | 'worked' | 'problem' | 'explain' | 'outline' | 'sequence' | 'transfer';
+export interface LearningGoal { id: string; text: string; topic: string; kind: KnowledgeKind; method: StudyMethod }
+export interface CardStudy { goalId: string; method: StudyMethod; activity: StudyActivity; readyOn?: string; phase?: 'learn' | 'mock' }
+/** programme metadata on a test. Personal review state stays on the cards. */
+export interface StudyPlan { title: string; goals: LearningGoal[]; minutesPerDay: number; examFormat: string; level: string; sharedPlanId?: string; joined?: boolean }
 export interface Card {
   id: string;
   type: CardType;
@@ -30,6 +39,7 @@ export interface Card {
   example: string;
   distractors?: string[];
   st: CardState;
+  study?: CardStudy;
 }
 export interface Test {
   id: string;
@@ -47,6 +57,7 @@ export interface Test {
   result?: ExamResult | null;   // the grade the student got (entered after the test date)
   resultSkipped?: boolean;      // student dismissed "How did it go?"
   grading?: GradeSystem | null; // per-test grading system (null = the profile default)
+  study?: StudyPlan | null;
 }
 export type GradeSystem = 'de_grade' | 'points15' | 'at_grade' | 'ch_grade' | 'us_letter' | 'uk_gcse' | 'percent' | 'xofy';
 export const GRADE_SYSTEMS: GradeSystem[] = ['de_grade', 'points15', 'at_grade', 'ch_grade', 'us_letter', 'uk_gcse', 'percent', 'xofy'];
@@ -59,19 +70,23 @@ export interface Settings {
   ackLevel: number;       // highest level already celebrated
   ackBadges: string[];    // badges already celebrated
   termStarts?: [number, number];   // months the school year / 2nd half start (default Aug, Feb)
+  /** who connected classmates may see. Default summary: rate and trend, not each grade. */
+  gradePrivacy?: 'hide' | 'summary' | 'grades';
+  /** minimum normalised score (0–100, higher = better) that counts as a success, per subject */
+  gradeTargets?: Partial<Record<Subject, number>>;
 }
 export interface Streak { count: number; best: number; lastDay: string | null; }
 export interface Stats { sessions: number; answers: number; firstTry: number; ms: number; }
 /** one finished practice session. ms = wall time, activeMs = active practice time (idle gaps don't count) */
 export interface HistoryEntry { id: string; day: string; n: number; firstTry: number; ms: number; tests?: string[]; at?: number; correct?: number; activeMs?: number; }
-export interface AppData { v: 2; settings: Settings; streak: Streak; stats: Stats; history: HistoryEntry[]; tests: Test[]; }
+export interface AppData { v: 2; settings: Settings; streak: Streak; stats: Stats; history: HistoryEntry[]; tests: Test[]; grades?: GradeEntry[]; }
 
 /** a row on the review/edit screen (before it becomes a card) */
-export interface DraftRow { type: CardType; a: string; b: string; example?: string; distractors?: string[]; low?: boolean; conf?: number; flags?: string[]; sep?: string; }
+export interface DraftRow { type: CardType; a: string; b: string; example?: string; distractors?: string[]; low?: boolean; conf?: number; flags?: string[]; sep?: string; goalId?: string; method?: StudyMethod; activity?: StudyActivity; readyOn?: string; phase?: 'learn' | 'mock'; }
 
 /* ---- sync wire format ---- */
-export interface WireTest { id: string; name: string; subject: Subject; foreign: Lang | null; native: Lang; testDate: string; format: Format; articles: boolean; created: string | null; days: string[]; result: ExamResult | null; resultSkipped: boolean; grading?: GradeSystem | null; updatedAt: number; deleted?: boolean; serverCreatedAt?: number; }
-export interface WireCard { id: string; testId: string; position: number; type: CardType; term: string; meaning: string; example: string; distractors: string[]; st: CardState; updatedAt: number; deleted?: boolean; }
+export interface WireTest { id: string; name: string; subject: Subject; foreign: Lang | null; native: Lang; testDate: string; format: Format; articles: boolean; created: string | null; days: string[]; result: ExamResult | null; resultSkipped: boolean; grading?: GradeSystem | null; study?: StudyPlan | null; updatedAt: number; deleted?: boolean; serverCreatedAt?: number; }
+export interface WireCard { id: string; testId: string; position: number; type: CardType; term: string; meaning: string; example: string; distractors: string[]; st: CardState; study?: CardStudy | null; updatedAt: number; deleted?: boolean; }
 export interface WireSession { id: string; day: string; n: number; firstTry: number; ms: number; tests: string[]; at: number | null; correct: number; activeMs: number; }
 export interface WireProfile { data: { settings?: Partial<Settings>; streak?: Streak; stats?: Stats }; updatedAt: number; }
 export interface SyncRequest { since: number; push: { profile?: WireProfile; tests?: WireTest[]; cards?: WireCard[]; sessions?: WireSession[] }; }
@@ -79,6 +94,6 @@ export interface SyncResponse { rev: number; profile: WireProfile | null; tests:
 
 export interface PublicConfig { ai: { configured: boolean; model: string | null }; auth: { google: boolean; testProvider: boolean; /** a codeword (SIGNUP_CODE) is needed to create a new account – the code itself is never sent */ signupCode?: boolean }; registrationOpen: boolean; maxUploadMB: number; maxUploadFiles: number; version: string; /** AGPL-3.0 §13 – where users get the source (SOURCE_CODE_URL) */ sourceCodeUrl?: string; }
 /** what the browser knows about the signed-in user (from Google: name, e-mail, avatar URL) */
-export interface User { id: string; name: string; email: string | null; avatar: string | null; isAdmin: boolean; createdAt?: string; isSupporter?: boolean; kids?: number; supporters?: number }
+export interface User { id: string; name: string; email: string | null; avatar: string | null; isAdmin: boolean; createdAt?: string }
 export interface ExtractMeta { testId?: string; subject: Subject; format: Format; foreign: Lang | null; native: Lang; /** UI language for user-facing unreadable notes */ uiLang?: UiLang; }
 export interface ExtractResult { rows: DraftRow[]; unreadable: string[]; language: string; model?: string; }

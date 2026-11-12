@@ -729,3 +729,25 @@ textarea { resize: vertical; }
   .segbar i.now, .opt.wrong, .mitem.wrong { animation: none; }
   .deck-card, .deck-card.flipped { transition: none; }
 }
+
+.dock-back { position: fixed; inset: 0; z-index: 80; background: rgba(13, 15, 30, .46); display: flex; align-items: flex-end; justify-content: center; }
+.dock { width: min(560px, 100%); max-height: min(92dvh, 860px); overflow: auto; background: var(--card); color: var(--text); border-radius: 28px 28px 0 0; padding: 8px 16px calc(18px + var(--safe-b)); box-shadow: var(--shadow); }
+.dock-grab { width: 46px; height: 5px; border-radius: 99px; background: var(--line); margin: 6px auto 12px; }
+.goal-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.goal-card textarea, .goal-topic { width: 100%; border: 0; background: var(--card2); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; }
+.method-line { font-size: .88rem; }
+.goal-mini { display: grid; gap: 4px; padding: 8px 0; border-top: 1px solid var(--line); }
+.member { display: flex; gap: 10px; align-items: center; padding: 8px 0; }
+.member .grow { flex: 1; display: grid; }
+.member-bar { display: block; height: 8px; border-radius: 99px; background: var(--card2); overflow: hidden; }
+.member-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--blue), var(--teal)); }
+.avatar-letter { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; background: var(--ink); color: var(--lime); }
+.avatar-letter.lg { width: 64px; height: 64px; font-size: 1.6rem; border-radius: 20px; }
+.compare-head { display: flex; gap: 12px; align-items: center; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 8px 0; }
+.moods { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.mood { border: 2px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 12px; font-weight: 750; }
+.mood.on { border-color: var(--ink); background: var(--lime); color: var(--ink); }
+.together .feed { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--blue); margin: 0 auto 8px; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

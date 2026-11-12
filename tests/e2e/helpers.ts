@@ -10,8 +10,8 @@ fs.mkdirSync(SHOTS, { recursive: true }); fs.mkdirSync(OUT, { recursive: true })
 export const MOBILE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 export const DESKTOP = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
 
-export async function newUser(browser: Browser, opts: { locale?: string; mobile?: boolean; colorScheme?: 'light' | 'dark'; autoDismiss?: boolean } = {}): Promise<{ ctx: BrowserContext; page: Page }> {
-  const ctx = await browser.newContext({ ...(opts.mobile === false ? DESKTOP : MOBILE), locale: opts.locale || 'en-US', colorScheme: opts.colorScheme || 'light', acceptDownloads: true, timezoneId: 'Europe/Berlin' });
+export async function newUser(browser: Browser, opts: { locale?: string; mobile?: boolean; colorScheme?: 'light' | 'dark'; autoDismiss?: boolean; serviceWorkers?: 'allow' | 'block' } = {}): Promise<{ ctx: BrowserContext; page: Page }> {
+  const ctx = await browser.newContext({ ...(opts.mobile === false ? DESKTOP : MOBILE), locale: opts.locale || 'en-US', colorScheme: opts.colorScheme || 'light', acceptDownloads: true, timezoneId: 'Europe/Berlin', ...(opts.serviceWorkers ? { serviceWorkers: opts.serviceWorkers } : {}) });
   const page = await ctx.newPage();
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   // level-up / badge moments can pop up at any time (they're time-based) – specs that don't test them let Playwright clear them

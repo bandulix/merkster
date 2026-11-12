@@ -14,7 +14,7 @@ export function Onboarding() {
   // a new device may land here before the first sync finished – once the account turns out to be onboarded, leave
   if (d.settings.onboarded && !leaving.current) return <Navigate to="/" replace />;
   const art = step === 1 ? <Logo size={120} className="ob-logo" />
-    : step === 2 ? <div className="ob-steps"><span>📸</span><i>→</i><span>🧠</span><i>→</i><span>🏆</span><i>→</i><span>🎁</span></div>
+    : step === 2 ? <div className="ob-steps"><span>📸</span><i>→</i><span>🧠</span><i>→</i><span>📅</span><i>→</i><span>🎯</span></div>
       : <div className="ob-cal">{[t('ob_d1'), t('ob_d2'), t('ob_d3'), '🌙', '☀️'].map((x, i) => <b key={i} style={{ ['--i' as string]: i }}>{x}</b>)}</div>;
   return (
     <section className="onboard" data-testid="onboarding">
@@ -30,7 +30,7 @@ export function Onboarding() {
       <div className="ob-actions">
         {step < 3
           ? <><button className="btn primary big wide" onClick={() => nav('/welcome/' + (step + 1))}>{t('next')}</button><button className="btn link" data-testid="ob-skip" onClick={() => done('/')}>{t('skip')}</button></>
-          : <><button className="btn primary big wide" data-testid="ob-invite" onClick={() => done('/supporters?invite=mum')}>🎁 {t('parent_invite_cta')}</button><button className="btn ghost big wide" data-testid="ob-create" onClick={() => done('/new')}>📸 {t('ob_create')}</button><button className="btn link" onClick={() => done('/')}>{t('ob_look')}</button></>}
+          : <><button className="btn primary big wide" data-testid="ob-goals" onClick={() => done('/goals')}>🎯 {t('goals_cta')}</button><button className="btn ghost big wide" data-testid="ob-create" onClick={() => done('/new')}>📸 {t('ob_create')}</button><button className="btn link" onClick={() => done('/')}>{t('ob_look')}</button></>}
       </div>
     </section>
   );

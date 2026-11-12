@@ -72,7 +72,7 @@ test('student journey: login → import → practice → level up → result →
   }
   await expect(page.getByTestId('done')).toBeVisible();
   const gain = await page.getByTestId('xp-gain').innerText();
-  const xp = Number(/\+(\d+) XP/.exec(gain)![1]);
+  const xp = Number(/\+(\d+)/.exec(gain)![1]);
   expect(xp).toBeGreaterThanOrEqual(40);                                     // level 2 needs 40 XP
   await page.screenshot({ path: path.join(SHOTS, 'mobile-09-done.png') });
   await page.getByTestId('done-home').click();
@@ -229,13 +229,13 @@ test('installable PWA works offline after the first visit', async ({ browser }) 
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBeTruthy();
   // first visit finished: data synced to this device (and written to IndexedDB)
-  await expect(page.getByTestId('test-card').filter({ hasText: 'Bio: Die Zelle' })).toBeVisible();
+  await expect(page.getByTestId('test-card').filter({ hasText: 'Bio: Die Zelle' }).first()).toBeVisible();
   await page.waitForTimeout(500);
   const manifest = await (await page.request.get('/manifest.webmanifest')).json();
   expect(manifest.name).toBe('Merkster'); expect(manifest.short_name).toBe('Merkster');
   await ctx.setOffline(true);
   await page.reload();
-  await expect(page.getByTestId('test-card').filter({ hasText: 'Bio: Die Zelle' })).toBeVisible();
+  await expect(page.getByTestId('test-card').filter({ hasText: 'Bio: Die Zelle' }).first()).toBeVisible();
   await expect(page.locator('[data-testid="sync-status"]:visible').first()).toBeVisible();
   await page.screenshot({ path: path.join(SHOTS, 'mobile-15-offline.png') });
   await ctx.setOffline(false);

@@ -9,7 +9,7 @@ import { subjectIcon, subjectName, t, tp } from '../i18n';
 export interface ResItem { id: string; name: string; subject: Subject; testDate: string; result: ExamResult; icon: string; practice?: { sessions: number; days: number; minutes: number } | null }
 const COLORS = ['#3d5afe', '#ff5a36', '#00c2a8', '#a6e00f', '#ffd23f', '#0d0f1e', '#7a8cff', '#ff9a7f'];
 
-export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: ResItem[]; sys: GradeSystem; rowExtra?: (x: ResItem) => ReactNode; rowActions?: (x: ResItem) => ReactNode }) {
+export function ResultsDashboard({ items, sys, rowExtra, rowActions, charts = true }: { items: ResItem[]; sys: GradeSystem; rowExtra?: (x: ResItem) => ReactNode; rowActions?: (x: ResItem) => ReactNode; charts?: boolean }) {
   const [filter, setFilter] = useState<Subject | 'all'>('all');
   const done = [...items].sort((a, b) => a.testDate.localeCompare(b.testDate));
   const subjects = [...new Set(done.map(x => x.subject))];
@@ -37,8 +37,8 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
       <div className="tile-stat"><span>{t('trend')}</span><b className={'trend ' + (trend || '')}>{trend === 'up' ? '↗' : trend === 'down' ? '↘' : trend === 'flat' ? '→' : '–'}</b><small>{trend ? t(('trend_' + trend) as 'trend_up') : t('trend_need')}</small></div>
       <div className="tile-stat"><span>{t('results_n')}</span><b>{shown.length}</b></div>
     </div>
-    {!chartsReady && <p className="muted small" data-testid="charts-locked">{tp('charts_need_more', Math.max(1, 2 - shown.length))}</p>}
-    {chartsReady && <div className="card chart-card" data-testid="chart-over-time"><h3>{t('over_time')}</h3>
+    {charts && !chartsReady && <p className="muted small" data-testid="charts-locked">{tp('charts_need_more', Math.max(1, 2 - shown.length))}</p>}
+    {charts && chartsReady && <div className="card chart-card" data-testid="chart-over-time"><h3>{t('over_time')}</h3>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={timeline} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="grid" />
@@ -50,7 +50,7 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions }: { items: 
         </LineChart>
       </ResponsiveContainer>
     </div>}
-    {chartsReady && withPractice && <div className="card chart-card" data-testid="chart-practice"><h3>{t('practice_vs_result')}</h3><p className="muted small">{t('practice_vs_result_sub')}</p>
+    {charts && chartsReady && withPractice && <div className="card chart-card" data-testid="chart-practice"><h3>{t('practice_vs_result')}</h3><p className="muted small">{t('practice_vs_result_sub')}</p>
       <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={pvr} margin={{ top: 10, right: 0, left: -18, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="grid" />

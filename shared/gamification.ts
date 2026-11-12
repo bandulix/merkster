@@ -7,7 +7,7 @@
 import type { HistoryEntry, Test, UiLang } from './types';
 import { toPct } from './grades';
 
-export const XP = { correct: 2, firstTry: 1, session: 10, shortSession: 3, streakPerDay: 2, streakMaxDays: 10, plan: 50, result: 15, personalBest: 25, badge: 20, dailySoftCap: 400, cheer: 5, cheerDailyCap: 15, reportCard: 30, reportImproved: 5, reportImprovedMax: 25 } as const;
+export const XP = { correct: 2, firstTry: 1, session: 10, shortSession: 3, streakPerDay: 2, streakMaxDays: 10, plan: 50, result: 15, personalBest: 25, badge: 20, dailySoftCap: 400 } as const;
 export const IDLE_MS = 90_000;
 
 /* ---------- levels ---------- */
@@ -56,11 +56,7 @@ export const BADGES: BadgeDef[] = [
   { id: 'polyglot', icon: '🌍', name: { en: 'Polyglot', de: 'Sprachtalent' }, desc: { en: 'Tests in 3 different languages', de: 'Tests in 3 verschiedenen Sprachen' } },
   { id: 'first_result', icon: '📝', name: { en: 'Results are in', de: 'Ergebnis da' }, desc: { en: 'Log your first exam result', de: 'Erstes Testergebnis eingetragen' } },
   { id: 'personal_best', icon: '🏆', name: { en: 'Personal best', de: 'Persönlicher Rekord' }, desc: { en: 'Beat your best result so far', de: 'Dein bestes Ergebnis übertroffen' } },
-  { id: 'comeback', icon: '📈', name: { en: 'Comeback', de: 'Comeback' }, desc: { en: 'Improve on your last result in a subject', de: 'Im Fach besser als beim letzten Mal' } },
-  { id: 'fan_club', icon: '📣', name: { en: 'Fan club', de: 'Fanclub' }, desc: { en: 'Get 3 cheers from your supporters', de: '3-mal von deinen Fans angefeuert' } },
-  { id: 'rc_first', icon: '📜', name: { en: 'Report card logged', de: 'Zeugnis eingetragen' }, desc: { en: 'Log your first report card', de: 'Dein erstes Zeugnis eingetragen' } },
-  { id: 'rc_improved3', icon: '📈', name: { en: 'Improved in 3 subjects', de: 'In 3 Fächern verbessert' }, desc: { en: 'A report card better than the last one in 3 subjects', de: 'Ein Zeugnis, das in 3 Fächern besser ist als das letzte' } },
-  { id: 'rc_best', icon: '🏅', name: { en: 'Best report card yet', de: 'Bestes Zeugnis bisher' }, desc: { en: 'Your best report card average so far', de: 'Dein bester Zeugnisdurchschnitt bisher' } }
+  { id: 'comeback', icon: '📈', name: { en: 'Comeback', de: 'Comeback' }, desc: { en: 'Improve on your last result in a subject', de: 'Im Fach besser als beim letzten Mal' } }
 ];
 export const badgeDef = (id: string) => BADGES.find(b => b.id === id);
 
@@ -73,7 +69,7 @@ export const sessionAt = (h: HistoryEntry) => h.at ?? dayTs(h.day) + 12 * 3600e3
 export const activeMsOf = (h: HistoryEntry) => h.activeMs ?? h.ms ?? 0;
 export const correctOf = (h: HistoryEntry) => h.correct ?? h.n ?? 0;
 
-export interface XpEvent { at: number; kind: 'session' | 'streak' | 'plan' | 'result' | 'personal_best' | 'badge' | 'cheer' | 'report'; xp: number; ref?: string }
+export interface XpEvent { at: number; kind: 'session' | 'streak' | 'plan' | 'result' | 'personal_best' | 'badge'; xp: number; ref?: string }
 /** a received cheer (supporter reaction), reduced to what progression needs */
 export interface CheerLite { at: number; target: string; from: string }
 export interface Progress {
@@ -104,15 +100,13 @@ export function computeProgress(history: HistoryEntry[], tests: Test[], nowTs: n
   }
 
   /* timeline */
-  type Ev = { at: number; type: 'session'; h: HistoryEntry } | { at: number; type: 'result'; t: Test } | { at: number; type: 'plan'; t: Test } | { at: number; type: 'created'; t: Test } | { at: number; type: 'cheer'; c: CheerLite } | { at: number; type: 'report'; r: CardLite };
+  type Ev = { at: number; type: 'session'; h: HistoryEntry } | { at: number; type: 'result'; t: Test } | { at: number; type: 'plan'; t: Test } | { at: number; type: 'created'; t: Test };
   const evs: Ev[] = sessions.map(h => ({ at: sessionAt(h), type: 'session' as const, h }));
   for (const t of tests) {
     if (t.result) evs.push({ at: t.result.enteredAt, type: 'result', t });
     if (t.testDate < today) evs.push({ at: dayTs(t.testDate) + 20 * 3600e3, type: 'plan', t });
     evs.push({ at: dayTs(t.created || today), type: 'created', t });
   }
-  for (const c of cheers) evs.push({ at: c.at, type: 'cheer', c });
-  for (const r of cards) evs.push({ at: r.at, type: 'report', r });
   evs.sort((a, b) => a.at - b.at);
 
   let xp = 0, correctTotal = 0, nSessions = 0;
@@ -125,7 +119,6 @@ export function computeProgress(history: HistoryEntry[], tests: Test[], nowTs: n
   const langs = new Set<string>();
   const byId = new Map(tests.map(t => [t.id, t]));
   let lastFrozenSeen = 0;
-  const cheeredTargets = new Set<string>(), cheerPairs = new Set<string>(), cheerDayXp: Record<string, number> = {};
 
   for (const e of evs) {
     if (e.type === 'session') {
@@ -171,20 +164,6 @@ export function computeProgress(history: HistoryEntry[], tests: Test[], nowTs: n
       const prev = results.filter(r => r.subject === e.t.subject).pop();
       if (prev && pct >= prev.pct + 10) unlock('comeback', e.at);
       results.push({ pct, subject: e.t.subject, at: e.at });
-    } else if (e.type === 'cheer') {
-      // modest: XP once per cheered target (not per emoji/supporter), max 15/day; Fan club badge after 3 cheers
-      cheerPairs.add(e.c.from + '|' + e.c.target);
-      if (!cheeredTargets.has(e.c.target)) {
-        cheeredTargets.add(e.c.target);
-        const d = dayOf(e.at), used = cheerDayXp[d] || 0, n = Math.min(XP.cheer, XP.cheerDailyCap - used);
-        if (n > 0) { cheerDayXp[d] = used + n; add(e.at, 'cheer', n, e.c.target); }
-      }
-      if (cheerPairs.size >= 3) unlock('fan_club', e.at);
-    } else if (e.type === 'report') {
-      add(e.at, 'report', XP.reportCard + Math.min(XP.reportImprovedMax, XP.reportImproved * e.r.improved), e.r.id);
-      unlock('rc_first', e.at);
-      if (e.r.improved >= 3) unlock('rc_improved3', e.at);
-      if (e.r.best) unlock('rc_best', e.at);
     } else if (e.type === 'created') {
       if (e.t.subject === 'languages' && e.t.foreign) { langs.add(e.t.foreign); if (langs.size >= 3) unlock('polyglot', e.at); }
     }

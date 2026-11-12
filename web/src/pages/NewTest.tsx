@@ -56,6 +56,7 @@ export function NewTest() {
         <span>{SUBJECTS[w.subject].icon}</span>{SUBJECTS[w.subject].name[uiLang()]}
       </button>
     )}
+    {w.subject && w.subject !== 'languages' && <button type="button" className="btn link" data-testid="goals-instead" onClick={() => nav('/goals')}>{t('goals_instead')}</button>}
     {w.subject && <label className="field wiz-name"><span>{t('wiz_name')}</span><input data-testid="test-name" value={w.name} maxLength={60} onChange={e => up({ name: e.target.value, nameTouched: true })} /></label>}
     {w.subject === 'languages' && <>
       <h3 className="q2">{t('wiz_which_lang')}</h3>

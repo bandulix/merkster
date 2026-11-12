@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResultDialog } from '../components/ResultDialog';
-import { ParentInvite } from '../components/ParentInvite';
-import { EarnCards } from '../components/Rewards';
 import { useStore } from '../hooks';
 import { store } from '../lib/store';
 import * as S from '../lib/schedule';
@@ -66,6 +64,7 @@ export function Home() {
         <div className="empty-art"><Logo size={96} /><span className="float f1">📄</span><span className="float f2">📸</span><span className="float f3">✨</span></div>
         <h2>{t('empty_title')}</h2><p>{t('empty_text')}</p>
         <button className="btn primary big wide" onClick={() => nav('/new')}>📸 {t('empty_cta')}</button>
+        <button className="btn ghost big wide" data-testid="goals-cta" onClick={() => nav('/goals')}>🎯 {t('goals_cta')}</button>
       </div>);
   } else if (sess.entries.length) {
     const mins = Math.max(2, Math.round(sess.entries.length * 0.45)), rest = total - sess.entries.length;
@@ -124,7 +123,7 @@ export function Home() {
             <div className="sec-head carousel-head"><h3>{t('your_tests')}</h3></div>
             <div className="test-carousel" data-testid="test-carousel">{active.map(card)}</div>
           </>}
-          <ParentInvite /><EarnCards /></div>
+          </div>
         {(active.length > 0 || past.length > 0) && <div className="home-side">
           <div className="sec-head"><h3>{t('your_tests')}</h3><button className="btn link only-mobile" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
           {active.length > 0 && <div className="test-list">{active.map(card)}</div>}

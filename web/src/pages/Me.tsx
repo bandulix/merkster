@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BADGES, RANKS, XP } from '../../../shared/gamification';
 import { useMe, useStore } from '../hooks';
@@ -7,9 +7,6 @@ import { AvatarEdit } from '../components/AvatarEdit';
 import { Avatar, RankBadge } from '../components/ui';
 import { ShareSheet, type ShareWhat } from '../components/Share';
 import { t, tp, uiLang } from '../i18n';
-import { cheerLine, reactionText, useCheers, useMarkCheersSeen, useSupporters, whoName } from '../lib/supporters';
-import { MiniAvatar } from '../components/Cheers';
-import { moneyList, periodTotals, useMyRewards } from '../lib/rewards';
 
 export function Me() {
   useStore(); const me = useMe(); const L = uiLang();
@@ -18,11 +15,6 @@ export function Me() {
   const [showAllBadges, setShowAllBadges] = useState(false);
   const user = me.data?.user || null;
   const ri = RANKS.indexOf(p.rank), next = RANKS[ri + 1];
-  const cheers = useCheers(), sup = useSupporters(), markSeen = useMarkCheersSeen();
-  const unseen = (cheers.data || []).filter(c => !c.seen).length;
-  const rw = useMyRewards(!!store.userId), rwOpen = (rw.data?.earned || []).filter(e => e.status === 'open'), rwYear = periodTotals(rw.data?.earned || [], 'year');
-  useEffect(() => { if (!unseen) return; const id = setTimeout(markSeen, 2500); return () => clearTimeout(id); }, [unseen]); // eslint-disable-line react-hooks/exhaustive-deps
-  const testName = (id: string) => store.test(id)?.name || null;
   return (
     <section className="me page">
       <div className="me-hero pop-in" style={{ ['--c1' as string]: p.rank.c1, ['--c2' as string]: p.rank.c2, ['--glow' as string]: p.rank.glow }}>
@@ -57,29 +49,12 @@ export function Me() {
       </div>
 
       <div className="me-grid me-social">
-        <Link to="/supporters" className="card sup-card" data-testid="my-supporters">
-          <h3>📣 {t('my_supporters')}</h3>
-          <div className="sup-avs">{(sup.data || []).slice(0, 6).map(s => <MiniAvatar key={s.id} src={s.avatar} name={whoName(s)} size={36} />)}{!sup.data?.length && <span className="muted small">{t('no_supporters')}</span>}</div>
-          <span className="btn primary sm">{sup.data?.length ? tp('fans_n', sup.data.length) : t('invite_supporter')}</span>
-        </Link>
-        <div className="card feed-card" data-testid="cheer-feed">
-          <h3>🎉 {t('cheers')} {unseen > 0 && <span className="chip hot">{t('cheers_new', { n: unseen })}</span>}</h3>
-          {!cheers.data?.length ? <p className="muted small">{t('cheer_feed_empty')}</p> :
-            <ul className="feed">{cheers.data.slice(0, 8).map(c => (
-              <li key={c.id} className={'feed-item' + (c.seen ? '' : ' new')} data-testid="cheer-item"><MiniAvatar src={c.from.avatar} name={c.from.name} size={30} />
-                <span className="grow"><span>{cheerLine(c, testName)}</span><small className="muted">{new Date(c.at).toLocaleDateString(L)}</small></span><b className="feed-r">{reactionText(c.reaction)}</b></li>))}</ul>}
-        </div>
         <Link to="/classes" className="card sup-card" data-testid="my-class">
           <h3>🏫 {t('my_class')}</h3>
           <p className="muted small">{t('my_class_sub')}</p>
           <span className="btn ghost sm">{t('classes_title')} →</span>
         </Link>
-        <Link to="/reports" className="card sup-card" data-testid="me-reports"><h3>📜 {t('report_cards')}</h3><p className="muted small">{t('results_reports')} · {t('sim_title')}</p></Link>
-        {!!(rw.data?.rules.length || rw.data?.earned.length) && <Link to="/rewards" className="card sup-card" data-testid="me-rewards">
-          <h3>🎁 {t('my_rewards')}</h3>
-          <p><b>{rwOpen.length ? t('open_rewards_n', { n: rwOpen.length }) : t('rw_open') + ': –'}</b>{rwYear.paid.length ? <span className="muted small"> · {t('rw_this_year')}: {moneyList(rwYear.paid)} ✅</span> : null}</p>
-          <span className="btn ghost sm">{t('what_can_i_earn')} →</span>
-        </Link>}
+        <Link to="/results" className="card sup-card" data-testid="me-grades"><h3>📈 {t('stats_title')}</h3><p className="muted small">{t('erfolg_title')}</p></Link>
       </div>
 
       <h3 className="sec-title">{t('badges')} <span className="muted">{p.badges.length}/{BADGES.length}</span></h3>
@@ -103,7 +78,7 @@ export function Me() {
       <details className="card how-xp"><summary>⚡ {t('how_xp')}</summary>
         <ul>
           <li>{t('xp_r1', { n: XP.correct, f: XP.firstTry })}</li><li>{t('xp_r2', { n: XP.session })}</li><li>{t('xp_r3', { n: XP.streakPerDay * XP.streakMaxDays })}</li>
-          <li>{t('xp_r4', { n: XP.plan })}</li><li>{t('xp_r5', { n: XP.result, b: XP.personalBest })}</li><li>{t('xp_r6')}</li><li>{t('xp_r7', { n: XP.cheer, m: XP.cheerDailyCap })}</li>
+          <li>{t('xp_r4', { n: XP.plan })}</li><li>{t('xp_r5', { n: XP.result, b: XP.personalBest })}</li><li>{t('xp_r6')}</li>
         </ul>
       </details>
       <div className="totals muted small">{t('totals', { s: p.totals.sessions, c: p.totals.correct, m: p.totals.activeMin, d: p.totals.days })}</div>
