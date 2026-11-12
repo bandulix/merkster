@@ -4,6 +4,17 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Learning goals: photograph a Lernziele sheet, review the extracted goals, answer a clarifying question only when the plan needs it, and get a day-by-day programme. The method follows the kind of knowledge (retrieval, worked examples, self-explanation, outlines, sequence drills, mixed practice).
+- Shared plans: a second photo of the same sheet can join the existing programme. Each student keeps their own schedule and progress. First names only.
+- Exam grades: enter the mark (German 1–6 with +/−, Oberstufe points, or percent), see a success rate against a target grade, and compare with someone on the same plan or in the same class. Exact grades are opt-in.
+
+### Removed
+
+- Report-card (Zeugnis) upload, the grade simulator, and reward rules that depended on it.
+- Parent and family invites, supporter accounts, family cheers, and promised rewards. Classmates and shared-plan members stay.
+
 ### Changed
 
 - Practice, results, home, review, import, and vocab clash use a more tactile layout: segmented question progress, whole-tile answer feedback, stat chips with an XP glow, a daily-review hero, a stacked card preview, and a versus bar. Logo, palette, and type stay the same.

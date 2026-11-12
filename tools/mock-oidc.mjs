@@ -92,4 +92,4 @@ http.createServer(async (req, res) => {
       id_token: sign({ iss: ISSUER, aud: CLIENT_ID, sub: c.sub, iat: now, exp: now + 3600, nonce: c.nonce, email: c.email, email_verified: true, name: c.name, ...(c.email.includes('nopic') ? {} : { picture: `${ISSUER}/avatar/${c.sub.slice(5)}=s96-c` }) }) });
   }
   json(res, 404, { error: 'not_found' });
-}).listen(PORT, () => console.log(`mock OIDC provider on :${PORT} (issuer ${ISSUER}, browser ${PUBLIC})`));
+}).listen(PORT, '0.0.0.0', () => console.log(`mock OIDC provider on :${PORT} (issuer ${ISSUER}, browser ${PUBLIC})`));

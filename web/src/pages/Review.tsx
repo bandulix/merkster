@@ -6,6 +6,7 @@ import { store } from '../lib/store';
 import { canSpeak, speak, toast } from '../lib/util';
 import { TopBar } from '../components/ui';
 import { flag, langName, localizeNote, t, tp } from '../i18n';
+import { publishPlan } from '../lib/planSync';
 import type { Draft } from './Import';
 
 function DeckPeek({ rows }: { rows: DraftRow[] }) {
@@ -84,7 +85,16 @@ export function Review() {
       </div>
       <div className="sticky-foot">
         <button className="btn link" onClick={() => { if (confirm(t('discard_confirm'))) { store.setDraft(null); nav('/test/' + test.id, { replace: true }); } }}>{t('discard')}</button>
-        <button className="btn primary big" data-testid="save-cards" disabled={!good} onClick={() => { store.addItems(test, rows); store.setDraft(null); nav(`/test/${test.id}?fresh=1`, { replace: true }); }}>{tp('save_n', good)}</button>
+        <button className="btn primary big" data-testid="save-cards" disabled={!good} onClick={() => {
+          store.addItems(test, rows); store.setDraft(null);
+          const texts = rows.map(r => `${r.a} ${r.b}`.trim()).filter(s => s.length > 3);
+          if (texts.length >= 2 && !test.study?.sharedPlanId) {
+            void publishPlan({ kind: test.study ? 'goals' : 'cards', subject: test.subject, title: test.name, texts, examDate: test.testDate, testId: test.id, content: { cards: rows.map(r => ({ type: r.type, term: r.a, meaning: r.b, example: r.example, distractors: r.distractors })) } })
+              .then(p => store.updateTest(test.id, { study: { title: test.name, goals: test.study?.goals || [], minutesPerDay: test.study?.minutesPerDay || 15, examFormat: test.format, level: test.study?.level || '', sharedPlanId: p.planId, joined: false } }))
+              .catch(() => undefined);
+          }
+          nav(`/test/${test.id}?fresh=1`, { replace: true });
+        }}>{tp('save_n', good)}</button>
       </div>
     </section>
   );

@@ -1,65 +1,103 @@
+/* "Wie lief die Prüfung?" — fast bottom sheet. Linked to a plan when one exists,
+   or a free grade from the stats screen. Notes and mood stay on this device's sync
+   payload but are never shown to classmates. */
 import { useState } from 'react';
-import type { ExamResult, GradeSystem, Test } from '../../../shared/types';
-import { GRADE_SYSTEMS } from '../../../shared/types';
-import { DE_GRADES, fmtDeGrade, GRADE_SPECS, optionFor, parseDeGrade, toPct, validResult } from '../../../shared/grades';
+import { createPortal } from 'react-dom';
+import type { ExamKind, GradeEntry, GradeScale, Mood } from '../../../shared/gradebook';
+import { EXAM_KINDS, MOODS, adherencePct, scoreFor, toExamResult } from '../../../shared/gradebook';
+import { DE_GRADES, fmtDeGrade, parseDeGrade } from '../../../shared/grades';
+import type { Subject, Test } from '../../../shared/types';
+import { SUBJECT_KEYS } from '../../../shared/types';
 import { store } from '../lib/store';
-import { useAfterResult } from '../lib/rewards';
-import { confetti, now, toast } from '../lib/util';
-import { t, testIcon } from '../i18n';
-import { Modal } from './ui';
+import { pushGrades } from '../lib/planSync';
+import * as S from '../lib/schedule';
+import { confetti, now, toast, uid } from '../lib/util';
+import { subjectIcon, subjectName, t, type Key } from '../i18n';
 
-/** the grading system a test uses: its own override, else the profile default */
-export const testGrading = (test: Pick<Test, 'grading'>): GradeSystem => test.grading || store.data.settings.grading;
-
-/** "How did it go?" – enter or edit the result of a test (self-reported) */
 export function ResultDialog({ test, onClose, onSaved }: { test: Test; onClose: () => void; onSaved?: (best: boolean) => void }) {
-  const r = test.result;
-  const afterResult = useAfterResult();
-  const [system, setSystem] = useState<GradeSystem>(r?.system || testGrading(test));
-  const [grade, setGrade] = useState(r?.system === 'de_grade' ? fmtDeGrade(r.value) : '');
-  const [pick, setPick] = useState<number | null>(r && r.system !== 'de_grade' && GRADE_SPECS[r.system].options ? r.value : null);
-  const [num, setNum] = useState(r && !GRADE_SPECS[r.system].options ? String(r.value) : r?.system === 'points15' ? String(r.value) : '');
-  const [max, setMax] = useState(r?.max ? String(r.max) : '');
-  const [note, setNote] = useState(r?.note || '');
-  const spec = GRADE_SPECS[system];
-  const value = system === 'de_grade' ? parseDeGrade(grade) : system === 'points15' ? Number(num || 0) : spec.options ? pick : parseFloat(num.replace(',', '.'));
-  const res: ExamResult = { system, value: value ?? NaN, enteredAt: r?.enteredAt || now(), ...(system === 'xofy' ? { max: parseFloat(max.replace(',', '.')) } : {}), ...(note.trim() ? { note: note.trim() } : {}) };
-  const ok = validResult(res);
-  const switchTo = (s: GradeSystem) => { setSystem(s); setPick(null); if (s === 'points15' && !num) setNum('10'); };
+  return <GradeSheet test={test} onClose={onClose} onSaved={onSaved} />;
+}
+
+export function GradeSheet({ test, existing, onClose, onSaved }: { test?: Test | null; existing?: GradeEntry | null; onClose: () => void; onSaved?: (best: boolean) => void }) {
+  const linked = existing?.testId ? store.test(existing.testId) : test;
+  const prior = existing || (linked ? (store.data.grades || []).find(g => g.testId === linked.id && !g.deleted) : null);
+  const [subject, setSubject] = useState<Subject>(prior?.subject || linked?.subject || 'biology');
+  const [title, setTitle] = useState(prior?.title || linked?.name || subjectName(subject));
+  const [kind, setKind] = useState<ExamKind>(prior?.kind || 'klassenarbeit');
+  const [date, setDate] = useState(prior?.date || linked?.testDate || S.dayISO(now()));
+  const [system, setSystem] = useState<GradeScale>(prior?.system || (store.data.settings.grading === 'points15' || store.data.settings.grading === 'percent' ? store.data.settings.grading : 'de_grade'));
+  const [grade, setGrade] = useState(prior?.system === 'de_grade' ? fmtDeGrade(prior.value) : '2');
+  const [points, setPoints] = useState(prior?.system === 'points15' ? prior.value : 10);
+  const [percent, setPercent] = useState(prior?.system === 'percent' ? prior.value : 80);
+  const [mood, setMood] = useState<Mood | null>(prior?.mood || null);
+  const [note, setNote] = useState(prior?.note || '');
+  const value = system === 'de_grade' ? parseDeGrade(grade) : system === 'points15' ? points : percent;
+  const ok = value != null && Number.isFinite(value);
   const save = () => {
-    if (!ok) return;
-    const prevBest = Math.max(-1, ...store.data.tests.filter(x => x.id !== test.id && x.result).map(x => toPct(x.result!)));
-    const best = prevBest >= 0 && toPct(res) > prevBest;
-    const changed = !r || r.system !== res.system || r.value !== res.value || r.max !== res.max;
-    store.updateTest(test.id, { result: { ...res, enteredAt: r && !changed ? res.enteredAt : now() }, resultSkipped: false });
-    if (system !== testGrading(test) && !r) {
-      if (test.grading) store.updateTest(test.id, { grading: system }); else store.setSettings({ grading: system });
-    }
+    if (!ok || value == null) return;
+    const withPlan = !!(linked && (linked.items.length > 0 || linked.study?.goals?.length));
+    const planned = linked ? S.plan(linked).filter(p => p.kind !== 'morning').map(p => p.day) : [];
+    const entry: GradeEntry = {
+      id: prior?.id && !prior.id.startsWith('legacy-') ? prior.id : uid(),
+      testId: linked?.id || null,
+      subject, title: title.trim() || subjectName(subject), kind, date, system, value,
+      score: scoreFor(system, value), mood, note: note.trim(),
+      adherence: withPlan ? adherencePct(planned, linked?.days) : null,
+      withPlan, updatedAt: now()
+    };
+    const prevBest = Math.max(-1, ...(store.data.grades || []).filter(g => !g.deleted && g.id !== entry.id).map(g => g.score), ...store.data.tests.filter(t => t.result && t.id !== linked?.id).map(t => t.result!.score ?? 0));
+    const best = prevBest >= 0 && entry.score > prevBest;
+    store.upsertGrade(entry);
+    if (linked) store.updateTest(linked.id, { result: toExamResult(entry), resultSkipped: false });
+    void pushGrades([entry]).catch(() => undefined);
     if (best) confetti();
     toast(best ? '🏆 ' + t('personal_best') : t('result_saved'), 'ok');
-    void afterResult();     // push now so supporter rewards are evaluated right away
-    onSaved?.(best); onClose();
+    onSaved?.(best);
+    onClose();
   };
-  return (
-    <Modal onClose={onClose} label={t('how_did_it_go')}>
-      <h2>{testIcon(test)} {t('how_did_it_go')}</h2>
-      <p className="muted">{test.name}</p>
-      <div className="seg wrap">{GRADE_SYSTEMS.map(s => <button key={s} className={'pill sm' + (system === s ? ' on' : '')} data-testid={'gs-' + s} onClick={() => switchTo(s)}>{t(('gs_' + s) as 'gs_de_grade')}</button>)}</div>
-      {system === 'de_grade' && <div className="grade-grid">{DE_GRADES.map(g => <button key={g} data-testid={'grade-' + g} className={'grade' + (grade === g ? ' on' : '') + ' g' + g[0]} onClick={() => setGrade(g)}>{g}</button>)}</div>}
-      {spec.options && system !== 'de_grade' && system !== 'points15' && <div className={'grade-grid opts n' + spec.options.length}>{spec.options.map((o, i) => (
-        <button key={o.label} data-testid={'grade-' + o.label} className={'grade' + (pick != null && optionFor(system, pick)?.label === o.label ? ' on' : '') + ' gq' + Math.min(6, 1 + Math.floor(i * 6 / spec.options!.length))} onClick={() => setPick(o.value)}>{o.label}</button>))}</div>}
-      {system === 'points15' && <div className="points"><input type="range" data-testid="result-points" min={0} max={15} step={1} value={num || 0} onChange={e => setNum(e.target.value)} /><b className="big-num">{num || 0} P</b></div>}
-      {(system === 'percent' || system === 'xofy') && <div className="row-in">
-        <input type="number" inputMode="decimal" data-testid="result-value" min={0} placeholder={system === 'percent' ? '%' : t('points')} value={num} onChange={e => setNum(e.target.value)} />
-        {system === 'xofy' && <><span>/</span><input type="number" inputMode="decimal" data-testid="result-max" min={1} placeholder={t('max_points')} value={max} onChange={e => setMax(e.target.value)} /></>}
-      </div>}
-      <label className="field"><span>{t('note_optional')}</span><input value={note} maxLength={300} onChange={e => setNote(e.target.value)} placeholder={t('note_ph')} /></label>
-      <p className="muted small">💡 {t('result_xp_hint')} · <span className="chip xs">✍️ {t('self_reported')}</span></p>
-      <div className="row-btns">
-        {!r && <button className="btn link" onClick={() => { store.updateTest(test.id, { resultSkipped: true }); onClose(); }}>{t('skip_result')}</button>}
-        {r && <button className="btn link bad" onClick={() => { store.updateTest(test.id, { result: null }); void afterResult(); onClose(); }}>{t('delete')}</button>}
-        <button className="btn primary big" disabled={!ok} data-testid="save-result" onClick={save}>{t('save')}</button>
+  const remove = () => {
+    if (prior && !prior.id.startsWith('legacy-')) { store.removeGrade(prior.id); void pushGrades([{ ...prior, deleted: true, updatedAt: now() }]).catch(() => undefined); }
+    if (linked) store.updateTest(linked.id, { result: null });
+    onClose();
+  };
+  return createPortal(
+    <div className="dock-back" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dock" role="dialog" aria-modal="true" aria-label={t('grade_prompt')} data-testid="grade-sheet">
+        <div className="dock-grab" aria-hidden />
+        <h2>{t('grade_prompt')}</h2>
+        <p className="muted">{t('grade_add')}</p>
+        <label className="field"><span>{t('grade_subject')}</span>
+          <select data-testid="grade-subject" value={subject} onChange={e => { const s = e.target.value as Subject; setSubject(s); if (!linked) setTitle(subjectName(s)); }}>
+            {SUBJECT_KEYS.map(s => <option key={s} value={s}>{subjectIcon(s)} {subjectName(s)}</option>)}
+          </select>
+        </label>
+        <label className="field"><span>{t('wiz_name')}</span><input data-testid="grade-title" value={title} maxLength={80} onChange={e => setTitle(e.target.value)} /></label>
+        <p className="small">{t('grade_kind')}</p>
+        <div className="chips">{EXAM_KINDS.map(k => <button key={k} type="button" data-testid={'kind-' + k} className={'pill sm' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{t(('kind_' + k) as Key)}</button>)}</div>
+        <label className="field"><span>{t('grade_when')}</span><input type="date" data-testid="grade-date" value={date} onChange={e => e.target.value && setDate(e.target.value)} /></label>
+        <p className="small">{t('grade_scale')}</p>
+        <div className="chips">
+          <button type="button" data-testid="gs-de_grade" className={'pill sm' + (system === 'de_grade' ? ' on' : '')} onClick={() => setSystem('de_grade')}>{t('scale_de')}</button>
+          <button type="button" data-testid="gs-points15" className={'pill sm' + (system === 'points15' ? ' on' : '')} onClick={() => setSystem('points15')}>{t('scale_points')}</button>
+          <button type="button" data-testid="gs-percent" className={'pill sm' + (system === 'percent' ? ' on' : '')} onClick={() => setSystem('percent')}>{t('scale_percent')}</button>
+        </div>
+        {system === 'de_grade' && <div className="grade-grid">{DE_GRADES.map(g => <button key={g} type="button" data-testid={'grade-' + g} className={'grade' + (grade === g ? ' on' : '') + ' g' + g[0]} onClick={() => setGrade(g)}>{g}</button>)}</div>}
+        {system === 'points15' && <div className="stepper" data-testid="grade-stepper">
+          <button type="button" className="btn" onClick={() => setPoints(n => Math.max(0, n - 1))}>−</button>
+          <b className="big-num">{points} P</b>
+          <button type="button" className="btn" onClick={() => setPoints(n => Math.min(15, n + 1))}>+</button>
+        </div>}
+        {system === 'percent' && <label className="field"><span>%</span><input type="number" data-testid="result-value" min={0} max={100} value={percent} onChange={e => setPercent(Number(e.target.value))} /></label>}
+        <p className="small">{t('grade_mood')}</p>
+        <div className="moods" data-testid="grade-mood">{MOODS.map(m => <button key={m} type="button" className={'mood' + (mood === m ? ' on' : '')} data-testid={'mood-' + m} onClick={() => setMood(mood === m ? null : m)}>{t(('mood_' + m) as Key)}</button>)}</div>
+        <label className="field"><span>{t('grade_note')}</span><input value={note} maxLength={300} onChange={e => setNote(e.target.value)} /></label>
+        <div className="row-btns">
+          {linked && !prior && <button className="btn link" onClick={() => { store.updateTest(linked.id, { resultSkipped: true }); onClose(); }}>{t('skip_result')}</button>}
+          {(prior || linked?.result) && <button className="btn link bad" onClick={remove}>{t('delete')}</button>}
+          <button className="btn primary big" disabled={!ok} data-testid="save-result" onClick={save}>{t('save')}</button>
+        </div>
       </div>
-    </Modal>
+    </div>,
+    document.body
   );
 }

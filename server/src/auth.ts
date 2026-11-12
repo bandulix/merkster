@@ -15,12 +15,11 @@ import { tx } from './db';
 import { APP_COOKIE, APP_CSRF_HEADER } from '../../shared/brand';
 import { avatarPath, refreshAvatar } from './avatars';
 import { codeMatches, failureLimiter, signer, signupGate } from './signup';
-import { inviteIsOpen } from './supporters';
 import { classInviteIsOpen, releaseOwnedClasses } from './classes';
 
 export const COOKIE = APP_COOKIE;
 /** user columns we load per request (never the picture bytes) */
-const USER_COLS = 'u.id, u.google_sub, u.email, u.name, u.avatar_url, u.avatar_etag, u.is_admin, u.is_supporter, u.created_at, u.last_login_at';
+const USER_COLS = 'u.id, u.google_sub, u.email, u.name, u.avatar_url, u.avatar_etag, u.is_admin, u.created_at, u.last_login_at';
 const FLOW_COOKIE = APP_COOKIE + '_oauth';
 /** proof "entered the right codeword" / "came with a valid invite link" (signed, 15 min) */
 const PASS_COOKIE = APP_COOKIE + '_signup';
@@ -29,7 +28,7 @@ const PENDING_COOKIE = APP_COOKIE + '_pending';
 const PASS_TTL = 15 * 60e3, PENDING_TTL = 10 * 60e3;
 interface Pending { sub: string; email: string | null; verified: boolean; name: string; picture: string | null; next: string }
 
-export interface DbUser { id: number; google_sub: string; email: string | null; name: string; avatar_url: string | null; avatar_etag?: string | null; is_admin: boolean; is_supporter?: boolean; created_at: Date; last_login_at: Date | null; }
+export interface DbUser { id: number; google_sub: string; email: string | null; name: string; avatar_url: string | null; avatar_etag?: string | null; is_admin: boolean; created_at: Date; last_login_at: Date | null; }
 declare module 'fastify' {
   interface FastifyRequest { user: DbUser | null }
   interface FastifyInstance {
@@ -91,7 +90,7 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
   async function signIn(req: FastifyRequest, reply: FastifyReply, c: Omit<Pending, 'next'>, existing: boolean, isAdmin: boolean) {
     const u: DbUser = (await pool.query(`INSERT INTO users (google_sub, email, name, avatar_url, is_admin, last_login_at) VALUES ($1,$2,$3,$4,$5, now())
       ON CONFLICT (google_sub) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url, is_admin = EXCLUDED.is_admin, last_login_at = now()
-      RETURNING id, google_sub, email, name, avatar_url, avatar_etag, is_admin, is_supporter, created_at, last_login_at`, [c.sub, c.email, c.name, safeAvatar(c.picture), isAdmin])).rows[0];
+      RETURNING id, google_sub, email, name, avatar_url, avatar_etag, is_admin, created_at, last_login_at`, [c.sub, c.email, c.name, safeAvatar(c.picture), isAdmin])).rows[0];
     await refreshAvatar(pool, config, u.id, c.picture, req.log);   // skipped when the student chose or removed their own picture
     await startSession(reply, req, u.id);
     if (!existing) req.log.info({ userId: String(u.id), admin: isAdmin }, 'new user');
@@ -204,7 +203,7 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     const rl = invitePassLimit(req.ip);
     if (!rl.ok) return reply.header('Retry-After', String(rl.retryAfter)).code(429).send({ error: 'rate_limited' });
     const inviteToken = (req.body as { token?: unknown } | null)?.token;
-    if (!(await inviteIsOpen(pool, config.appSecret, inviteToken)) && !(await classInviteIsOpen(pool, config.appSecret, inviteToken))) return reply.code(404).send({ error: 'not_found' });
+    if (!(await classInviteIsOpen(pool, config.appSecret, inviteToken))) return reply.code(404).send({ error: 'not_found' });
     setPass(reply, 'invite');
     return { ok: true };
   });
@@ -240,8 +239,7 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
 
   app.get('/api/me', { preHandler: app.requireUser }, async req => {
     const u = req.user as DbUser;
-    const c = (await pool.query(`SELECT (SELECT count(*) FROM supporter_links WHERE supporter_id = $1)::int AS kids, (SELECT count(*) FROM supporter_links WHERE student_id = $1)::int AS supporters`, [u.id])).rows[0];
-    return { user: { ...publicUser(u), isSupporter: !!u.is_supporter || c.kids > 0, kids: c.kids, supporters: c.supporters } };
+    return { user: publicUser(u) };
   });
 
   /* delete my account and everything in it (GDPR Art. 17) */

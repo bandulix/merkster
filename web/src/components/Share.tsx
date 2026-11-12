@@ -5,16 +5,13 @@ import { APP_SLUG } from '../../../shared/brand';
 import { badgeDef } from '../../../shared/gamification';
 import { fmtResult, toPct } from '../../../shared/grades';
 import { useMe } from '../hooks';
-import { fmtAvg, type ReportCard } from '../../../shared/reportcards';
-import { LOCALE, termName } from '../lib/reportcards';
 import { store } from '../lib/store';
 import { renderPng, renderVideo, shareFile, videoMime, whatsappLink, type ShareData, type ShareFormat } from '../lib/shareCard';
 import { toast } from '../lib/util';
 import { subjectName, t, tp, uiLang } from '../i18n';
 import { Modal } from './ui';
 
-export type ShareWhat = { kind: 'result'; test: Test; best?: boolean } | { kind: 'level' } | { kind: 'streak' } | { kind: 'badge'; id: string } | { kind: 'week' }
-  | { kind: 'report'; card: ReportCard; improved: number; best: boolean; money?: string };
+export type ShareWhat = { kind: 'result'; test: Test; best?: boolean } | { kind: 'level' } | { kind: 'streak' } | { kind: 'badge'; id: string } | { kind: 'week' };
 
 function build(what: ShareWhat, user: User | null, opt: { hideName: boolean; hideGrade: boolean }): ShareData {
   const p = store.progress(), L = uiLang();
@@ -27,12 +24,6 @@ function build(what: ShareWhat, user: User | null, opt: { hideName: boolean; hid
     case 'level': return { ...base, kind: 'level', kicker: t('share_k_level'), hero: `${t('lvl')} ${p.level}`, heroSub: p.rank.name[L], stats: [[t('xp'), String(p.xp)], [t('streak'), '🔥 ' + p.streak.current], [t('badges'), String(p.badges.length)]] };
     case 'streak': return { ...base, kind: 'streak', emoji: '🔥', kicker: t('share_k_streak'), hero: tp('n_days', p.streak.current), heroSub: t('share_streak_sub'), stats: [[t('best_streak'), String(p.streak.best)], [t('freezes'), '🧊 ' + p.streak.freezes], [t('lvl'), String(p.level)]] };
     case 'badge': { const b = badgeDef(what.id)!; return { ...base, kind: 'badge', emoji: b.icon, kicker: t('share_k_badge'), hero: b.name[L], heroSub: b.desc[L], stats: [[t('badges'), String(p.badges.length)], [t('lvl'), String(p.level)]] }; }
-    case 'report': {
-      const c = what.card, stats: [string, string][] = [[t('report_card'), tp('rc_n_subjects', c.lines.length)]];
-      if (what.improved) stats.push(['▲', tp('rc_improved_n', what.improved)]);
-      if (what.money && !opt.hideGrade) stats.push(['🎁', what.money]);
-      return { ...base, kind: 'report', emoji: '📜', kicker: what.best ? t('rc_best_yet') : t('rc_unbox_kicker'), hero: opt.hideGrade ? (what.improved ? '📈 +' + what.improved : '📜') : 'Ø ' + fmtAvg(c.system, c.avgScore, LOCALE()), heroSub: termName(c), stats };
-    }
     case 'week': return { ...base, kind: 'week', emoji: '📅', kicker: t('share_k_week'), hero: t('n_min', { n: p.week.activeMin }), heroSub: t('share_week_sub', { s: p.week.sessions, d: p.week.days }), stats: [[t('recalls'), String(p.week.correct)], [t('xp'), '+' + p.week.xp], [t('streak'), '🔥 ' + p.streak.current]] };
   }
 }
@@ -71,7 +62,7 @@ export function ShareSheet({ what, onClose }: { what: ShareWhat; onClose: () => 
       <div className={'share-preview ' + fmt}>{url ? <img src={url} alt={t('share_preview')} data-testid="share-preview" /> : <div className="spinner" />}</div>
       <div className="share-opts">
         <label className="toggle"><input type="checkbox" checked={hideName} onChange={e => setHideName(e.target.checked)} data-testid="hide-name" /><span>{t('share_hide_name')}</span></label>
-        {(what.kind === 'result' || what.kind === 'report') && <label className="toggle"><input type="checkbox" checked={hideGrade} onChange={e => setHideGrade(e.target.checked)} data-testid="hide-grade" /><span>{what.kind === 'report' ? t('rc_hide_grades') : t('share_hide_grade')}</span></label>}
+        {what.kind === 'result' && <label className="toggle"><input type="checkbox" checked={hideGrade} onChange={e => setHideGrade(e.target.checked)} data-testid="hide-grade" /><span>{t('share_hide_grade')}</span></label>}
         <p className="muted small">🔒 {t('share_privacy')}</p>
       </div>
       <div className="row-btns wrap">

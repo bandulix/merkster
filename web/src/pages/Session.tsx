@@ -8,6 +8,7 @@ import { distractors, shuffle, type Practice, type QCard, type Spec } from '../l
 import * as S from '../lib/schedule';
 import { finishPractice, getActive, getLast, quitPractice, touchActive } from '../lib/activeSession';
 import { reportBossDamage } from '../lib/classGames';
+import { postProgress } from '../lib/planSync';
 import { canSpeak, confetti, fmtDur, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
 import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
@@ -66,7 +67,7 @@ function StudyCard({ p, card, next, tts }: CardProps) {
   return (<div className="card-stack">
     <div className="stack-ghost g2" aria-hidden="true" /><div className="stack-ghost g1" aria-hidden="true" />
     <div className="qcard pop-in" data-testid="card-study">
-    <Tag test={test} /><div className="ask"><span className="chip new">✨ {t('new_card')}</span></div>
+    <Tag test={test} /><div className="ask"><span className="chip new">✨ {t('new_card')}</span>{item.study && <span className="chip" data-testid="method-chip">{t(('method_' + item.study.method) as 'method_retrieval')}</span>}</div>
     {type === 'cloze' ? <Cloze text={item.term} reveal /> : <>
       <div className={'prompt' + (lang ? artClass(test, item.term) : '') + (isLong(item.term) ? ' long' : '')}>{item.term} {lang && <SpeakBtn text={item.term} lang={test.foreign} />}</div>
       <div className="study-arrow">↓</div><div className="answer-big" data-testid="study-answer">{item.meaning}</div></>}
@@ -282,6 +283,17 @@ export function DonePage() {
   useEffect(() => {
     if (!s?.sessionId || !s.correct) return;
     void reportBossDamage({ sessionId: s.sessionId, correct: s.correct, tests: s.tests });
+    for (const id of s.tests) {
+      const test = store.test(id);
+      const planId = test?.study?.sharedPlanId;
+      if (!test || !planId) continue;
+      const goals = (test.study?.goals || []).map(g => {
+        const cards = test.items.filter(c => c.study?.goalId === g.id);
+        const pct = cards.length ? Math.round(cards.reduce((n, c) => n + Math.min(3, c.st?.sessions || 0) / 3, 0) / cards.length * 100) : 0;
+        return { id: g.id, title: g.topic || g.text, pct };
+      });
+      void postProgress(planId, { mastery: S.mastery(test), streak: store.liveStreak(now()), didToday: true, goals }).catch(() => undefined);
+    }
   }, [s?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!s) return <Navigate to="/" replace />;
   const pct = s.done ? Math.round(s.firstTry / s.done * 100) : 0, streak = store.liveStreak(ts);

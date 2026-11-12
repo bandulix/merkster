@@ -1,8 +1,8 @@
 /* v1 strings: Google sign-in, progression, results dashboard, sharing, privacy. Tone: hype, never guilt. */
 export const en3 = {
-  tab_results: 'Results', tab_me: 'Me', claim: 'Snap it. Drill it. Own the test. Earn the reward.',
+  tab_results: 'Results', tab_me: 'Me', claim: 'Snap it. Drill it. Own the test.',
   login_p1: 'Photo of your worksheet → ready-made cards', login_p2: 'Practise exactly like the real test',
-  login_p3: 'A parent promises a reward for your grades and your practice', login_p4: 'The report card can unlock an extra reward',
+  login_p3: 'A plan from your learning goals, up to the exam', login_p4: 'Enter the grade and see your success rate',
   continue_google: 'Continue with Google', test_provider: 'Test mode: mock Google sign-in (not for production)',
   login_privacy: 'We only store your Google name, e-mail and profile picture link. No ads, no tracking.',
   err_cancelled: 'Sign-in was cancelled.', err_not_allowed: 'This Google account isn’t allowed on this server.', err_expired: 'Sign-in took too long – please try again.',
@@ -18,7 +18,7 @@ export const en3 = {
   xp_r3: 'Daily streak bonus, up to +{n} XP', xp_r4: '+{n} XP for following a test plan to the end', xp_r5: '+{n} XP for logging a result, +{b} for a personal best',
   xp_r6: 'Only active practice counts – idle time pauses the clock. Grades give less XP than practice: effort beats luck.',
   totals: '{s} sessions · {c} recalls · {m} active minutes · {d} days', sessions: 'Sessions', days_practised: 'Days', result: 'Result',
-  how_did_it_go: 'How did it go?', enter_result: 'Enter result', skip_result: 'Rather not', result_saved: 'Result saved – nice!', personal_best: 'New personal best!',
+  how_did_it_go: 'How did the exam go?', enter_result: 'Add a grade', skip_result: 'Rather not', result_saved: 'Result saved – nice!', personal_best: 'New personal best!',
   your_result: 'Your result', points: 'Points', max_points: 'max.', note_optional: 'Note (optional)', note_ph: 'e.g. “vocab part was easy”',
   result_xp_hint: 'Logging results earns XP – but practising earns way more.', save: 'Save', edit: 'Edit',
   gs_de_grade: 'Grade 1–6', gs_points15: 'Points 0–15', gs_percent: 'Percent', gs_xofy: 'x of y points', s_grading: 'Grading system',
@@ -29,7 +29,7 @@ export const en3 = {
   share: 'Share', share_story: 'Story 9:16', share_square: 'Square', share_preview: 'Share preview', share_hide_name: 'Hide my name', share_hide_grade: 'Hide the grade',
   share_privacy: 'Never includes your e-mail or a profile link.', share_image: 'Share image', share_video: 'Animated clip', share_rendering: 'Rendering…',
   share_no_video: 'This browser can’t record video – sharing the image instead.', share_downloaded: 'Saved – post it anywhere!',
-  share_invite: 'Learn it and earn the reward with Merkster', share_k_best: 'New personal best', share_k_result: 'Exam result', share_k_level: 'Level up', share_k_streak: 'Streak',
+  share_invite: 'Learn it with Merkster', share_k_best: 'New personal best', share_k_result: 'Exam result', share_k_level: 'Level up', share_k_streak: 'Streak',
   share_k_badge: 'Badge unlocked', share_k_week: 'My week', n_days: '{n} day;;{n} days', n_min: '{n} min', share_streak_sub: 'practising every day', share_week_sub: '{s} sessions on {d} days',
   done_sub: '{n} card recalled.;;{n} cards recalled.', s_sound: 'Celebration sounds', s_export_all: 'Download all my data', privacy_short: 'Your data belongs to you. Export it any time, or delete your account and everything in it.',
   delete_account: 'Delete account', delete_account_text: 'Deletes your account, all tests, cards, results and progress on the server – for good.',
@@ -37,9 +37,9 @@ export const en3 = {
   admin_delete_user: 'Delete the account of {name} and all its data?', admin_hint: 'Admins come from ADMIN_EMAILS in the server’s .env.'
 } as const;
 export const de3: Record<keyof typeof en3, string> = {
-  tab_results: 'Noten', tab_me: 'Ich', claim: 'Knipsen. Draufhaben. Test rocken. Belohnung holen.',
+  tab_results: 'Noten', tab_me: 'Ich', claim: 'Knipsen. Draufhaben. Test rocken.',
   login_p1: 'Foto vom Arbeitsblatt → fertige Lernkarten', login_p2: 'Üben genau wie im echten Test',
-  login_p3: 'Ein Elternteil verspricht eine Belohnung für Noten und fürs Üben', login_p4: 'Das Zeugnis kann eine extra Belohnung freischalten',
+  login_p3: 'Aus Lernzielen wird der Plan bis zur Prüfung', login_p4: 'Note eintragen und die Erfolgsquote sehen',
   continue_google: 'Weiter mit Google', test_provider: 'Testmodus: Google-Anmeldung simuliert (nicht für den Echtbetrieb)',
   login_privacy: 'Wir speichern nur deinen Google-Namen, deine E-Mail und den Link zum Profilbild. Keine Werbung, kein Tracking.',
   err_cancelled: 'Anmeldung abgebrochen.', err_not_allowed: 'Dieses Google-Konto ist auf diesem Server nicht freigeschaltet.', err_expired: 'Die Anmeldung hat zu lange gedauert – bitte nochmal.',
@@ -55,7 +55,7 @@ export const de3: Record<keyof typeof en3, string> = {
   xp_r3: 'Bonus für deine Tage-Serie, bis zu +{n} XP', xp_r4: '+{n} XP, wenn du einen Testplan bis zum Ende durchziehst', xp_r5: '+{n} XP fürs Eintragen einer Note, +{b} für einen persönlichen Rekord',
   xp_r6: 'Nur aktives Üben zählt – bei Leerlauf pausiert die Uhr. Noten bringen weniger XP als Üben: Einsatz schlägt Glück.',
   totals: '{s} Runden · {c} Abrufe · {m} aktive Minuten · {d} Tage', sessions: 'Runden', days_practised: 'Tage', result: 'Note',
-  how_did_it_go: 'Wie lief’s?', enter_result: 'Note eintragen', skip_result: 'Lieber nicht', result_saved: 'Note gespeichert – stark!', personal_best: 'Neuer persönlicher Rekord!',
+  how_did_it_go: 'Wie lief die Prüfung?', enter_result: 'Note eintragen', skip_result: 'Lieber nicht', result_saved: 'Note gespeichert – stark!', personal_best: 'Neuer persönlicher Rekord!',
   your_result: 'Deine Note', points: 'Punkte', max_points: 'max.', note_optional: 'Notiz (optional)', note_ph: 'z. B. „Vokabelteil war easy“',
   result_xp_hint: 'Noten eintragen bringt XP – aber Üben bringt viel mehr.', save: 'Speichern', edit: 'Bearbeiten',
   gs_de_grade: 'Note 1–6', gs_points15: 'Punkte 0–15', gs_percent: 'Prozent', gs_xofy: 'x von y Punkten', s_grading: 'Notensystem',
@@ -66,7 +66,7 @@ export const de3: Record<keyof typeof en3, string> = {
   share: 'Teilen', share_story: 'Story 9:16', share_square: 'Quadrat', share_preview: 'Vorschau', share_hide_name: 'Meinen Namen ausblenden', share_hide_grade: 'Note ausblenden',
   share_privacy: 'Enthält nie deine E-Mail oder einen Profil-Link.', share_image: 'Bild teilen', share_video: 'Animierter Clip', share_rendering: 'Wird erstellt…',
   share_no_video: 'Dieser Browser kann kein Video aufnehmen – stattdessen wird das Bild geteilt.', share_downloaded: 'Gespeichert – poste es, wo du willst!',
-  share_invite: 'Lernen und die Belohnung holen mit Merkster', share_k_best: 'Neuer Rekord', share_k_result: 'Testergebnis', share_k_level: 'Level up', share_k_streak: 'Serie',
+  share_invite: 'Lernen mit Merkster', share_k_best: 'Neuer Rekord', share_k_result: 'Testergebnis', share_k_level: 'Level up', share_k_streak: 'Serie',
   share_k_badge: 'Abzeichen freigeschaltet', share_k_week: 'Meine Woche', n_days: '{n} Tag;;{n} Tage', n_min: '{n} Min.', share_streak_sub: 'jeden Tag geübt', share_week_sub: '{s} Runden an {d} Tagen',
   done_sub: '{n} Karte abgerufen.;;{n} Karten abgerufen.', s_sound: 'Sounds bei Erfolgen', s_export_all: 'Alle meine Daten herunterladen', privacy_short: 'Deine Daten gehören dir. Exportiere sie jederzeit oder lösche dein Konto samt allem Inhalt.',
   delete_account: 'Konto löschen', delete_account_text: 'Löscht dein Konto, alle Tests, Karten, Noten und Fortschritte auf dem Server – endgültig.',

@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: merkster
+          POSTGRES_PASSWORD: merkster
+          POSTGRES_DB: merkster
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U merkster -d merkster"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      APP_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      DATABASE_URL: postgres://merkster:merkster@localhost:5432/merkster
+      PUBLIC_URL: http://127.0.0.1:8080
+      GOOGLE_CLIENT_ID: ci-client
+      GOOGLE_CLIENT_SECRET: ci-secret
+      LLM_BASE_URL: http://127.0.0.1:8099/v1
+      LLM_API_KEY: sk-mock-local-test-key
+      LLM_VISION_MODEL: mock-vision
+      LLM_TEXT_MODEL: mock-text
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Boot the production bundle
+        run: |
+          set -euo pipefail
+          NODE_ENV=production node dist/server/index.cjs > /tmp/merkster-boot.log 2>&1 &
+          echo $! > /tmp/merkster.pid
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/api/health >/dev/null; then
+              echo "health ok"
+              kill "$(cat /tmp/merkster.pid)" || true
+              wait "$(cat /tmp/merkster.pid)" || true
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "server did not answer /api/health"
+          cat /tmp/merkster-boot.log
+          exit 1
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end
+        env:
+          NODE_ENV: development
+          OIDC_TEST_ISSUER: http://127.0.0.1:9090
+          E2E_BASE_URL: http://127.0.0.1:8080
+          MOCK_OIDC_ISSUER: http://127.0.0.1:9090
+          MOCK_OIDC_PUBLIC_URL: http://127.0.0.1:9090
+          MOCK_OIDC_CLIENT_ID: ci-client
+          MOCK_OIDC_CLIENT_SECRET: ci-secret
+        run: |
+          set -euo pipefail
+          node tools/mock-oidc.mjs > /tmp/oidc.log 2>&1 &
+          echo $! > /tmp/oidc.pid
+          node tools/mock-llm.mjs > /tmp/llm.log 2>&1 &
+          echo $! > /tmp/llm.pid
+          node dist/server/index.cjs > /tmp/merkster.log 2>&1 &
+          echo $! > /tmp/merkster.pid
+          cleanup() {
+            kill "$(cat /tmp/merkster.pid)" "$(cat /tmp/oidc.pid)" "$(cat /tmp/llm.pid)" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/api/health >/dev/null \
+              && curl -fsS http://127.0.0.1:9090/health >/dev/null \
+              && curl -fsS http://127.0.0.1:8099/health >/dev/null; then break; fi
+            sleep 0.5
+            if [ "$i" = 40 ]; then echo "server failed"; cat /tmp/merkster.log /tmp/oidc.log /tmp/llm.log; exit 1; fi
+          done
+          npx playwright test

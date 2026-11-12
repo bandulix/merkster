@@ -2,15 +2,14 @@
    The server reads SIGNUP_CODE at start, so this spec adapts to how the app under test was started:
    - without SIGNUP_CODE: "no field, normal sign-up" (the rest is skipped)
    - with SIGNUP_CODE (and E2E_SIGNUP_CODE = the same value): new user without / with a wrong code is rejected (no account),
-     the right code creates the account (before Google and after Google), existing users and invited supporters need no code. */
+     the right code creates the account (before Google and after Google), existing users need no code. */
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
-import { acceptInvite, apiCall, newUser } from './helpers';
+import { apiCall, newUser } from './helpers';
 
 const CODE = process.env.E2E_SIGNUP_CODE || '';
 const RUN = Date.now().toString(36);
 const NEW1 = { email: `neu.${RUN}@example.com`, name: 'Nele Neu' };
 const NEW2 = { email: `vorab.${RUN}@example.com`, name: 'Vito Vorab' };
-const OPA = { email: `opa.${RUN}@example.com`, name: 'Otto Opa' };
 const OPEN = { email: `open.${RUN}@example.com`, name: 'Olli Offen' };
 
 const codeRequired = async (request: APIRequestContext) => !!(await (await request.get('/api/config')).json()).auth.signupCode;
@@ -105,23 +104,4 @@ test.describe('with SIGNUP_CODE', () => {
     await ctx.close();
   });
 
-  test('invited supporter needs no code', async ({ browser }) => {
-    // the student (existing account) creates an invite
-    const kid = await newUser(browser);
-    await signIn(kid.page, NEW2);
-    const inv = await apiCall(kid.page, 'POST', '/api/invites', { relation: 'grandparent', label: 'Opa', maxUses: 1, days: 7 });
-    expect(inv.status).toBe(201);
-    const joinPath = new URL(inv.body.invite.url).pathname + new URL(inv.body.invite.url).hash;
-    // Opa: brand-new Google account, no codeword
-    const opa = await newUser(browser);
-    await opa.page.goto(joinPath);
-    await expect(opa.page.getByTestId('invite-no-code')).toBeVisible();
-    await acceptInvite(opa.page, joinPath, OPA, 'Vito');
-    await expect(opa.page.getByTestId('join-done')).toBeVisible();
-    expect(await me(opa.page)).toBe(200);
-    // a made-up invite token does not unlock sign-up
-    const fake = await apiCall(opa.page, 'POST', '/api/auth/invite-pass', { token: 'A'.repeat(32) });
-    expect(fake.status).toBe(404);
-    await kid.ctx.close(); await opa.ctx.close();
-  });
 });

@@ -6,9 +6,6 @@ import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { SyncResponse, WireCard, WireProfile, WireSession, WireTest } from '../../shared/types';
 import { tx } from './db';
-import { supporterExport } from './supporters';
-import { evaluateSoon, rewardsExport } from './rewards';
-import { reportCardsExport } from './reportcards';
 import { PICTURES_PER_TEST, TESTS_PER_24H, picturesUsed, reservePictures, testsInLast24h } from './limits';
 import { classesExport } from './classes';
 import { cleanCard, cleanProfile, cleanSession, cleanState, cleanTest, ID_RE } from './sanitize';
@@ -28,26 +25,26 @@ export async function upsertTest(q: Q, uid: number, t: WireTest): Promise<boolea
     await q.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [uid]);
     if (await testsInLast24h(q, uid) >= TESTS_PER_24H) return false;
   }
-  await q.query(`INSERT INTO tests (user_id, id, name, subject, foreign_lang, native_lang, test_date, format, articles, created_day, days, updated_at, deleted, result, result_skipped, grading)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+  await q.query(`INSERT INTO tests (user_id, id, name, subject, foreign_lang, native_lang, test_date, format, articles, created_day, days, updated_at, deleted, result, result_skipped, grading, study)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
     ON CONFLICT (user_id, id) DO UPDATE SET name = EXCLUDED.name, subject = EXCLUDED.subject, foreign_lang = EXCLUDED.foreign_lang, native_lang = EXCLUDED.native_lang,
       test_date = EXCLUDED.test_date, format = EXCLUDED.format, articles = EXCLUDED.articles, created_day = COALESCE(tests.created_day, EXCLUDED.created_day),
-      days = EXCLUDED.days, updated_at = EXCLUDED.updated_at, deleted = EXCLUDED.deleted, result = EXCLUDED.result, result_skipped = EXCLUDED.result_skipped, grading = EXCLUDED.grading, rev = nextval('sync_rev')
+      days = EXCLUDED.days, updated_at = EXCLUDED.updated_at, deleted = EXCLUDED.deleted, result = EXCLUDED.result, result_skipped = EXCLUDED.result_skipped, grading = EXCLUDED.grading, study = EXCLUDED.study, rev = nextval('sync_rev')
     WHERE tests.updated_at <= EXCLUDED.updated_at`,
-    [uid, t.id, t.name, t.subject, t.foreign, t.native, t.testDate, t.format, t.articles, t.created, JSON.stringify(t.days), t.updatedAt, !!t.deleted, t.result ? JSON.stringify(t.result) : null, !!t.resultSkipped, t.grading || null]);
+    [uid, t.id, t.name, t.subject, t.foreign, t.native, t.testDate, t.format, t.articles, t.created, JSON.stringify(t.days), t.updatedAt, !!t.deleted, t.result ? JSON.stringify(t.result) : null, !!t.resultSkipped, t.grading || null, t.study ? JSON.stringify(t.study) : null]);
   if (t.deleted) await q.query(`UPDATE cards SET deleted = TRUE, updated_at = $3, rev = nextval('sync_rev') WHERE user_id = $1 AND test_id = $2 AND NOT deleted`, [uid, t.id, t.updatedAt]);
   return true;
 }
 /** returns false when the card's test does not exist (or is deleted) for this user */
 export async function upsertCard(q: Q, uid: number, c: WireCard): Promise<boolean> {
-  const r = await q.query(`INSERT INTO cards (user_id, id, test_id, position, type, term, meaning, example, distractors, state, updated_at, deleted)
-    SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+  const r = await q.query(`INSERT INTO cards (user_id, id, test_id, position, type, term, meaning, example, distractors, state, study, updated_at, deleted)
+    SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
     WHERE EXISTS (SELECT 1 FROM tests WHERE user_id = $1 AND id = $3 AND NOT deleted)
     ON CONFLICT (user_id, id) DO UPDATE SET test_id = EXCLUDED.test_id, position = EXCLUDED.position, type = EXCLUDED.type, term = EXCLUDED.term,
-      meaning = EXCLUDED.meaning, example = EXCLUDED.example, distractors = EXCLUDED.distractors, state = EXCLUDED.state,
+      meaning = EXCLUDED.meaning, example = EXCLUDED.example, distractors = EXCLUDED.distractors, state = EXCLUDED.state, study = EXCLUDED.study,
       updated_at = EXCLUDED.updated_at, deleted = EXCLUDED.deleted, rev = nextval('sync_rev')
     WHERE cards.updated_at <= EXCLUDED.updated_at`,
-    [uid, c.id, c.testId, c.position, c.type, c.term || '-', c.meaning || '-', c.example, JSON.stringify(c.distractors), JSON.stringify(c.st), c.updatedAt, !!c.deleted]);
+    [uid, c.id, c.testId, c.position, c.type, c.term || '-', c.meaning || '-', c.example, JSON.stringify(c.distractors), JSON.stringify(c.st), c.study ? JSON.stringify(c.study) : null, c.updatedAt, !!c.deleted]);
   return (r.rowCount || 0) > 0;
 }
 export async function insertSession(q: Q, uid: number, s: WireSession) {
@@ -74,9 +71,9 @@ export async function upsertProfile(q: Q, uid: number, p: WireProfile) {
 /* ---------- reads ---------- */
 const testRow = (r: Record<string, any>): WireTest => {
   const serverCreatedAt = r.created_at ? new Date(r.created_at).getTime() : undefined;
-  return { id: r.id, name: r.name, subject: r.subject, foreign: r.foreign_lang, native: r.native_lang, testDate: r.test_date, format: r.format, articles: r.articles, created: r.created_day, days: r.days, result: r.result || null, resultSkipped: !!r.result_skipped, grading: r.grading || null, updatedAt: r.updated_at, deleted: r.deleted || undefined, ...(Number.isFinite(serverCreatedAt) ? { serverCreatedAt } : {}) };
+  return { id: r.id, name: r.name, subject: r.subject, foreign: r.foreign_lang, native: r.native_lang, testDate: r.test_date, format: r.format, articles: r.articles, created: r.created_day, days: r.days, result: r.result || null, resultSkipped: !!r.result_skipped, grading: r.grading || null, study: r.study || null, updatedAt: r.updated_at, deleted: r.deleted || undefined, ...(Number.isFinite(serverCreatedAt) ? { serverCreatedAt } : {}) };
 };
-const cardRow = (r: Record<string, any>): WireCard => ({ id: r.id, testId: r.test_id, position: r.position, type: r.type, term: r.term, meaning: r.meaning, example: r.example, distractors: r.distractors, st: cleanState(r.state), updatedAt: r.updated_at, deleted: r.deleted || undefined });
+const cardRow = (r: Record<string, any>): WireCard => ({ id: r.id, testId: r.test_id, position: r.position, type: r.type, term: r.term, meaning: r.meaning, example: r.example, distractors: r.distractors, st: cleanState(r.state), study: r.study || null, updatedAt: r.updated_at, deleted: r.deleted || undefined });
 const sessionRow = (r: Record<string, any>): WireSession => ({ id: r.id, day: r.day, n: r.cards, firstTry: r.first_try, ms: r.ms, tests: r.test_ids, at: r.ended_at ?? null, correct: r.correct, activeMs: r.active_ms });
 
 export async function pull(q: Q, uid: number, since: number): Promise<SyncResponse> {
@@ -118,8 +115,6 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
       await insertSessions(c, uid, sessions);
       if (profile) await upsertProfile(c, uid, profile);
     });
-    // supporter rewards depend on results / practice days / level → re-evaluate in the background
-    if (tests.length || sessions.length) evaluateSoon(pool, uid, req.log);
     const out = await pull(pool, uid, since);
     return { ...out, accepted: { tests: tests.length - rejectedTests.length, cards: cards.length - skipped, sessions: sessions.length }, skippedCards: skipped, rejectedTests };
   });
@@ -168,7 +163,6 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     const t = cleanTest({ ...testRow(cur.rows[0]), ...(req.body as object), id: req.params.id, updatedAt: Date.now(), deleted: false });
     if (!t) return reply.code(400).send({ error: 'invalid_test' });
     await upsertTest(pool, uidOf(req), t);
-    evaluateSoon(pool, uidOf(req), req.log);
     return { test: t };
   });
   app.delete<{ Params: { id: string } }>('/api/tests/:id', auth, async (req, reply) => {
@@ -214,23 +208,20 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     const s = cleanSession({ id: newId(), ...(req.body as object) });
     if (!s) return reply.code(400).send({ error: 'invalid_session' });
     await insertSession(pool, uidOf(req), s);
-    evaluateSoon(pool, uidOf(req), req.log);
     return reply.code(201).send({ session: s });
   });
 
   /* ---- data export (GDPR Art. 15/20): everything we store about the signed-in user ---- */
   app.get('/api/me/export', auth, async (req, reply) => {
     const uid = uidOf(req);
-    const u = (await pool.query('SELECT id, email, name, avatar_url, avatar_type, avatar_data, avatar_fetched_at, is_supporter, created_at, last_login_at FROM users WHERE id = $1', [uid])).rows[0];
+    const u = (await pool.query('SELECT id, email, name, avatar_url, avatar_type, avatar_data, avatar_fetched_at, grade_privacy, created_at, last_login_at FROM users WHERE id = $1', [uid])).rows[0];
     const data = await pull(pool, uid, 0);
     const ai = (await pool.query('SELECT created_at, ok, images, cards FROM ai_requests WHERE user_id = $1 ORDER BY created_at', [uid])).rows;
     reply.header('Content-Disposition', 'attachment; filename="my-data.json"');
-    const supporters = await supporterExport(pool, uid);
-    const rewards = await rewardsExport(pool, uid);
-    const reportCards = await reportCardsExport(pool, uid);
+    const grades = (await pool.query('SELECT id, subject, title, kind, taken_on, system, value, score, note, with_plan, adherence FROM grades WHERE user_id = $1 AND NOT deleted ORDER BY taken_on', [uid])).rows;
     const pictureUses = (await pool.query('SELECT test_id, pictures FROM test_picture_uses WHERE user_id = $1 ORDER BY test_id', [uid])).rows.map(r => ({ testId: r.test_id, pictures: r.pictures }));
     const classes = await classesExport(pool, uid);
-    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, isSupporter: !!u.is_supporter, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, supporters, rewards, reportCards, pictureUses, classes };
+    return { exportedAt: new Date().toISOString(), account: { id: String(u.id), email: u.email, name: u.name, avatarUrl: u.avatar_url, profilePicture: u.avatar_data ? { type: u.avatar_type, fetchedAt: u.avatar_fetched_at, dataUrl: `data:${u.avatar_type};base64,${Buffer.from(u.avatar_data).toString('base64')}` } : null, gradePrivacy: u.grade_privacy, createdAt: u.created_at, lastLoginAt: u.last_login_at }, ...data, aiRequests: ai, grades, pictureUses, classes };
   });
 
   /* ---- delete all of my learning data (account stays) ---- */
@@ -241,8 +232,7 @@ export async function dataPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
       await c.query(`UPDATE tests SET deleted = TRUE, updated_at = $2, rev = nextval('sync_rev') WHERE user_id = $1 AND NOT deleted`, [uidOf(req), Date.now()]);
       await c.query('DELETE FROM practice_sessions WHERE user_id = $1', [uidOf(req)]);
       await c.query('DELETE FROM profiles WHERE user_id = $1', [uidOf(req)]);
-      await c.query('DELETE FROM result_photos WHERE student_id = $1', [uidOf(req)]);
-      await c.query('DELETE FROM report_cards WHERE user_id = $1', [uidOf(req)]);
+      await c.query('DELETE FROM grades WHERE user_id = $1', [uidOf(req)]);
       await c.query('DELETE FROM class_shares WHERE author_id = $1', [uidOf(req)]);
     });
     return { ok: true };

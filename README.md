@@ -2,10 +2,10 @@
 
 # Merkster
 
-**Snap it. Drill it. Own the test. Earn the reward.**
+**Snap it. Drill it. Own the test.**
 
-Photo a worksheet → practise until exam day → family can promise a reward for the grade.  
-Merkster tracks the promise. It never moves money.
+Photo a vocab list or a sheet of learning goals → practise until exam day.  
+Merkster picks a method for each goal and keeps the plan paced to the exam.
 
 > **Vibe coded** — this app was written with AI coding agents.  
 > **LLM API needed** — photo → smart cards needs an OpenAI-compatible vision key (`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_VISION_MODEL` in `.env`). Without it you only get on-device OCR, which is weaker on worksheets.
@@ -19,7 +19,7 @@ Merkster tracks the promise. It never moves money.
   &nbsp;&nbsp;
   <img src="screenshots/mobile-10-today.png" width="240" alt="Today view on mobile">
   &nbsp;&nbsp;
-  <img src="screenshots/mobile-28-reward-pop.png" width="240" alt="Reward earned celebration">
+  <img src="screenshots/mobile-43-plan.png" width="240" alt="Study plan with methods">
 </p>
 
 ## Try it in two minutes
@@ -39,18 +39,20 @@ Done exploring? `make down`.
 
 ## Why people stick
 
-| Student | Family |
+| Student | Class |
 |---|---|
-| Cards from a photo, not typing all night | Promise a reward for practice or the grade |
-| Practice that adapts to the test date | Cheer from your phone when they crush a session |
-| Class boss fights & vocab clashes with classmates | See grades/stats only if invited |
+| Cards from a photo, or a plan from a Lernziele sheet | Share one scan with the whole class |
+| The method follows the kind of knowledge | Boss fights and vocab clashes |
+| Practice that adapts when a day is missed | See a classmate’s progress on the same sheet |
 
 ## What you get
 
 - **Import** — photo, PDF, or paste → review → cards  
+- **Learning goals** — photo a Lernziele sheet for any subject. The app extracts the goals, asks only if something important is missing, picks a method, and builds the programme up to the exam  
+- **Same sheet** — a second student can join that plan (own progress, same tasks) instead of generating it again  
+- **Grades** — enter the mark after the exam (1–6, points, or percent) and see a success rate, trend, and plan vs no plan  
 - **Practice** — successive relearning, tolerant checking, EN/DE  
 - **Class** — share one scan with the whole class; XP board, boss fights, 1v1 clashes  
-- **Family rewards** — rules for grades, practice, report cards (tracked, not paid out)  
 - **Offline PWA** — works without a signal; export or delete your data anytime  
 
 ## Run for real (Google sign-in)
@@ -87,7 +89,7 @@ More in [CONTRIBUTING.md](CONTRIBUTING.md) · changes in [CHANGELOG.md](CHANGELO
 
 ## Privacy & kids
 
-No ads. No tracking scripts. Supporters see only what the student shares.  
+No ads. No tracking scripts. Classmates on a shared plan see a first name and, by default, a success rate — not each grade, and never a note.  
 Export or delete under *Settings → Your data*. Host for others? Get parental consent where the law asks, and only send photos to an AI provider you’re fine with — or leave AI off.
 
 ## License

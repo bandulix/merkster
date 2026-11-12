@@ -54,22 +54,19 @@ const IconToday = () => <svg viewBox="0 0 24 24" width="24" height="24" aria-hid
 const IconCog = () => <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8.4 4.6.1-1.1-.1-1.1 2-1.6-2-3.4-2.4 1a8 8 0 0 0-1.9-1.1L15.8 3h-3.9l-.4 2.6a8 8 0 0 0-1.9 1.1l-2.4-1-2 3.4 2 1.6-.1 1.1.1 1.1-2 1.6 2 3.4 2.4-1a8 8 0 0 0 1.9 1.1l.4 2.6h3.9l.4-2.6a8 8 0 0 0 1.9-1.1l2.4 1 2-3.4z" fill="currentColor" /></svg>;
 
 const IconResults = () => <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden><path d="M4 20V10h3.5v10zm6.25 0V4h3.5v16zM16.5 20v-7H20v7z" fill="currentColor" /></svg>;
-const IconCheer = () => <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden><path d="M3 10v4a1 1 0 0 0 1 1h2l5 4V5L6 9H4a1 1 0 0 0-1 1Zm13.5 2a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4ZM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z" fill="currentColor" /></svg>;
 const IconMe = () => <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden><path d="m12 2 2.6 5.6 6.1.7-4.5 4.2 1.2 6.1L12 15.6l-5.4 3 1.2-6.1-4.5-4.2 6.1-.7z" fill="currentColor" /></svg>;
 
 /** bottom tab bar on phones, sidebar on desktop (same component, CSS decides) */
-export function Nav({ mode = 'student', unseen = 0, rewardDot = 0 }: { mode?: 'student' | 'supporter' | 'both'; unseen?: number; rewardDot?: number }) {
-  const student = mode !== 'supporter';
+export function Nav({ unseen = 0 }: { unseen?: number }) {
   return (
-    <nav className={'nav nav-' + mode} aria-label={t('nav_main')}>
+    <nav className="nav" aria-label={t('nav_main')}>
       <div className="nav-brand"><Brand /></div>
-      {student && <NavLink to="/" end className="nav-item" data-testid="nav-today"><IconToday /><span>{t('tab_today')}</span></NavLink>}
-      {student && <NavLink to="/results" className="nav-item" data-testid="nav-results"><IconResults /><span>{t('tab_results')}</span></NavLink>}
-      {student && <NavLink to="/new" className="nav-item nav-new" data-testid="nav-new" aria-label={t('new_test')}><span className="plus">+</span><span className="nav-new-label">{t('new_test')}</span></NavLink>}
-      {mode !== 'student' && <NavLink to="/cheer" className="nav-item" data-testid="nav-cheer"><span className="nav-ic"><IconCheer />{rewardDot > 0 && <i className="nav-dot" data-testid="reward-dot">{rewardDot > 9 ? '9+' : rewardDot}</i>}</span><span>{t('tab_cheer')}</span></NavLink>}
-      {student && <NavLink to="/me" className="nav-item" data-testid="nav-me"><span className="nav-ic"><IconMe />{unseen > 0 && <i className="nav-dot" data-testid="cheer-dot">{unseen > 9 ? '9+' : unseen}</i>}</span><span>{t('tab_me')}</span></NavLink>}
+      <NavLink to="/" end className="nav-item" data-testid="nav-today"><IconToday /><span>{t('tab_today')}</span></NavLink>
+      <NavLink to="/results" className="nav-item" data-testid="nav-results"><IconResults /><span>{t('tab_results')}</span></NavLink>
+      <NavLink to="/new" className="nav-item nav-new" data-testid="nav-new" aria-label={t('new_test')}><span className="plus">+</span><span className="nav-new-label">{t('new_test')}</span></NavLink>
+      <NavLink to="/me" className="nav-item" data-testid="nav-me"><span className="nav-ic"><IconMe />{unseen > 0 && <i className="nav-dot" data-testid="cheer-dot">{unseen > 9 ? '9+' : unseen}</i>}</span><span>{t('tab_me')}</span></NavLink>
       <NavLink to="/settings" className="nav-item" data-testid="nav-settings"><IconCog /><span>{t('tab_settings')}</span></NavLink>
-      <div className="nav-foot">{student && <LevelChip />}<SyncBadge /></div>
+      <div className="nav-foot"><LevelChip /><SyncBadge /></div>
     </nav>
   );
 }

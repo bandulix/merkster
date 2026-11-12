@@ -10,7 +10,7 @@ import type { Config } from './config';
 import { tx } from './db';
 import { avatarPath } from './avatars';
 import { limiter } from './ratelimit';
-import { loadStudents } from './supporters';
+import { loadStudents } from './progressLoad';
 import { ID_RE } from './sanitize';
 import { CARD_TYPES, FORMATS, LANG_CODES, SUBJECT_KEYS, type CardType, type Format, type Lang, type Subject } from '../../shared/types';
 import {

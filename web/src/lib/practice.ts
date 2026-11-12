@@ -13,6 +13,9 @@ export interface ItemRun { testId: string; itemId: string; struggled: boolean; m
 export interface Spec { prompt?: string; pLang?: Lang | null; speakP?: boolean; ask: string; answer: string; aLang: Lang; strict: boolean; articles?: boolean; chip?: string; self?: boolean; cloze?: string; hint?: string }
 export interface Summary { done: number; total: number; firstTry: number; ms: number; activeMs: number; correct: number; tests: string[]; sessionId?: string; xpBefore?: number; xpAfter?: number; levelBefore?: number; levelAfter?: number }
 
+const OPEN_STUDY = new Set(['explain', 'outline', 'worked']);
+function openStudy(item: Card) { return !!item.study && OPEN_STUDY.has(item.study.activity); }
+function methodChip(item: Card) { return item.study ? t(('method_' + item.study.method) as 'method_retrieval') : undefined; }
 export function taskFor(test: Test, item: Card, e: { morning?: boolean }): Kind {
   const type = item.type || 'pair', f = test.format, lang = test.subject === 'languages', n = item.st?.sessions || 0;
   if (type === 'cloze') return 'cloze';
@@ -134,8 +137,8 @@ export class Practice {
     switch (card.kind) {
       case 'meaning': return { prompt: item.term, pLang: langOf('term'), speakP: true, ask: t('ask_meaning'), answer: item.meaning, aLang: langOf('meaning'), strict: false };
       case 'produce': return { prompt: item.meaning, pLang: langOf('meaning'), ask: t('ask_produce', { lang: langName(test.foreign) }), answer: item.term, aLang: test.foreign!, strict: true, articles: test.articles, chip: t('spelling_counts') };
-      case 'qa': return { prompt: item.term, pLang: test.native, ask: t('ask_answer'), answer: item.meaning, aLang: test.native, strict: false, self: isLong(item.meaning) };
-      case 'forward': return { prompt: item.term, pLang: test.native, ask: t('ask_explain'), answer: item.meaning, aLang: test.native, strict: false, self: isLong(item.meaning) };
+      case 'qa': return { prompt: item.term, pLang: test.native, ask: t('ask_answer'), answer: item.meaning, aLang: test.native, strict: false, self: isLong(item.meaning) || openStudy(item), chip: methodChip(item) };
+      case 'forward': return { prompt: item.term, pLang: test.native, ask: t('ask_explain'), answer: item.meaning, aLang: test.native, strict: false, self: isLong(item.meaning) || openStudy(item), chip: methodChip(item) };
       case 'backward': return { prompt: item.meaning, pLang: test.native, ask: t('ask_term'), answer: item.term, aLang: test.native, strict: false, self: isLong(item.term) };
       case 'cloze': return { cloze: item.term, ask: t('ask_gap'), answer: item.meaning, aLang: lang ? test.foreign! : test.native, strict: lang, articles: false };
       case 'cloze-ex': {

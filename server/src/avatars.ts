@@ -92,12 +92,8 @@ export async function refreshAvatar(pool: pg.Pool, config: Config, userId: numbe
 }
 
 async function meUser(pool: pg.Pool, id: number) {
-  const u = (await pool.query('SELECT id, email, name, avatar_etag, is_admin, is_supporter, created_at FROM users WHERE id = $1', [id])).rows[0];
-  const c = (await pool.query(`SELECT (SELECT count(*) FROM supporter_links WHERE supporter_id = $1)::int AS kids, (SELECT count(*) FROM supporter_links WHERE student_id = $1)::int AS supporters`, [id])).rows[0];
-  return {
-    id: String(u.id), name: u.name, email: u.email || null, avatar: avatarPath(u.id, u.avatar_etag), isAdmin: !!u.is_admin, createdAt: u.created_at,
-    isSupporter: !!u.is_supporter || c.kids > 0, kids: c.kids, supporters: c.supporters
-  };
+  const u = (await pool.query('SELECT id, email, name, avatar_etag, is_admin, created_at FROM users WHERE id = $1', [id])).rows[0];
+  return { id: String(u.id), name: u.name, email: u.email || null, avatar: avatarPath(u.id, u.avatar_etag), isAdmin: !!u.is_admin, createdAt: u.created_at };
 }
 
 export async function avatarsPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool }) {

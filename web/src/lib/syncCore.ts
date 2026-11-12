@@ -13,8 +13,8 @@ export function fnv(s: string): string {
 }
 type Ent = { key: string; kind: 't' | 'c' | 's' | 'p'; payload: Record<string, unknown> };
 
-const wireTest = (t: Test): Omit<WireTest, 'updatedAt'> => ({ id: t.id, name: t.name, subject: t.subject, foreign: t.foreign, native: t.native, testDate: t.testDate, format: t.format, articles: !!t.articles, created: t.created || null, days: t.days || [], result: t.result || null, resultSkipped: !!t.resultSkipped, grading: t.grading || null });
-const wireCard = (c: Card, testId: string, position: number): Omit<WireCard, 'updatedAt'> => ({ id: c.id, testId, position, type: c.type || 'pair', term: c.term, meaning: c.meaning, example: c.example || '', distractors: c.distractors || [], st: c.st });
+const wireTest = (t: Test): Omit<WireTest, 'updatedAt'> => ({ id: t.id, name: t.name, subject: t.subject, foreign: t.foreign, native: t.native, testDate: t.testDate, format: t.format, articles: !!t.articles, created: t.created || null, days: t.days || [], result: t.result || null, resultSkipped: !!t.resultSkipped, grading: t.grading || null, study: t.study || null });
+const wireCard = (c: Card, testId: string, position: number): Omit<WireCard, 'updatedAt'> => ({ id: c.id, testId, position, type: c.type || 'pair', term: c.term, meaning: c.meaning, example: c.example || '', distractors: c.distractors || [], st: c.st, study: c.study || null });
 const wireProfile = (d: AppData): WireProfile['data'] => ({ settings: d.settings, streak: d.streak, stats: d.stats });
 
 export function entities(d: AppData): Map<string, Ent> {
@@ -91,7 +91,7 @@ export function applyRemote(d: AppData, res: SyncResponse, changedLocally: (key:
     if (changedLocally('t:' + w.id)) continue;
     const i = d.tests.findIndex(x => x.id === w.id);
     if (w.deleted) { if (i >= 0) { d.tests.splice(i, 1); n++; } continue; }
-    const base = { id: w.id, name: w.name, subject: w.subject, foreign: w.foreign, native: w.native, testDate: w.testDate, format: w.format, articles: w.articles, created: w.created || w.testDate, days: w.days || [], result: w.result || null, resultSkipped: !!w.resultSkipped, grading: w.grading || null };
+    const base = { id: w.id, name: w.name, subject: w.subject, foreign: w.foreign, native: w.native, testDate: w.testDate, format: w.format, articles: w.articles, created: w.created || w.testDate, days: w.days || [], result: w.result || null, resultSkipped: !!w.resultSkipped, grading: w.grading || null, study: w.study || null };
     if (i >= 0) Object.assign(d.tests[i], base); else d.tests.push({ ...base, items: [] });
     if (w.serverCreatedAt) d.tests[i >= 0 ? i : d.tests.length - 1].createdAt = w.serverCreatedAt;
     n++;
@@ -103,7 +103,7 @@ export function applyRemote(d: AppData, res: SyncResponse, changedLocally: (key:
     // the card may live in another test locally (moved) – remove it there first
     for (const x of d.tests) { const j = x.items.findIndex(c => c.id === w.id); if (j >= 0 && (x !== owner || w.deleted)) { x.items.splice(j, 1); n++; } }
     if (w.deleted || !owner) continue;
-    const card: Card = { id: w.id, type: w.type, term: w.term, meaning: w.meaning, example: w.example || '', distractors: w.distractors?.length ? w.distractors : undefined, st: { ...freshState(), ...w.st } };
+    const card: Card = { id: w.id, type: w.type, term: w.term, meaning: w.meaning, example: w.example || '', distractors: w.distractors?.length ? w.distractors : undefined, st: { ...freshState(), ...w.st }, ...(w.study ? { study: w.study } : {}) };
     const j = owner.items.findIndex(c => c.id === w.id);
     if (j >= 0) owner.items[j] = card; else owner.items.splice(Math.min(w.position, owner.items.length), 0, card);
     n++;

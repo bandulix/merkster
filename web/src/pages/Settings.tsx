@@ -13,6 +13,9 @@ import { download, toast } from '../lib/util';
 import { AvatarEdit } from '../components/AvatarEdit';
 import { fanfare } from '../components/Celebrate';
 import { t, tp } from '../i18n';
+import { scoreOf } from '../../../shared/grades';
+import { saveGradePrivacy } from '../lib/planSync';
+import type { GradePrivacy } from '../../../shared/gradebook';
 import { uiLang } from '../i18n';
 
 type AdminUser = { id: string; name: string; email: string | null; isAdmin: boolean; lastLoginAt: string | null; tests: number; ai30d: number };
@@ -53,6 +56,25 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
         <div className="set-row"><span>{t('term_start2')}</span><select className="select" data-testid="term-start2" value={(s.termStarts || [8, 2])[1]} onChange={e => store.setSettings({ termStarts: [(s.termStarts || [8, 2])[0], Number(e.target.value)] })}>{Array.from({ length: 12 }, (_, m) => <option key={m} value={m + 1}>{new Date(2024, m, 1).toLocaleDateString(uiLang(), { month: 'long' })}</option>)}</select></div>
         <label className="toggle"><input type="checkbox" checked={s.tts} onChange={e => store.setSettings({ tts: e.target.checked })} /><span>{t('s_tts')}</span></label>
         <label className="toggle"><input type="checkbox" checked={s.sound} onChange={e => { store.setSettings({ sound: e.target.checked }); if (e.target.checked) fanfare(false); }} /><span>{t('s_sound')}</span></label>
+      </div>
+
+      <div className="card" data-testid="grade-privacy">
+        <h3>{t('privacy_title')}</h3>
+        <p className="small muted">{t('privacy_sub')}</p>
+        <div className="chips">{(['summary', 'grades', 'hide'] as GradePrivacy[]).map(p => <button key={p} type="button" data-testid={'privacy-' + p} className={'pill sm' + ((s.gradePrivacy || 'summary') === p ? ' on' : '')} onClick={() => { store.setSettings({ gradePrivacy: p }); void saveGradePrivacy(p, s.gradeTargets || {}).catch(() => undefined); }}>{t(p === 'summary' ? 'privacy_summary' : p === 'grades' ? 'privacy_grades' : 'privacy_hide')}</button>)}</div>
+        <p className="small">{t('privacy_default')}</p>
+        <h3>{t('targets_title')}</h3>
+        <p className="small muted">{t('targets_sub')}</p>
+        <div className="chips">{['1', '2', '3', '4'].map(g => {
+          const score = scoreOf({ system: 'de_grade', value: Number(g) });
+          const on = Math.abs((s.gradeTargets?.biology ?? scoreOf({ system: 'de_grade', value: 3 })) - score) < 1;
+          return <button key={g} type="button" data-testid={'target-' + g} className={'pill sm' + (on ? ' on' : '')} onClick={() => {
+            const gradeTargets = { ...(s.gradeTargets || {}) };
+            for (const sub of ['biology', 'history', 'math', 'languages', 'other'] as const) gradeTargets[sub] = score;
+            store.setSettings({ gradeTargets });
+            void saveGradePrivacy(s.gradePrivacy || 'summary', gradeTargets).catch(() => undefined);
+          }}>{g}</button>;
+        })}</div>
       </div>
 
       <div className="card"><h3>✨ {t('s_ai')}</h3>
