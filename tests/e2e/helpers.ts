@@ -166,6 +166,12 @@ export async function apiCall(page: Page, method: 'GET' | 'POST' | 'PATCH' | 'DE
   let body: any = null; try { body = await r.json(); } catch { /* not json */ }
   return { status: r.status(), body };
 }
+/** A Merki moment is optional. If one is up, dismiss it so the next primary action can be clicked. */
+export async function dismissMerki(page: Page) {
+  const btn = page.getByTestId('merki-continue');
+  if (await btn.count()) await btn.click();
+}
+
 /** let celebrations settle before a screenshot: no confetti still falling, no toast on screen (best effort) */
 export async function calm(page: Page) {
   await expect(page.locator('.confetti')).toHaveCount(0, { timeout: 8000 }).catch(() => undefined);

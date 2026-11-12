@@ -13,6 +13,7 @@ import { canSpeak, confetti, fmtDur, fmtWhen, isLong, now, speak, vibrate } from
 import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
 import { pick, subjectIcon, t, tp, uiLang, type Key } from '../i18n';
+import { MerkiSay } from '../components/MerkiSay';
 
 type Btn = { label: string; act: () => void; kind?: 'primary' | 'ghost' | 'bad'; testid?: string };
 interface SheetS { kind: 'ok' | 'almost' | 'bad' | 'neutral'; title: string; body?: React.ReactNode; buttons: Btn[]; auto?: boolean }
@@ -258,6 +259,7 @@ export function SessionPage() {
           </div>
         </div>
       </div>
+      <MerkiSay trigger="session_start" placement="inline" />
       <div className="ses-stage" key={step}>{view}</div>
     </div>
   );
@@ -321,6 +323,7 @@ export function DonePage() {
         <div className="schip blue"><span className="schip-h">{t('stat_time')}</span><b>{fmtDur(s.activeMs)}</b></div>
       </div>
       {streak > 0 && <p className="done-streak">🔥 {tp('streak_days', streak)}</p>}
+      <MerkiSay trigger="session_done" placement="inline" />
       <div className="done-next">{left > 0 ? tp('more_today', left) : nexts.length ? t('next_session', { when: fmtWhen(nexts[0]) }) : t('all_done')}</div>
       <div className="row-btns col">{tests.map(x => <div key={x.id} className="mini-test"><span>{x.name}</span><Ring pct={S.mastery(x)} size={38} stroke={4} /></div>)}</div>
       <button className="btn primary big wide" data-testid="done-home" onClick={() => nav('/', { replace: true })}>{t('continue')}</button>

@@ -20,6 +20,7 @@ import { SessionPage, DonePage } from './pages/Session';
 import { Settings } from './pages/Settings';
 import { Me } from './pages/Me';
 import { Celebrations } from './components/Celebrate';
+import { MerkiMomentHost } from './components/MerkiSay';
 import { ClassJoin } from './pages/ClassJoin';
 import { ClassPage, Classes } from './pages/Classes';
 import { ClashPage } from './pages/Clash';
@@ -89,6 +90,7 @@ export function App() {
         </Routes>
       </main>
       <Celebrations />
+      <MerkiMomentHost />
       <Toasts />
       <UpdatePrompt />
     </div>

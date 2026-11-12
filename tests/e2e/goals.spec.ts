@@ -2,7 +2,7 @@
    a second student joins the same sheet, grades and privacy. */
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
-import { googleLogin, newUser, ROOT, SHOTS } from './helpers';
+import { dismissMerki, googleLogin, newUser, ROOT, SHOTS } from './helpers';
 
 const FIX = path.join(ROOT, 'tests/fixtures/vocab-table.png');
 const stamp = Date.now().toString(36);
@@ -23,8 +23,11 @@ test('two students share a Lernziele sheet, then grades stay between them', asyn
   await expect(mia.page.getByTestId('method-name').nth(2)).toContainText(/Lösungsbeispiele|Worked/);
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-41-goals-review.png'), fullPage: true });
   await mia.page.getByTestId('goals-confirm').click();
-  if (await mia.page.getByTestId('join-sheet').isVisible().catch(() => false)) await mia.page.getByTestId('join-own').click();
-  await expect(mia.page.getByTestId('clarify')).toBeVisible();
+  const join = mia.page.getByTestId('join-sheet');
+  const clarify = mia.page.getByTestId('clarify');
+  await expect(join.or(clarify)).toBeVisible({ timeout: 60_000 });
+  if (await join.isVisible()) await mia.page.getByTestId('join-own').click();
+  await expect(clarify).toBeVisible();
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-42-clarify.png') });
   await mia.page.getByTestId('exam-written').click();
   await mia.page.getByTestId('min-20').click();
@@ -32,6 +35,7 @@ test('two students share a Lernziele sheet, then grades stay between them', asyn
   await expect(mia.page.getByTestId('method-chip').first()).toBeVisible();
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-43-plan.png'), fullPage: true });
 
+  await dismissMerki(mia.page);
   await mia.page.getByTestId('practice-test').click();
   await expect(mia.page.getByTestId('session')).toBeVisible();
   await expect(mia.page.locator('.qcard').first()).toBeVisible();
@@ -83,6 +87,7 @@ test('two students share a Lernziele sheet, then grades stay between them', asyn
   await mia.page.getByTestId('mood-good').click();
   await mia.page.getByTestId('save-result').click();
   await expect(mia.page.getByTestId('td-result')).toHaveText('2');
+  await dismissMerki(mia.page);
 
   const seed = await mia.page.request.post('/api/grades', {
     headers: { 'content-type': 'application/json', 'x-merkster': '1' },

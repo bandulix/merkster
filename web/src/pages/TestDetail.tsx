@@ -15,6 +15,7 @@ import { ShareSheet, type ShareWhat } from '../components/Share';
 import { ShareWithClass } from '../components/ShareWithClass';
 import { SharedPlan, goalLine } from '../components/SharedPlan';
 import { formatsFor, t, tp, testIcon, type Key } from '../i18n';
+import { MerkiSay } from '../components/MerkiSay';
 
 const PK: Record<string, Key> = { first: 'pk_first', next: 'pk_next', relearn: 'pk_relearn', night: 'pk_night', morning: 'pk_morning', 'first+night': 'pk_first' };
 
@@ -34,6 +35,7 @@ export function TestDetail() {
   return (
     <section className="detail page">
       <TopBar title={<span className="td-title">{testIcon(test)} {test.name}</span>} back="/" right={<button className="icon-btn" data-testid="td-settings" aria-label={t('settings_test')} onClick={() => setShowSettings(s => !s)}>⚙️</button>} />
+      <MerkiSay trigger={fresh ? 'plan_created' : 'home'} placement="inline" />
       <div className="td-hero pop-in">
         <Ring pct={m} size={96} stroke={9} />
         <div><span className={'cd ' + cd.cls}>{cd.label}</span><p className="muted">{fmtDay(test.testDate)} · {tp('n_cards', test.items.length)}</p>

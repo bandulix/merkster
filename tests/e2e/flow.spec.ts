@@ -3,7 +3,7 @@
 import { expect, test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { calm, dismissCelebrations, googleLogin, isoDay, newUser, OUT, playSession, pngSize, ROOT, SHOTS } from './helpers';
+import { calm, dismissCelebrations, dismissMerki, googleLogin, isoDay, newUser, OUT, playSession, pngSize, ROOT, SHOTS } from './helpers';
 
 const FIX = path.join(ROOT, 'tests/fixtures');
 const STAMP = Date.now().toString(36);
@@ -54,6 +54,7 @@ test('student journey: login → import → practice → level up → result →
   await page.screenshot({ path: path.join(SHOTS, 'mobile-05-test-plan.png'), fullPage: true });
 
   // practice
+  await dismissMerki(page);
   await page.getByTestId('practice-test').click();
   await expect(page.getByTestId('session')).toBeVisible();
   let shot = false;
@@ -97,6 +98,7 @@ test('student journey: login → import → practice → level up → result →
   await page.screenshot({ path: path.join(SHOTS, 'mobile-12-result-entry.png') });
   await page.getByTestId('save-result').click();
   await expect(page.getByTestId('td-result')).toHaveText('2+');
+  await dismissMerki(page);
 
   // share the result: story + square PNGs, rendered client-side
   await page.getByTestId('td-share').click();

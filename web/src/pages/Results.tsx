@@ -15,6 +15,7 @@ import { connectedPeople, pullGrades } from '../lib/planSync';
 import { useQuery } from '@tanstack/react-query';
 import { ResultsDashboard, type ResItem } from '../components/ResultsDashboard';
 import { subjectIcon, subjectName, t, type Key } from '../i18n';
+import { MerkiSay } from '../components/MerkiSay';
 
 export default function Results() {
   const d = useStore(), ts = now();
@@ -41,6 +42,7 @@ export default function Results() {
       <header className="home-top"><div><p className="muted small">{t('stats_kicker')}</p><h1 className="page-title">{t('stats_title')}</h1></div>
         <button className="btn primary sm" data-testid="add-grade" onClick={() => setFree(true)}>{t('grade_add')}</button>
       </header>
+      <MerkiSay trigger={grades.length ? 'grade' : 'home'} placement="inline" />
       {pending.map(x => (
         <button key={x.id} className="ask-card pop-in" data-testid="ask-result" onClick={() => setEdit(x)}>
           <span className="tc-icon">{subjectIcon(x.subject)}</span><span><b>{t('grade_prompt')}</b><small>{x.name} · {fmtDay(x.testDate)}</small></span><span className="btn primary sm">{t('grade_add')}</span>

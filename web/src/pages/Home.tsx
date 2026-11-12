@@ -7,6 +7,8 @@ import * as S from '../lib/schedule';
 import { countdown, fmtTime, fmtWhen, now } from '../lib/util';
 import { extraEntries, startPractice } from '../lib/activeSession';
 import { LevelChip, Logo, Ring, SyncBadge } from '../components/ui';
+import { homeTrigger, MerkiSay } from '../components/MerkiSay';
+import { ageBand } from '../../../shared/merki';
 import { t, tp, testIcon } from '../i18n';
 import type { Test } from '../../../shared/types';
 
@@ -56,6 +58,8 @@ export function Home() {
   const active = d.tests.filter(x => S.phase(x, ts) !== 'past').sort((a, b) => a.testDate.localeCompare(b.testDate));
   const past = d.tests.filter(x => S.phase(x, ts) === 'past');
   const go = (entries: S.SessionEntry[]) => { if (startPractice(entries)) nav('/practice'); };
+  const bandKnown = ageBand({ schoolYear: d.settings.schoolYear, birthYear: d.settings.birthYear, nowYear: new Date(ts).getFullYear() });
+  const trigger = homeTrigger();
 
   let hero;
   if (!d.tests.length) {
@@ -114,6 +118,18 @@ export function Home() {
         <div><p className="muted small">{greet}</p><h1 className="page-title">{t('today')}</h1></div>
         <div className="home-top-r only-mobile"><SyncBadge /><LevelChip /></div>
       </header>
+      {!bandKnown && !d.settings.ageAsked && (
+        <div className="card merki-ask" data-testid="merki-ask">
+          <p>{t('merki_ask')}</p>
+          <div className="chips">
+            <button className="pill" data-testid="year-young" onClick={() => store.setSettings({ schoolYear: 4, ageAsked: true })}>{t('merki_young')}</button>
+            <button className="pill" data-testid="year-mid" onClick={() => store.setSettings({ schoolYear: 6, ageAsked: true })}>{t('merki_mid')}</button>
+            <button className="pill" data-testid="year-teen" onClick={() => store.setSettings({ schoolYear: 10, ageAsked: true })}>{t('merki_teen')}</button>
+            <button className="btn link" onClick={() => store.setSettings({ ageAsked: true })}>{t('merki_later')}</button>
+          </div>
+        </div>
+      )}
+      <MerkiSay trigger={trigger} placement={trigger === 'nudge' ? 'nudge' : 'hero'} />
       <div className="home-grid">
         <div className="home-main">{askable.map(x => (
           <button key={x.id} className="ask-card pop-in" data-testid="ask-result" onClick={() => setAsk(x)}>

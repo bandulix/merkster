@@ -116,7 +116,11 @@ export function cleanProfile(p: unknown): WireProfile | null {
     ackLevel: Math.max(1, Math.min(1000, Math.floor(num(s.ackLevel, 1)))),
     ackBadges: Array.isArray(s.ackBadges) ? s.ackBadges.filter((x): x is string => typeof x === 'string' && /^[a-z0-9_]{2,40}$/.test(x)).slice(0, 200) : [],
     gradePrivacy: (s.gradePrivacy === 'hide' || s.gradePrivacy === 'grades' ? s.gradePrivacy : 'summary') as 'hide' | 'summary' | 'grades',
-    gradeTargets: cleanTargets(s.gradeTargets)
+    gradeTargets: cleanTargets(s.gradeTargets),
+    ...(Number.isInteger(s.schoolYear) && (s.schoolYear as number) >= 1 && (s.schoolYear as number) <= 13 ? { schoolYear: s.schoolYear as number } : {}),
+    ...(Number.isInteger(s.birthYear) && (s.birthYear as number) >= 1995 && (s.birthYear as number) <= 2035 ? { birthYear: s.birthYear as number } : {}),
+    merkiMuted: s.merkiMuted === true,
+    ageAsked: s.ageAsked === true
   };
   const k = (d.streak || {}) as Record<string, unknown>, t = (d.stats || {}) as Record<string, unknown>;
   return {

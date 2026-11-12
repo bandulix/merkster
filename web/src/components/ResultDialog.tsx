@@ -13,6 +13,7 @@ import { pushGrades } from '../lib/planSync';
 import * as S from '../lib/schedule';
 import { confetti, now, toast, uid } from '../lib/util';
 import { subjectIcon, subjectName, t, type Key } from '../i18n';
+import { merkiMoment, queueMerkiMoment } from './MerkiSay';
 
 export function ResultDialog({ test, onClose, onSaved }: { test: Test; onClose: () => void; onSaved?: (best: boolean) => void }) {
   return <GradeSheet test={test} onClose={onClose} onSaved={onSaved} />;
@@ -51,7 +52,8 @@ export function GradeSheet({ test, existing, onClose, onSaved }: { test?: Test |
     if (linked) store.updateTest(linked.id, { result: toExamResult(entry), resultSkipped: false });
     void pushGrades([entry]).catch(() => undefined);
     if (best) confetti();
-    toast(best ? '🏆 ' + t('personal_best') : t('result_saved'), 'ok');
+    if (!store.data.settings.merkiMuted && !merkiMoment()) queueMerkiMoment('grade');
+    else if (!merkiMoment()) toast(best ? '🏆 ' + t('personal_best') : t('result_saved'), 'ok');
     onSaved?.(best);
     onClose();
   };
