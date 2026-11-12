@@ -17,12 +17,16 @@ import { Merki } from './Merki';
 type MomentTrigger = 'plan_created' | 'grade' | 'exam_soon';
 let moment: MomentTrigger | null = null;
 const listeners = new Set<() => void>();
+const shown = new Set<string>();
 const emit = () => listeners.forEach(fn => fn());
 
 export function merkiMoment(): MomentTrigger | null { return moment; }
 export function subscribeMerki(fn: () => void) { listeners.add(fn); return () => listeners.delete(fn); }
+/** A full-screen moment is optional and once per visit. It never covers a page the student just opened to start work. */
 export function queueMerkiMoment(trigger: MomentTrigger) {
-  if (moment || store.data.settings.merkiMuted) return;
+  if (trigger !== 'grade') return;
+  if (moment || store.data.settings.merkiMuted || shown.has(trigger)) return;
+  shown.add(trigger);
   moment = trigger;
   emit();
 }

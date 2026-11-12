@@ -2,7 +2,7 @@
    a second student joins the same sheet, grades and privacy. */
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
-import { googleLogin, newUser, ROOT, SHOTS } from './helpers';
+import { dismissMerki, googleLogin, newUser, ROOT, SHOTS } from './helpers';
 
 const FIX = path.join(ROOT, 'tests/fixtures/vocab-table.png');
 const stamp = Date.now().toString(36);
@@ -32,6 +32,7 @@ test('two students share a Lernziele sheet, then grades stay between them', asyn
   await expect(mia.page.getByTestId('method-chip').first()).toBeVisible();
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-43-plan.png'), fullPage: true });
 
+  await dismissMerki(mia.page);
   await mia.page.getByTestId('practice-test').click();
   await expect(mia.page.getByTestId('session')).toBeVisible();
   await expect(mia.page.locator('.qcard').first()).toBeVisible();

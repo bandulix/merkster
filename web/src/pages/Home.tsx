@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResultDialog } from '../components/ResultDialog';
 import { useStore } from '../hooks';
@@ -7,7 +7,7 @@ import * as S from '../lib/schedule';
 import { countdown, fmtTime, fmtWhen, now } from '../lib/util';
 import { extraEntries, startPractice } from '../lib/activeSession';
 import { LevelChip, Logo, Ring, SyncBadge } from '../components/ui';
-import { homeTrigger, MerkiSay, queueMerkiMoment } from '../components/MerkiSay';
+import { homeTrigger, MerkiSay } from '../components/MerkiSay';
 import { ageBand } from '../../../shared/merki';
 import { t, tp, testIcon } from '../i18n';
 import type { Test } from '../../../shared/types';
@@ -60,13 +60,6 @@ export function Home() {
   const go = (entries: S.SessionEntry[]) => { if (startPractice(entries)) nav('/practice'); };
   const bandKnown = ageBand({ schoolYear: d.settings.schoolYear, birthYear: d.settings.birthYear, nowYear: new Date(ts).getFullYear() });
   const trigger = homeTrigger();
-  const examToday = d.tests.find(x => S.phase(x, ts) === 'testDay');
-  useEffect(() => {
-    if (!examToday || d.settings.merkiMuted) return;
-    const key = 'merki-exam-' + examToday.id + '-' + S.dayISO(now());
-    try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch { return; }
-    queueMerkiMoment('exam_soon');
-  }, [examToday?.id, d.settings.merkiMuted]);
 
   let hero;
   if (!d.tests.length) {

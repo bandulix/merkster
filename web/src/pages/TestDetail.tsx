@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Card, Format, GradeSystem } from '../../../shared/types';
 import { GRADE_SYSTEMS } from '../../../shared/types';
@@ -15,16 +15,13 @@ import { ShareSheet, type ShareWhat } from '../components/Share';
 import { ShareWithClass } from '../components/ShareWithClass';
 import { SharedPlan, goalLine } from '../components/SharedPlan';
 import { formatsFor, t, tp, testIcon, type Key } from '../i18n';
-import { MerkiSay, queueMerkiMoment } from '../components/MerkiSay';
+import { MerkiSay } from '../components/MerkiSay';
 
 const PK: Record<string, Key> = { first: 'pk_first', next: 'pk_next', relearn: 'pk_relearn', night: 'pk_night', morning: 'pk_morning', 'first+night': 'pk_first' };
 
 export function TestDetail() {
   const { id } = useParams(); const [sp] = useSearchParams(); const nav = useNavigate(); const d = useStore();
   const test = store.test(id); const ts = now(), today = S.dayISO(ts);
-  useEffect(() => {
-    if (sp.get('fresh') === '1' && test && test.items.length > 0) queueMerkiMoment('plan_created');
-  }, [test?.id, test?.items.length, sp]);
   const [q, setQ] = useState(''), [edit, setEdit] = useState<string | null>(null), [showSettings, setShowSettings] = useState(false);
   const [result, setResult] = useState(false), [share, setShare] = useState<ShareWhat | null>(null);
   if (!test) return <Navigate to="/" replace />;
