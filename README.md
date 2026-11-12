@@ -55,7 +55,8 @@ Done exploring? `make down`.
 - **Class** — share one scan with the whole class; XP board, boss fights, 1v1 clashes  
 - **Merki** — an alien who speaks in one short bubble (no chat). Today gets a greeting or a “time to learn” card; a plan, a session, and the grade stats get a small line beside the content; a new plan, a saved grade, and exam day get a full-screen moment. The line is written on the server from the student’s name, year, streak, and plan, cached for the day, and replaced by a fixed line if the model fails. Years 1–4 get a bouncy Merki, years 5–7 a middle one, year 8 and up a calm one with a visor. Quiet mode is in Settings. One bubble at a time.
 - **Companions** — make your own speaker: a face (a built-in alien, or a photo cropped to a circle), a name, and a short personality. They take Merki’s places and keep the same safety rules. The personality is only tone. You can share a code with someone you study with; you can take it back. Merki stays available.
-- **Practice test** — a few days before the exam (3, 4 or 5, you choose) Merki’s subject gets a short mixed paper. Choices and short answers are graded on the device’s server; a written answer is checked gently. Weak goals are added back into the remaining days. On a shared plan the paper is the same; the score stays private unless grade privacy allows a summary.  
+- **Practice test** — a few days before the exam (3, 4 or 5, you choose) Merki’s subject gets a short mixed paper. Choices and short answers are graded on the device’s server; a written answer is checked gently. Weak goals are added back into the remaining days. On a shared plan the paper is the same; the score stays private unless grade privacy allows a summary.
+- **Explain it another way** — on a wrong answer, or whenever you ask, the same card comes back as an example, a memory hook, steps, or a small sketch. The line is cached. Links, shame and pressure are dropped.  
 
 ## Run for real (Google sign-in)
 
