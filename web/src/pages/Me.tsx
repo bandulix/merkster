@@ -31,14 +31,17 @@ export function Me() {
 
       <div className="me-grid">
         <div className="card streak-card">
-          <div className="flame" data-on={p.streak.activeToday ? '1' : '0'}>🔥</div>
-          <div><b className="big-num" data-testid="me-streak">{p.streak.current}</b> <span>{tp('day_streak', p.streak.current)}</span>
-            <p className="muted small">{p.streak.activeToday ? t('streak_safe') : p.streak.current ? t('streak_today') : t('streak_start')}</p>
-            <p className="small" data-testid="joker-line">🧊 {tp('freezes_n', p.streak.freezes)} · 🏁 {tp('next_milestone', p.streak.next)} · {t('best_streak')}: {p.streak.best}</p>
-            <p className="small muted" data-testid="joker-help">{t('joker_help')}</p>
-            {p.streak.frozenDays.length > 0 && <MerkiSay trigger="joker" placement="inline" />}
+          <div className="streak-head">
+            <div className="flame" data-on={p.streak.activeToday ? '1' : '0'} aria-hidden>🔥</div>
+            <div className="streak-copy">
+              <p className="streak-title"><b className="big-num" data-testid="me-streak">{p.streak.current}</b> <span>{tp('day_streak', p.streak.current)}</span></p>
+              <p className="muted small">{p.streak.activeToday ? t('streak_safe') : p.streak.current ? t('streak_today') : t('streak_start')}</p>
+              <p className="small" data-testid="joker-line">🧊 {tp('freezes_n', p.streak.freezes)} · 🏁 {tp('next_milestone', p.streak.next)} · {t('best_streak')}: {p.streak.best}</p>
+            </div>
+            <button className="icon-btn" aria-label={t('share')} onClick={() => setShare({ kind: 'streak' })}>📤</button>
           </div>
-          <button className="btn link" onClick={() => setShare({ kind: 'streak' })}>📤</button>
+          <p className="joker-note" data-testid="joker-help">{t('joker_help')}</p>
+          {p.streak.frozenDays.length > 0 && <MerkiSay trigger="joker" placement="inline" />}
         </div>
         <div className="card week-card">
           <h3>{t('this_week')}</h3>

@@ -37,7 +37,14 @@ export function ResultsDashboard({ items, sys, rowExtra, rowActions, charts = tr
       <div className="tile-stat"><span>{t('trend')}</span><b className={'trend ' + (trend || '')}>{trend === 'up' ? '↗' : trend === 'down' ? '↘' : trend === 'flat' ? '→' : '–'}</b><small>{trend ? t(('trend_' + trend) as 'trend_up') : t('trend_need')}</small></div>
       <div className="tile-stat"><span>{t('results_n')}</span><b>{shown.length}</b></div>
     </div>
-    {charts && !chartsReady && <p className="muted small" data-testid="charts-locked">{tp('charts_need_more', Math.max(1, 2 - shown.length))}</p>}
+    {charts && shown.length === 1 && <div className="card chart-card chart-spot" data-testid="grade-one">
+      <h3>{t('over_time')}</h3>
+      <b>{fmtResult(shown[0].result)}</b>
+      <p>{shown[0].name} · {fmtDay(shown[0].testDate)}</p>
+      <p className="muted">{t('chart_one')}</p>
+    </div>}
+    {charts && shown.length === 0 && <p className="muted small" data-testid="charts-locked">{t('erfolg_empty')}</p>}
+    {charts && shown.length > 0 && !chartsReady && shown.length !== 1 && <p className="muted small" data-testid="charts-locked">{tp('charts_need_more', Math.max(1, 2 - shown.length))}</p>}
     {charts && chartsReady && <div className="card chart-card" data-testid="chart-over-time"><h3>{t('over_time')}</h3>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={timeline} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>

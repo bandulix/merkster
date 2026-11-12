@@ -138,7 +138,7 @@ export function Home() {
           </div>
         </div>
       )}
-      {!online && <p className="chip" data-testid="offline-ready">{t('offline_pack')}</p>}
+      {!online && <p className="offline-banner" role="status" data-testid="offline-ready">{t('offline_pack')}</p>}
       <MerkiSay trigger={trigger} placement={trigger === 'nudge' ? 'nudge' : 'hero'} />
       <div className="home-grid">
         <div className="home-main">{askable.map(x => (
@@ -146,7 +146,7 @@ export function Home() {
             <span className="tc-icon">{testIcon(x)}</span><span><b>{t('how_did_it_go')}</b><small>{x.name}</small></span><span className="btn primary sm">{t('enter_result')}</span>
           </button>))}{hero}
           {active.length > 0 && <>
-            <div className="sec-head carousel-head"><h3>{t('your_tests')}</h3></div>
+            <div className="sec-head carousel-head"><h3>{t('your_tests')}</h3><button className="btn link only-mobile" onClick={() => nav('/new')}>+ {t('new_test')}</button></div>
             <div className="test-carousel" data-testid="test-carousel">{active.map(card)}</div>
           </>}
           </div>
