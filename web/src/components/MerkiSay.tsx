@@ -22,9 +22,8 @@ const emit = () => listeners.forEach(fn => fn());
 
 export function merkiMoment(): MomentTrigger | null { return moment; }
 export function subscribeMerki(fn: () => void) { listeners.add(fn); return () => listeners.delete(fn); }
-/** A full-screen moment is optional and once per visit. It never covers a page the student just opened to start work. */
+/** A full-screen moment is optional and once per visit. Pages do not queue one on arrival. */
 export function queueMerkiMoment(trigger: MomentTrigger) {
-  if (trigger !== 'grade') return;
   if (moment || store.data.settings.merkiMuted || shown.has(trigger)) return;
   shown.add(trigger);
   moment = trigger;
