@@ -2,6 +2,7 @@
    last successful sync (content hashes), and merge a server response back into AppData. */
 import type { AppData, Card, SyncRequest, SyncResponse, Test, WireCard, WireProfile, WireSession, WireTest } from '../../../shared/types';
 import { freshState } from './schedule';
+import { mergeCardState } from '../../../shared/offline';
 
 export interface SyncState { rev: number; hashes: Record<string, string>; cardTest: Record<string, string>; }
 export const emptySyncState = (): SyncState => ({ rev: 0, hashes: {}, cardTest: {} });
@@ -103,9 +104,11 @@ export function applyRemote(d: AppData, res: SyncResponse, changedLocally: (key:
     // the card may live in another test locally (moved) – remove it there first
     for (const x of d.tests) { const j = x.items.findIndex(c => c.id === w.id); if (j >= 0 && (x !== owner || w.deleted)) { x.items.splice(j, 1); n++; } }
     if (w.deleted || !owner) continue;
-    const card: Card = { id: w.id, type: w.type, term: w.term, meaning: w.meaning, example: w.example || '', distractors: w.distractors?.length ? w.distractors : undefined, st: { ...freshState(), ...w.st }, ...(w.study ? { study: w.study } : {}) };
+    const incoming = { ...freshState(), ...w.st };
+    const card: Card = { id: w.id, type: w.type, term: w.term, meaning: w.meaning, example: w.example || '', distractors: w.distractors?.length ? w.distractors : undefined, st: incoming, ...(w.study ? { study: w.study } : {}) };
     const j = owner.items.findIndex(c => c.id === w.id);
-    if (j >= 0) owner.items[j] = card; else owner.items.splice(Math.min(w.position, owner.items.length), 0, card);
+    if (j >= 0) { card.st = mergeCardState(owner.items[j].st, incoming); owner.items[j] = card; }
+    else owner.items.splice(Math.min(w.position, owner.items.length), 0, card);
     n++;
   }
   for (const w of res.sessions) if (!d.history.some(h => h.id === w.id)) { d.history.push({ id: w.id, day: w.day, n: w.n, firstTry: w.firstTry, ms: w.ms, tests: w.tests, at: w.at ?? undefined, correct: w.correct, activeMs: w.activeMs }); n++; }

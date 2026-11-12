@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GradeSystem, User } from '../../../shared/types';
@@ -70,6 +70,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
         <label className="toggle"><input type="checkbox" data-testid="merki-mute" checked={!!s.merkiMuted} onChange={e => store.setSettings({ merkiMuted: e.target.checked })} /><span>{t('merki_mute')}</span></label>
         <button type="button" className="btn ghost" data-testid="open-companions" onClick={() => nav('/companions')}>{t('comp_open')}</button>
         <div className="set-row"><span>{t('mock_lead')}</span><div className="chips">{([3, 4, 5] as const).map(n => <button key={n} type="button" data-testid={'mock-lead-' + n} className={'pill sm' + (leadDays(s.mockLead) === n ? ' on' : '')} onClick={() => store.setSettings({ mockLead: n })}>{t('mock_days', { n })}</button>)}</div></div>
+        <PushPrefs />
         <p className="small muted">{t('merki_mute_sub')}</p>
       </div>
 
@@ -126,5 +127,25 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
         <p className="muted small">{t('vibe_note')}</p>
         <p className="muted small">{t('license_note')} <a href={cfg.data?.sourceCodeUrl || 'https://github.com/bandulix/merkster'} target="_blank" rel="noopener noreferrer" data-testid="source-code">{t('source_code')} ↗</a></p></div>
     </section>
+  );
+}
+
+function PushPrefs() {
+  const q = useQuery({ queryKey: ['push-prefs'], queryFn: () => api<{ prefs: { enabled: boolean; hour: number } }>('/api/push/prefs') });
+  const [hour, setHour] = useState(16);
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => { if (q.data) { setEnabled(!!q.data.prefs.enabled); setHour(q.data.prefs.hour || 16); } }, [q.data]);
+  const save = async (on: boolean, h = hour) => {
+    setEnabled(on); setHour(h);
+    await api('/api/push/prefs', { method: 'PUT', body: { enabled: on, hour: h } });
+    await q.refetch();
+  };
+  return (
+    <div className="card" data-testid="push-card">
+      <h3>{t('push_title')}</h3>
+      <p className="small muted" data-testid="push-quiet">{t('push_quiet')}</p>
+      <label className="toggle"><input type="checkbox" data-testid="push-enable" checked={enabled} onChange={e => { const on = e.target.checked; void save(on).catch(() => toast(t('err_network'), 'bad')); }} /><span>{t('push_on')}</span></label>
+      <div className="chips">{[15, 16, 17, 18].map(h => <button key={h} type="button" className={'pill sm' + ((q.data?.prefs.hour || hour) === h ? ' on' : '')} data-testid={'push-hour-' + h} onClick={() => { setHour(h); if (enabled) void save(true, h); }}>{h}:00</button>)}</div>
+    </div>
   );
 }
