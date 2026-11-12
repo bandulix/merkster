@@ -166,36 +166,6 @@ export async function apiCall(page: Page, method: 'GET' | 'POST' | 'PATCH' | 'DE
   let body: any = null; try { body = await r.json(); } catch { /* not json */ }
   return { status: r.status(), body };
 }
-/** student creates an invite on /supporters, returns "/join#<token>" */
-export async function createInvite(page: Page, rel: string, label: string, uses: 1 | 2 | 5 = 1) {
-  await page.goto('/supporters');
-  await page.getByTestId('invite-new').click();
-  await page.getByTestId('rel-' + rel).click();
-  await page.getByTestId('inv-label').fill(label);
-  await page.getByTestId('inv-uses-' + uses).click();
-  await page.getByTestId('inv-create').click();
-  const url = await page.getByTestId('invite-url').inputValue();
-  expect(url).toMatch(/\/join#[A-Za-z0-9_-]{32}$/);
-  const u = new URL(url);
-  return u.pathname + u.hash;
-}
-/** someone opens an invite link: signs in with Google if needed, accepts, lands on the cheering overview */
-export async function acceptInvite(page: Page, joinPath: string, who?: { email: string; name: string }, studentName?: string) {
-  await page.goto(joinPath);
-  await expect(page.getByTestId('join')).toBeVisible();
-  if (studentName) await expect(page.getByTestId('join-title')).toContainText(studentName);
-  if (who && !(await page.getByTestId('join-accept').count())) {
-    await page.getByTestId('join').getByTestId('google-login').click();
-    await page.waitForURL(/\/authorize/);
-    await page.locator('#email').fill(who.email);
-    await page.locator('#name').fill(who.name);
-    await page.locator('#signin').click();
-    await page.waitForURL(/\/join/);
-  }
-  await page.getByTestId('join-accept').click();
-  await expect(page.getByTestId('join-done')).toBeVisible();
-}
-
 /** let celebrations settle before a screenshot: no confetti still falling, no toast on screen (best effort) */
 export async function calm(page: Page) {
   await expect(page.locator('.confetti')).toHaveCount(0, { timeout: 8000 }).catch(() => undefined);

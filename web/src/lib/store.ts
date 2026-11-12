@@ -47,9 +47,9 @@ class Store {
   private writing: Promise<void> | null = null;
   private dirty = false;
   onChange: (() => void) | null = null; // set by sync.ts
-  /** cheers received from supporters (server-side data, cached per user for offline use) – feeds XP / Fan-club badge */
+  /** Optional reactions fed into progression. The student app leaves this empty. */
   cheers: CheerLite[] = [];
-  /** confirmed report cards (server-side), reduced for progression */
+  /** Optional confirmed results fed into progression. The student app leaves this empty. */
   cards: CardLite[] = [];
 
   subscribe = (f: Listener) => { this.listeners.add(f); return () => { this.listeners.delete(f); }; };

@@ -57,15 +57,13 @@ export function App() {
   }
   if (openFor !== user.id) return <Splash />;
   const p = loc.pathname;
-  // a supporter who never started learning lands on the cheering overview instead of the student onboarding
-  const mode = 'student' as const;
   const free = ['/welcome', '/new', '/goals', '/test', '/settings', '/me', '/results', '/compare', '/class'].some(x => p.startsWith(x));
   if (!data.settings.onboarded && !free) return <Navigate to="/welcome/1" replace />;
   const chrome = !/^\/(practice|done|welcome)/.test(p) && p !== '/class';
   return (
     <div className={'app' + (chrome ? ' with-nav' : '')}>
       <a className="skip-link" href="#main">{t('skip_to_main')}</a>
-      {chrome && <Nav mode={mode} />}
+      {chrome && <Nav />}
       <main className="main" id="main" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Home />} />

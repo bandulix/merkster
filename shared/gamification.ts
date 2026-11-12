@@ -70,7 +70,7 @@ export const activeMsOf = (h: HistoryEntry) => h.activeMs ?? h.ms ?? 0;
 export const correctOf = (h: HistoryEntry) => h.correct ?? h.n ?? 0;
 
 export interface XpEvent { at: number; kind: 'session' | 'streak' | 'plan' | 'result' | 'personal_best' | 'badge'; xp: number; ref?: string }
-/** a received cheer (supporter reaction), reduced to what progression needs */
+/** an optional reaction, reduced to what progression needs */
 export interface CheerLite { at: number; target: string; from: string }
 export interface Progress {
   xp: number; level: number; rank: Rank; info: ReturnType<typeof levelInfo>;

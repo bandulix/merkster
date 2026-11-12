@@ -23,17 +23,6 @@ const VOCAB = {
   ],
   unreadable: ['last line is cut off at the bottom edge']
 };
-// a German half-year report card (Halbjahreszeugnis) with typical abbreviations, a conduct line and one unreadable grade
-const REPORT = {
-  schoolYear: '2025/26', term: 'h1', termLabel: '', issuedOn: '2026-01-30', system: 'de_grade',
-  lines: [
-    { subject: 'Deutsch', grade: '2' }, { subject: 'Mathematik', grade: '1' }, { subject: 'Englisch', grade: 'sehr gut' },
-    { subject: 'Bio', grade: '1' }, { subject: 'Geschichte', grade: '3' }, { subject: 'Erdk.', grade: '2' },
-    { subject: 'Physik', grade: '2' }, { subject: 'Kunst', grade: '1' }, { subject: 'Sport', grade: '2' },
-    { subject: 'Ev. Religion', grade: '', unreadable: true }, { subject: 'Verhalten', grade: 'gut' }, { subject: 'Darstellendes Spiel', grade: '1' }
-  ],
-  unreadable: ['Religion grade is covered by a stamp']
-};
 const BIO_GOALS = {
   language: 'de', subject: 'biology', title: 'Die Zelle – Lernziele Klasse 10', gradeLevel: 'Gymnasium Klasse 10', examFormat: '',
   goals: [
@@ -141,7 +130,7 @@ http.createServer((req, res) => {
       return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ school }) } }] });
     }
     const deNotes = /unreadable.*German|UI language for the student\)\.|Write every "unreadable" note in German/i.test(text);
-    let payload = /REPORT_CARD/.test(sys) ? { ...REPORT } : /Vocabulary:/.test(text) ? { ...VOCAB } : { ...BIO };
+    let payload = /Vocabulary:/.test(text) ? { ...VOCAB } : { ...BIO };
     if (deNotes && payload.unreadable?.length) {
       payload = {
         ...payload,
