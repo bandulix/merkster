@@ -8,7 +8,6 @@ import { useConfig, useStore, rememberUser } from '../hooks';
 import { api } from '../lib/api';
 import { store } from '../lib/store';
 import { stopSync, resetSyncState, runSync } from '../lib/sync';
-import { warmOfflineCache } from '../lib/ocr';
 import { download, toast } from '../lib/util';
 import { AvatarEdit } from '../components/AvatarEdit';
 import { fanfare } from '../components/Celebrate';
@@ -97,7 +96,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
         <p className="small" data-testid="ai-status">{cfg.data?.ai.configured ? t('s_ai_server_on', { model: cfg.data.ai.model || '' }) : t('s_ai_server_off')}</p>
         {user.isAdmin && cfg.data?.ai.configured && <button className="btn ghost sm" disabled={ping.isPending} onClick={() => ping.mutate()}>{t('s_ai_ping')}</button>}
         <p className="small muted">{t('s_offline_hint')}</p>
-        <button className="btn ghost sm" onClick={async () => { toast(t('offline_started')); toast((await warmOfflineCache()) ? t('offline_ready') : t('offline_na'), 'ok'); }}>⬇️ {t('s_offline')}</button>
+        <button className="btn ghost sm" onClick={async () => { toast(t('offline_started')); const { warmOfflineCache } = await import('../lib/ocr'); toast((await warmOfflineCache()) ? t('offline_ready') : t('offline_na'), 'ok'); }}>⬇️ {t('s_offline')}</button>
       </div>
 
       {user.isAdmin && <div className="card"><h3>{t('s_users')}</h3>

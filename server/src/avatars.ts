@@ -56,6 +56,25 @@ export function stripJpegMeta(raw: Buffer): Buffer {
   return Buffer.concat(out);
 }
 
+const PNG_KEEP = new Set(['IHDR', 'PLTE', 'IDAT', 'IEND', 'tRNS']);
+/** Drop PNG text and EXIF chunks. The picture itself stays. */
+export function stripPngMeta(raw: Buffer): Buffer {
+  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (raw.length < 8 || !raw.subarray(0, 8).equals(sig)) return raw;
+  const out: Buffer[] = [sig];
+  let i = 8;
+  while (i + 12 <= raw.length) {
+    const len = raw.readUInt32BE(i);
+    const type = raw.subarray(i + 4, i + 8).toString('ascii');
+    const end = i + 12 + len;
+    if (end > raw.length) break;
+    if (PNG_KEEP.has(type)) out.push(raw.subarray(i, end));
+    i = end;
+    if (type === 'IEND') break;
+  }
+  return Buffer.concat(out);
+}
+
 export const AVATAR_UPLOAD_MAX = 512 * 1024;
 const CUSTOM_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -64,7 +83,7 @@ export function prepareAvatarUpload(raw: Buffer): { bytes: Buffer; type: string;
   if (raw.length < 32 || raw.length > AVATAR_UPLOAD_MAX) return null;
   const type = sniff(raw);
   if (!type || !CUSTOM_TYPES.has(type)) return null;
-  const bytes = type === 'image/jpeg' ? stripJpegMeta(raw) : raw;
+  const bytes = type === 'image/jpeg' ? stripJpegMeta(raw) : type === 'image/png' ? stripPngMeta(raw) : raw;
   if (sniff(bytes) !== type || bytes.length < 32 || bytes.length > AVATAR_UPLOAD_MAX) return null;
   return { bytes, type, etag: crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 16) };
 }

@@ -155,10 +155,16 @@ export async function companionsPlugin(app: FastifyInstance, { pool, config }: {
     if (!canEdit(access)) return reply.code(403).send({ error: 'forbidden' });
     if (!req.isMultipart()) return reply.code(415).send({ error: 'multipart_required' });
     let buf: Buffer | null = null;
-    for await (const part of req.parts()) {
-      if (part.type !== 'file') continue;
-      buf = await part.toBuffer();
-      break;
+    try {
+      for await (const part of req.parts()) {
+        if (part.type !== 'file') continue;
+        buf = await part.toBuffer();
+        if (part.file.truncated) return reply.code(413).send({ error: 'file_too_large' });
+        break;
+      }
+    } catch (e) {
+      if ((e as { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') return reply.code(413).send({ error: 'file_too_large' });
+      throw e;
     }
     const prepared = buf ? prepareAvatarUpload(buf) : null;
     if (!prepared) return reply.code(415).send({ error: 'unsupported_image' });

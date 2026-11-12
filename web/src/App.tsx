@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMe, useStore, useTheme } from './hooks';
@@ -13,21 +13,25 @@ import { Onboarding } from './pages/Onboarding';
 import { Home } from './pages/Home';
 import { NewTest } from './pages/NewTest';
 import { GoalsPage } from './pages/Goals';
-import { ImportPage, PastePage } from './pages/Import';
 import { Review } from './pages/Review';
 import { TestDetail } from './pages/TestDetail';
-import { SessionPage, DonePage } from './pages/Session';
 import { Settings } from './pages/Settings';
 import { Me } from './pages/Me';
 import { Celebrations } from './components/Celebrate';
 import { MerkiMomentHost } from './components/MerkiSay';
 import { ClassJoin } from './pages/ClassJoin';
-import { ClassPage, Classes } from './pages/Classes';
-import { ClashPage } from './pages/Clash';
 import { ComparePage } from './pages/Compare';
-import { CompanionsPage } from './pages/Companions';
-import { MockExamPage } from './pages/MockExam';
 const Results = lazy(() => import('./pages/Results'));
+const ImportPage = lazy(() => import('./pages/Import').then(m => ({ default: m.ImportPage })));
+const PastePage = lazy(() => import('./pages/Import').then(m => ({ default: m.PastePage })));
+const SessionPage = lazy(() => import('./pages/Session').then(m => ({ default: m.SessionPage })));
+const DonePage = lazy(() => import('./pages/Session').then(m => ({ default: m.DonePage })));
+const Classes = lazy(() => import('./pages/Classes').then(m => ({ default: m.Classes })));
+const ClassPage = lazy(() => import('./pages/Classes').then(m => ({ default: m.ClassPage })));
+const ClashPage = lazy(() => import('./pages/Clash').then(m => ({ default: m.ClashPage })));
+const CompanionsPage = lazy(() => import('./pages/Companions').then(m => ({ default: m.CompanionsPage })));
+const MockExamPage = lazy(() => import('./pages/MockExam').then(m => ({ default: m.MockExamPage })));
+const page = (node: ReactNode) => <Suspense fallback={<Splash />}>{node}</Suspense>;
 
 function Splash() { return <div className="splash"><Logo size={72} className="pulse" /><p className="muted">{t('loading')}</p></div>; }
 
@@ -75,21 +79,21 @@ export function App() {
           <Route path="/new" element={<NewTest />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/test/:id" element={<TestDetail />} />
-          <Route path="/test/:id/mock" element={<MockExamPage />} />
-          <Route path="/test/:id/import" element={<ImportPage />} />
-          <Route path="/test/:id/paste" element={<PastePage />} />
+          <Route path="/test/:id/mock" element={page(<MockExamPage />)} />
+          <Route path="/test/:id/import" element={page(<ImportPage />)} />
+          <Route path="/test/:id/paste" element={page(<PastePage />)} />
           <Route path="/test/:id/review" element={<Review />} />
-          <Route path="/practice" element={<SessionPage />} />
-          <Route path="/done" element={<DonePage />} />
-          <Route path="/results" element={<Suspense fallback={<Splash />}><Results /></Suspense>} />
+          <Route path="/practice" element={page(<SessionPage />)} />
+          <Route path="/done" element={page(<DonePage />)} />
+          <Route path="/results" element={page(<Results />)} />
           <Route path="/compare/:id" element={<ComparePage />} />
           <Route path="/me" element={<Me />} />
-          <Route path="/classes" element={<Classes />} />
-          <Route path="/classes/:id" element={<ClassPage />} />
-          <Route path="/classes/:id/clash/:clashId" element={<ClashPage />} />
+          <Route path="/classes" element={page(<Classes />)} />
+          <Route path="/classes/:id" element={page(<ClassPage />)} />
+          <Route path="/classes/:id/clash/:clashId" element={page(<ClashPage />)} />
           <Route path="/class" element={<ClassJoin user={user} />} />
           <Route path="/settings" element={<Settings user={user} offline={!!me.data?.offline} />} />
-          <Route path="/companions" element={<CompanionsPage />} />
+          <Route path="/companions" element={page(<CompanionsPage />)} />
           <Route path="*" element={<div className="empty-hero"><h2>{t('not_found')}</h2></div>} />
         </Routes>
       </main>

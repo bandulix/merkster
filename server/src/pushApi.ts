@@ -72,9 +72,12 @@ export async function pushPlugin(app: FastifyInstance, { pool }: { pool: pg.Pool
     const p256dh = String(body.keys?.p256dh || '');
     const auth = String(body.keys?.auth || '');
     if (!endpoint.startsWith('https://') || !p256dh || !auth) return reply.code(400).send({ error: 'bad_sub' });
-    await pool.query(`INSERT INTO push_subs (id, user_id, endpoint, p256dh, auth) VALUES ($1,$2,$3,$4,$5)
-      ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
+    const saved = await pool.query(`INSERT INTO push_subs (id, user_id, endpoint, p256dh, auth) VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth
+      WHERE push_subs.user_id = EXCLUDED.user_id
+      RETURNING id`,
       [crypto.randomBytes(9).toString('base64url'), req.user!.id, endpoint.slice(0, 500), p256dh.slice(0, 200), auth.slice(0, 200)]);
+    if (!saved.rowCount) return reply.code(409).send({ error: 'endpoint_taken' });
     return { ok: true };
   });
 }

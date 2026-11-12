@@ -1,6 +1,6 @@
 /* Class groups.
    The student who creates the class owns its name, motto and cover. Every member can invite
-   classmates (unguessable link, same fragment style as supporter invites) and share one of
+   classmates (unguessable link) and share one of
    their tests. A share is a snapshot of the cards – practice state stays with the author.
    The leaderboard recomputes XP with the same function the app uses. */
 import crypto from 'node:crypto';
@@ -133,7 +133,7 @@ export async function classesPlugin(app: FastifyInstance, { pool, config }: { po
     const progressOf = await loadStudents(pool, people.rows.map(p => Number(p.id)));
     const board = boardOrder(people.rows.map(p => {
       const progress = progressOf.get(Number(p.id))!.progress;
-      return { id: String(p.id), name: p.name as string, avatar: avatarPath(p.id, p.avatar_etag), owner: !!p.is_owner, me: Number(p.id) === uidOf(req), xp: progress.xp, level: progress.level };
+      return { id: String(p.id), name: firstName(p.name as string), avatar: avatarPath(p.id, p.avatar_etag), owner: !!p.is_owner, me: Number(p.id) === uidOf(req), xp: progress.xp, level: progress.level };
     }));
     return {
       class: shape(cls),

@@ -1,6 +1,6 @@
 /* Merkster – registration codeword (SIGNUP_CODE).
-   - Only gates FIRST-TIME account creation through Google sign-in. Existing accounts, ADMIN_EMAILS and supporters
-     who arrive with a valid invite link never need it.
+   - Only gates FIRST-TIME account creation through Google sign-in. Existing accounts, ADMIN_EMAILS and
+     anyone who arrives with a valid class invite never need it.
    - The code itself never leaves the server: the browser only learns *whether* one is required (/api/config).
    - Compared in constant time (HMAC of both sides, then timingSafeEqual) after a forgiving normalisation
      (trimmed, Unicode NFC, case-insensitive) so "Merkster-Demo " typed on a phone still matches.

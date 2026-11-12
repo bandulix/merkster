@@ -197,7 +197,7 @@ export async function authPlugin(app: FastifyInstance, { pool, config }: { pool:
     setPass(reply, 'code');
     return { ok: true };
   });
-  /* b) the invite page: a valid invite link replaces the codeword (supporters) */
+  /* b) the invite page: a valid class invite link replaces the codeword */
   app.post('/api/auth/invite-pass', async (req, reply) => {
     if (!config.signupCode) return { ok: true, required: false };
     const rl = invitePassLimit(req.ip);
