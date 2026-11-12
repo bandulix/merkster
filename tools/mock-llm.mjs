@@ -141,4 +141,4 @@ http.createServer((req, res) => {
     }
     setTimeout(() => send(200, { id: 'mock-' + count, object: 'chat.completion', model: j.model, choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(payload) }, finish_reason: 'stop' }] }), 400);
   });
-}).listen(PORT, () => console.log(`mock LLM on :${PORT}`));
+}).listen(PORT, '0.0.0.0', () => console.log(`mock LLM on :${PORT}`));
