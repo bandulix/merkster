@@ -3,8 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { Test } from '../../../shared/types';
 import { cheerPlan, hidePlan, leavePlan, loadPlan, nudgePlan, type PlanEvent } from '../lib/planSync';
+import { api } from '../lib/api';
+import { MerkiSay } from './MerkiSay';
 import { store } from '../lib/store';
 import { t, tp } from '../i18n';
+
+type ChallengeView = { title: string; target: number; total: number; reached: boolean; people: { name: string; units: number; optedOut: boolean; me?: boolean }[] };
 
 function line(e: PlanEvent) {
   const name = e.name || '…';
@@ -25,10 +29,23 @@ export function SharedPlan({ test }: { test: Test }) {
   const data = q.data;
   const mine = data?.members.find(m => m.me);
   const refresh = () => qc.invalidateQueries({ queryKey: ['plan', id] });
+  const challenge = useQuery({ queryKey: ['challenge', id], queryFn: () => api<ChallengeView>('/api/plans/' + id + '/challenge'), enabled: !!id, retry: 0 });
+  const ch = challenge.data;
+  const me = ch?.people.find(p => p.me);
   return (
     <div className="card together" data-testid="together">
       <h3>{t('together')}</h3>
       <p className="muted small">{t('together_sub')}</p>
+      {ch && (
+        <div data-testid="challenge">
+          <b>{ch.title}</b>
+          <div className="member-bar" role="progressbar" aria-valuenow={Math.min(ch.total, ch.target)} aria-valuemax={ch.target}><i style={{ width: Math.min(100, Math.round(ch.total / ch.target * 100)) + '%' }} /></div>
+          <p className="small" data-testid="challenge-count">{ch.total}/{ch.target}</p>
+          {ch.reached && <><p data-testid="challenge-done">{t('challenge_done')}</p><MerkiSay trigger="friend" placement="inline" /></>}
+          <ul className="challenge-people">{ch.people.filter(p => !p.optedOut).map(p => <li key={p.name}>{p.name} · {p.units}</li>)}</ul>
+          <button type="button" className="btn ghost sm" data-testid="challenge-opt" onClick={() => api('/api/plans/' + id + '/challenge/opt', { body: { out: !me?.optedOut } }).then(() => challenge.refetch())}>{me?.optedOut ? t('challenge_in') : t('challenge_out')}</button>
+        </div>
+      )}
       {(data?.members || []).map(m => (
         <div key={m.name + (m.me ? '-me' : '')} className="member" data-testid="member-row">
           <span className="avatar-letter" aria-hidden>{(m.name || '?').slice(0, 1).toUpperCase()}</span>

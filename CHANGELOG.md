@@ -14,6 +14,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 - Practice test (Probeprüfung): opens 3–5 days before the exam, mixes question types, grades what it can, and puts weak goals back into the plan. A shared plan reuses the paper. Scores stay private unless the grade privacy setting allows a summary.
 - Explain it another way: example, memory hook, steps, or a small sketch. Cached per card and style. Unsafe lines fall back to a fixed sentence.
 - Offline pack for the cards already on the device, and a merge that keeps the further-along review. Web Push reminders are opt-in, once a day, with quiet hours from 20:00 to 07:00.
+- Cooperative weekly challenge on a shared plan: 20 units together, contributions without a ranking, and a way to sit the week out.
 
 ### Removed
 

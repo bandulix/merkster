@@ -18,6 +18,7 @@ import { companionsPlugin } from './companionsApi';
 import { mockExamPlugin } from './mockExamApi';
 import { explainPlugin } from './explainApi';
 import { pushPlugin } from './pushApi';
+import { challengePlugin } from './challengeApi';
 import { avatarsPlugin, initAvatars } from './avatars';
 import { classesPlugin } from './classes';
 import { classGamesPlugin } from './classGames';
@@ -84,6 +85,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await mockExamPlugin(app, { pool, config });
   await explainPlugin(app, { pool, config });
   await pushPlugin(app, { pool, config });
+  await challengePlugin(app, { pool });
   await classesPlugin(app, { pool, config });
   await classGamesPlugin(app, { pool, config });
   initAvatars(config);
