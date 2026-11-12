@@ -115,7 +115,9 @@ test('two students share a Lernziele sheet, then grades stay between them', asyn
   await expect(mia.page.getByTestId('privacy-summary')).toHaveClass(/on/);
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-50-privacy.png') });
 
-  await lena.page.getByTestId('compare-open').first().click();
+  const compare = lena.page.getByTestId('compare-open').first();
+  await compare.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+  await compare.click({ force: true });
   await expect(lena.page.getByTestId('compare-view')).toBeVisible();
   await expect(lena.page.getByTestId('compare-theirs')).toBeVisible();
   await expect(lena.page.getByTestId('compare-grades')).toHaveCount(0);
