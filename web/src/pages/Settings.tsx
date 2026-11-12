@@ -17,6 +17,7 @@ import { scoreOf } from '../../../shared/grades';
 import { saveGradePrivacy } from '../lib/planSync';
 import type { GradePrivacy } from '../../../shared/gradebook';
 import { uiLang } from '../i18n';
+import { leadDays } from '../../../shared/mockexam';
 
 type AdminUser = { id: string; name: string; email: string | null; isAdmin: boolean; lastLoginAt: string | null; tests: number; ai30d: number };
 
@@ -68,6 +69,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
         </div>
         <label className="toggle"><input type="checkbox" data-testid="merki-mute" checked={!!s.merkiMuted} onChange={e => store.setSettings({ merkiMuted: e.target.checked })} /><span>{t('merki_mute')}</span></label>
         <button type="button" className="btn ghost" data-testid="open-companions" onClick={() => nav('/companions')}>{t('comp_open')}</button>
+        <div className="set-row"><span>{t('mock_lead')}</span><div className="chips">{([3, 4, 5] as const).map(n => <button key={n} type="button" data-testid={'mock-lead-' + n} className={'pill sm' + (leadDays(s.mockLead) === n ? ' on' : '')} onClick={() => store.setSettings({ mockLead: n })}>{t('mock_days', { n })}</button>)}</div></div>
         <p className="small muted">{t('merki_mute_sub')}</p>
       </div>
 

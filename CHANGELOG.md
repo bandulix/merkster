@@ -11,6 +11,7 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 - Exam grades: enter the mark (German 1–6 with +/−, Oberstufe points, or percent), see a success rate against a target grade, and compare with someone on the same plan or in the same class. Exact grades are opt-in.
 - Merki, an alien mascot. Years 1–4 get a round, bouncy Merki; years 5–7 a middle one; year 8 and up a calm Merki with a hood and visor. Speech is one-way: a greeting or a nudge on Today, a short line beside a plan, a session, or the grade stats, and a full-screen moment when a plan is created, a grade is saved, or it is exam day. Lines are generated on the server, cached per day and trigger, and fall back to fixed copy. They can be muted.
 - Companions: a name, a face, and a personality that speaks in Merki’s places. Share with a code, revoke it, or go back to Merki. Photos are cropped, resized, and stripped of camera data. The personality cannot override the safety rules.
+- Practice test (Probeprüfung): opens 3–5 days before the exam, mixes question types, grades what it can, and puts weak goals back into the plan. A shared plan reuses the paper. Scores stay private unless the grade privacy setting allows a summary.
 
 ### Removed
 

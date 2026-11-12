@@ -26,6 +26,7 @@ import { ClassPage, Classes } from './pages/Classes';
 import { ClashPage } from './pages/Clash';
 import { ComparePage } from './pages/Compare';
 import { CompanionsPage } from './pages/Companions';
+import { MockExamPage } from './pages/MockExam';
 const Results = lazy(() => import('./pages/Results'));
 
 function Splash() { return <div className="splash"><Logo size={72} className="pulse" /><p className="muted">{t('loading')}</p></div>; }
@@ -74,6 +75,7 @@ export function App() {
           <Route path="/new" element={<NewTest />} />
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/test/:id" element={<TestDetail />} />
+          <Route path="/test/:id/mock" element={<MockExamPage />} />
           <Route path="/test/:id/import" element={<ImportPage />} />
           <Route path="/test/:id/paste" element={<PastePage />} />
           <Route path="/test/:id/review" element={<Review />} />

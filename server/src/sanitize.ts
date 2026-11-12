@@ -120,6 +120,7 @@ export function cleanProfile(p: unknown): WireProfile | null {
     ...(Number.isInteger(s.schoolYear) && (s.schoolYear as number) >= 1 && (s.schoolYear as number) <= 13 ? { schoolYear: s.schoolYear as number } : {}),
     ...(Number.isInteger(s.birthYear) && (s.birthYear as number) >= 1995 && (s.birthYear as number) <= 2035 ? { birthYear: s.birthYear as number } : {}),
     merkiMuted: s.merkiMuted === true,
+    mockLead: (s.mockLead === 3 || s.mockLead === 5 ? s.mockLead : 4) as 3 | 4 | 5,
     ageAsked: s.ageAsked === true
   };
   const k = (d.streak || {}) as Record<string, unknown>, t = (d.stats || {}) as Record<string, unknown>;

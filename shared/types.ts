@@ -81,6 +81,8 @@ export interface Settings {
   merkiMuted?: boolean;
   /** The year question was dismissed. */
   ageAsked?: boolean;
+  /** Probeprüfung opens this many days before the exam (3, 4 or 5). */
+  mockLead?: 3 | 4 | 5;
 }
 export interface Streak { count: number; best: number; lastDay: string | null; }
 export interface Stats { sessions: number; answers: number; firstTry: number; ms: number; }
