@@ -83,6 +83,8 @@ export interface Settings {
   ageAsked?: boolean;
   /** Probeprüfung opens this many days before the exam (3, 4 or 5). */
   mockLead?: 3 | 4 | 5;
+  /** An extra streak joker earned by finishing a group challenge. */
+  challengeBonus?: boolean;
 }
 export interface Streak { count: number; best: number; lastDay: string | null; }
 export interface Stats { sessions: number; answers: number; firstTry: number; ms: number; }

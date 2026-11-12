@@ -132,6 +132,7 @@ http.createServer((req, res) => {
       else if (/Trigger: plan_created/.test(text)) line = teen ? 'Plan steht. Wir gehen das ruhig an.' : 'Dein Plan ist fertig. Wir üben bis zur Prüfung.';
       else if (/Trigger: friend/.test(text)) line = teen ? 'Jemand aus dem Plan war heute dabei. Läuft.' : 'Jemand aus dem Plan hat heute geübt. Ihr seid ein Team.';
       else if (/Trigger: mock_done/.test(text)) line = teen ? 'Probe sitzt. Die Lücken üben wir noch kurz.' : 'Probe geschafft! Wir üben noch, was wackelt.';
+      else if (/Trigger: joker/.test(text)) line = 'Dein Joker hat die Serie gehalten.';
       let pose = 'happy';
       if (/Trigger: nudge|Trigger: behind/.test(text)) pose = 'nudging';
       else if (/Trigger: grade|Trigger: plan_created/.test(text)) pose = 'proud';

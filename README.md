@@ -58,7 +58,8 @@ Done exploring? `make down`.
 - **Practice test** — a few days before the exam (3, 4 or 5, you choose) Merki’s subject gets a short mixed paper. Choices and short answers are graded on the device’s server; a written answer is checked gently. Weak goals are added back into the remaining days. On a shared plan the paper is the same; the score stays private unless grade privacy allows a summary.
 - **Explain it another way** — on a wrong answer, or whenever you ask, the same card comes back as an example, a memory hook, steps, or a small sketch. The line is cached. Links, shame and pressure are dropped.
 - **Offline and reminders** — today’s cards stay on the device, and a synced answer keeps the further-along review. Reminders are off until you opt in, at most once a day, and never before 07:00 or after 20:00. The text uses the companion’s name.
-- **Shared challenge** — a plan can aim for 20 units together this week. The bar is the group. Names are listed alphabetically. You can sit a week out. Merki celebrates when the group reaches it.  
+- **Shared challenge** — a plan can aim for 20 units together this week. The bar is the group. Names are listed alphabetically. You can sit a week out. Merki celebrates when the group reaches it.
+- **Streak joker** — one freeze each week, used on its own if a day is missed. A finished group challenge earns one more. Merki says so when it was used.  
 
 ## Run for real (Google sign-in)
 

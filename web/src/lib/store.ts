@@ -145,7 +145,8 @@ class Store {
   private prog: { v: number; day: string; p: Progress } | null = null;
   progress(ts = now()): Progress {
     const day = S.dayISO(ts);
-    if (!this.prog || this.prog.v !== this.version || this.prog.day !== day) this.prog = { v: this.version, day, p: computeProgress(this.data.history, this.data.tests, ts, this.cheers, this.cards) };
+    const bonus = this.data.settings.challengeBonus ? 1 : 0;
+    if (!this.prog || this.prog.v !== this.version || this.prog.day !== day) this.prog = { v: this.version, day, p: computeProgress(this.data.history, this.data.tests, ts, this.cheers, this.cards, bonus) };
     return this.prog.p;
   }
   liveStreak(ts: number) { return this.progress(ts).streak.current; }

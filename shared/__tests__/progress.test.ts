@@ -52,7 +52,9 @@ describe('streaks', () => {
     const h = ['2026-10-01', '2026-10-02', '2026-10-03'].map(d => sess(d, 5));
     expect(computeProgress(h, [], day('2026-10-03', 20)).streak.current).toBe(3);
     expect(computeProgress(h, [], day('2026-10-04', 9)).streak.current).toBe(3); // not broken yet today
-    expect(computeProgress(h, [], day('2026-10-05', 9)).streak.current).toBe(0); // missed the 4th, no freeze
+    const saved = computeProgress(h, [], day('2026-10-05', 9));
+    expect(saved.streak.current).toBe(3);
+    expect(saved.streak.frozenDays).toContain('2026-10-04');
   });
   it('earns a freeze after 7 days and uses it for a missed day', () => {
     const days = Array.from({ length: 7 }, (_, i) => `2026-10-0${i + 1}`);
@@ -60,6 +62,7 @@ describe('streaks', () => {
     const p = computeProgress(h, [], day('2026-10-09', 20));
     expect(p.streak.current).toBe(8); expect(p.streak.frozenDays).toEqual(['2026-10-08']); expect(p.streak.freezes).toBe(0);
     expect(p.badges.map(b => b.id)).toEqual(expect.arrayContaining(['streak_3', 'streak_7', 'freeze_saved']));
+    expect(computeProgress(h, [], day('2026-10-09', 20), [], [], 1).streak.current).toBe(8);
   });
 });
 
