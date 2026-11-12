@@ -5,6 +5,7 @@ import type pg from 'pg';
 import { cleanContext, fallbackLine, MERKI_POSES, MERKI_TRIGGERS, poseFor, promptFor, validateLine, type MerkiPose, type MerkiTrigger } from '../../shared/merki';
 import { callLLM, parseContent } from './ai';
 import type { Config } from './config';
+import { companionSystem, speakingCompanion } from './companionsApi';
 
 export const MERKI_PROMPT = `MERKI_LINE
 You are Merki, a kind alien who studies with a school student. You speak in ONE or TWO short sentences. You never ask them to reply.
@@ -26,7 +27,9 @@ export async function merkiPlugin(app: FastifyInstance, { pool, config }: { pool
     const user = (await pool.query('SELECT name FROM users WHERE id = $1', [uid])).rows[0];
     const ctx = cleanContext(body.context, String(user?.name || ''));
     const day = dayISO();
-    const cached = (await pool.query('SELECT line, pose FROM merki_lines WHERE user_id = $1 AND day = $2 AND trigger = $3 AND band = $4', [uid, day, trigger, ctx.band])).rows[0];
+    const speaker = await speakingCompanion(pool, uid);
+    const cid = speaker?.id || '';
+    const cached = (await pool.query('SELECT line, pose FROM merki_lines WHERE user_id = $1 AND day = $2 AND trigger = $3 AND band = $4 AND companion_id = $5', [uid, day, trigger, ctx.band, cid])).rows[0];
     if (cached) return { line: cached.line, pose: cached.pose, cached: true };
     const used = Number((await pool.query(`SELECT count(*) FROM merki_lines WHERE user_id = $1 AND created_at > now() - interval '1 day'`, [uid])).rows[0].count);
     let line = '', pose: MerkiPose = poseFor(trigger, ctx.hour);
@@ -34,7 +37,7 @@ export async function merkiPlugin(app: FastifyInstance, { pool, config }: { pool
       try {
         const out = await callLLM(config, {
           model: config.llm.textModel, temperature: 0.4, max_tokens: 180,
-          messages: [{ role: 'system', content: MERKI_PROMPT }, { role: 'user', content: promptFor(ctx, trigger) }]
+          messages: [{ role: 'system', content: companionSystem(MERKI_PROMPT, speaker) }, { role: 'user', content: promptFor(ctx, trigger) }]
         });
         const obj = parseContent(out?.choices?.[0]?.message?.content) as { line?: unknown; pose?: unknown };
         const ok = validateLine(obj?.line);
@@ -45,8 +48,8 @@ export async function merkiPlugin(app: FastifyInstance, { pool, config }: { pool
       } catch { /* fallback below */ }
     }
     if (!line) ({ line, pose } = fallbackLine(ctx, trigger));
-    await pool.query(`INSERT INTO merki_lines (user_id, day, trigger, band, line, pose) VALUES ($1,$2,$3,$4,$5,$6)
-      ON CONFLICT (user_id, day, trigger, band) DO NOTHING`, [uid, day, trigger, ctx.band, line, pose]);
+    await pool.query(`INSERT INTO merki_lines (user_id, day, trigger, band, companion_id, line, pose) VALUES ($1,$2,$3,$4,$5,$6,$7)
+      ON CONFLICT (user_id, day, trigger, band, companion_id) DO NOTHING`, [uid, day, trigger, ctx.band, cid, line, pose]);
     return { line, pose, cached: false };
   });
 }

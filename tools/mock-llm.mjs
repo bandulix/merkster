@@ -105,7 +105,15 @@ http.createServer((req, res) => {
     last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: sys.slice(0, 80) };
     calls.push({ system: sys.slice(0, 32), prompt: text.slice(0, 180) });
     if (calls.length > 12) calls.shift();
+    if (sys.includes('MODERATE_COMPANION')) {
+      const ok = !/MOCK_BLOCK|https?:\/\//i.test(text);
+      return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ ok }) } }] });
+    }
     if (sys.includes('MERKI_LINE')) {
+      const who = (sys.match(/COMPANION: (\S+)/) || [])[1];
+      if (who && who !== 'Merki') {
+        return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ line: `Hallo, ich bin ${who}. Eine kleine Runde reicht.`, pose: 'happy' }) } }] });
+      }
       const teen = /Age band: teen/.test(text);
       const young = /Age band: young/.test(text);
       const plan = (text.match(/Plan: ([^.\n]+)/) || [])[1] || '';

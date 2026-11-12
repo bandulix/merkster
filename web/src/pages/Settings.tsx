@@ -67,6 +67,7 @@ export function Settings({ user, offline }: { user: User; offline: boolean }) {
           <button type="button" className={'pill sm' + (s.schoolYear === 10 ? ' on' : '')} data-testid="set-year-teen" onClick={() => store.setSettings({ schoolYear: 10, ageAsked: true })}>{t('merki_teen')}</button>
         </div>
         <label className="toggle"><input type="checkbox" data-testid="merki-mute" checked={!!s.merkiMuted} onChange={e => store.setSettings({ merkiMuted: e.target.checked })} /><span>{t('merki_mute')}</span></label>
+        <button type="button" className="btn ghost" data-testid="open-companions" onClick={() => nav('/companions')}>{t('comp_open')}</button>
         <p className="small muted">{t('merki_mute_sub')}</p>
       </div>
 

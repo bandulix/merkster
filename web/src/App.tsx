@@ -25,6 +25,7 @@ import { ClassJoin } from './pages/ClassJoin';
 import { ClassPage, Classes } from './pages/Classes';
 import { ClashPage } from './pages/Clash';
 import { ComparePage } from './pages/Compare';
+import { CompanionsPage } from './pages/Companions';
 const Results = lazy(() => import('./pages/Results'));
 
 function Splash() { return <div className="splash"><Logo size={72} className="pulse" /><p className="muted">{t('loading')}</p></div>; }
@@ -58,7 +59,7 @@ export function App() {
   }
   if (openFor !== user.id) return <Splash />;
   const p = loc.pathname;
-  const free = ['/welcome', '/new', '/goals', '/test', '/settings', '/me', '/results', '/compare', '/class'].some(x => p.startsWith(x));
+  const free = ['/welcome', '/new', '/goals', '/test', '/settings', '/me', '/results', '/compare', '/class', '/companions'].some(x => p.startsWith(x));
   if (!data.settings.onboarded && !free) return <Navigate to="/welcome/1" replace />;
   const chrome = !/^\/(practice|done|welcome)/.test(p) && p !== '/class';
   return (
@@ -86,6 +87,7 @@ export function App() {
           <Route path="/classes/:id/clash/:clashId" element={<ClashPage />} />
           <Route path="/class" element={<ClassJoin user={user} />} />
           <Route path="/settings" element={<Settings user={user} offline={!!me.data?.offline} />} />
+          <Route path="/companions" element={<CompanionsPage />} />
           <Route path="*" element={<div className="empty-hero"><h2>{t('not_found')}</h2></div>} />
         </Routes>
       </main>
