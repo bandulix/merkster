@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { inOfflineWindow } from '../../../shared/offline';
 import { useNavigate } from 'react-router-dom';
 import { ResultDialog } from '../components/ResultDialog';
 import { useStore } from '../hooks';
@@ -44,6 +45,14 @@ function HeroMeta({ streak, days, today, doneToday, goal }: { streak: number; da
 export function Home() {
   const d = useStore(), nav = useNavigate(), ts = now();
   const [ask, setAsk] = useState<Test | null>(null);
+  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true), off = () => setOnline(false);
+    window.addEventListener('online', on); window.addEventListener('offline', off);
+    const pack = d.tests.flatMap(t => t.items.filter(() => inOfflineWindow(S.dayISO(ts), S.dayISO(ts))).map(c => ({ id: c.id, testId: t.id, term: c.term, meaning: c.meaning, day: S.dayISO(ts) })));
+    try { localStorage.setItem('merkster.offlinePack', JSON.stringify(pack.slice(0, 200))); } catch { /* private mode */ }
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, [d.tests, ts]);
   const askable = d.tests.filter(x => S.phase(x, ts) === 'past' && !x.result && !x.resultSkipped && x.items.length);
   const streak = store.liveStreak(ts);
   const sess = S.buildSession(d.tests, ts, d.settings.sessionSize);
@@ -129,6 +138,7 @@ export function Home() {
           </div>
         </div>
       )}
+      {!online && <p className="chip" data-testid="offline-ready">{t('offline_pack')}</p>}
       <MerkiSay trigger={trigger} placement={trigger === 'nudge' ? 'nudge' : 'hero'} />
       <div className="home-grid">
         <div className="home-main">{askable.map(x => (
