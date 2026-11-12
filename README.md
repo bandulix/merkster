@@ -57,7 +57,8 @@ Done exploring? `make down`.
 - **Companions** — make your own speaker: a face (a built-in alien, or a photo cropped to a circle), a name, and a short personality. They take Merki’s places and keep the same safety rules. The personality is only tone. You can share a code with someone you study with; you can take it back. Merki stays available.
 - **Practice test** — a few days before the exam (3, 4 or 5, you choose) Merki’s subject gets a short mixed paper. Choices and short answers are graded on the device’s server; a written answer is checked gently. Weak goals are added back into the remaining days. On a shared plan the paper is the same; the score stays private unless grade privacy allows a summary.
 - **Explain it another way** — on a wrong answer, or whenever you ask, the same card comes back as an example, a memory hook, steps, or a small sketch. The line is cached. Links, shame and pressure are dropped.
-- **Offline and reminders** — today’s cards stay on the device, and a synced answer keeps the further-along review. Reminders are off until you opt in, at most once a day, and never before 07:00 or after 20:00. The text uses the companion’s name.  
+- **Offline and reminders** — today’s cards stay on the device, and a synced answer keeps the further-along review. Reminders are off until you opt in, at most once a day, and never before 07:00 or after 20:00. The text uses the companion’s name.
+- **Shared challenge** — a plan can aim for 20 units together this week. The bar is the group. Names are listed alphabetically. You can sit a week out. Merki celebrates when the group reaches it.  
 
 ## Run for real (Google sign-in)
 

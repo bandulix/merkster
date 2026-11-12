@@ -9,6 +9,7 @@ import * as S from '../lib/schedule';
 import { finishPractice, getActive, getLast, quitPractice, touchActive } from '../lib/activeSession';
 import { reportBossDamage } from '../lib/classGames';
 import { postProgress } from '../lib/planSync';
+import { api } from '../lib/api';
 import { canSpeak, confetti, fmtDur, fmtWhen, isLong, now, speak, vibrate } from '../lib/util';
 import { Logo, RankBadge, Ring } from '../components/ui';
 import { levelInfo, rankFor } from '../../../shared/gamification';
@@ -297,6 +298,7 @@ export function DonePage() {
         return { id: g.id, title: g.topic || g.text, pct };
       });
       void postProgress(planId, { mastery: S.mastery(test), streak: store.liveStreak(now()), didToday: true, goals }).catch(() => undefined);
+      if (s?.done) void api('/api/plans/' + planId + '/challenge', { body: { units: s.done } }).catch(() => undefined);
     }
   }, [s?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!s) return <Navigate to="/" replace />;
