@@ -1,1 +1,8 @@
-declare module 'web-push';
+declare module 'web-push' {
+  export function generateVAPIDKeys(): { publicKey: string; privateKey: string };
+  export function setVapidDetails(subject: string, publicKey: string, privateKey: string): void;
+  export function sendNotification(
+    sub: { endpoint: string; keys: { p256dh: string; auth: string } },
+    payload: string
+  ): Promise<unknown>;
+}

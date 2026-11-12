@@ -1,8 +1,8 @@
 /* Bundle the server to one CommonJS file. Runtime deps stay in node_modules, except ESM-only
-   packages (openid-client and its deps) which are bundled in so the CJS output can load them. */
+   packages (openid-client, web-push, and their deps) which are bundled in so the CJS output can load them. */
 import { build } from 'esbuild';
 import fs from 'node:fs';
-const BUNDLE = /^(openid-client|oauth4webapi|jose)(\/|$)/;
+const BUNDLE = /^(openid-client|oauth4webapi|jose|web-push|https-proxy-agent|agent-base)(\/|$)/;
 await build({
   entryPoints: ['server/src/index.ts'], outfile: 'dist/server/index.cjs', bundle: true, platform: 'node', target: 'node20', format: 'cjs',
   logLevel: 'warning', legalComments: 'none',

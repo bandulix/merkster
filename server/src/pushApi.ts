@@ -1,11 +1,6 @@
 /* Opt-in reminders. Quiet hours default to 20:00–07:00. One a day. */
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-const webpush = createRequire(import.meta.url)('web-push') as {
-  generateVAPIDKeys: () => { publicKey: string; privateKey: string };
-  setVapidDetails: (subject: string, publicKey: string, privateKey: string) => void;
-  sendNotification: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }, payload: string) => Promise<unknown>;
-};
+import { generateVAPIDKeys, sendNotification, setVapidDetails } from 'web-push';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { mayNotify, reminderText, type PushPrefs } from '../../shared/offline';
@@ -15,12 +10,12 @@ import { speakingCompanion } from './companionsApi';
 let publicKey = process.env.VAPID_PUBLIC_KEY || '';
 let privateKey = process.env.VAPID_PRIVATE_KEY || '';
 if (!publicKey || !privateKey) {
-  const made = webpush.generateVAPIDKeys();
+  const made = generateVAPIDKeys();
   publicKey = publicKey || made.publicKey;
   privateKey = privateKey || made.privateKey;
 }
 const subject = process.env.VAPID_SUBJECT || 'mailto:merkster@localhost';
-webpush.setVapidDetails(subject, publicKey, privateKey);
+setVapidDetails(subject, publicKey, privateKey);
 
 function prefsOf(row: { enabled?: boolean; hour?: number; quiet_after?: number; quiet_before?: number; last_day?: string | Date | null } | undefined): PushPrefs {
   return {
@@ -46,7 +41,7 @@ export async function sendDueReminders(pool: pg.Pool, now = new Date()) {
     const payload = JSON.stringify({ title: speaker?.name || 'Merki', body });
     for (const sub of subs) {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload);
+        await sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload);
         sent++;
       } catch { /* drop a dead browser on the next save */ }
     }
