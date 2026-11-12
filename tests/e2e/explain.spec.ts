@@ -15,8 +15,8 @@ test('a card can be explained another way', async ({ browser }) => {
   await page.getByTestId('explain-open').click();
   await expect(page.getByTestId('explain-text')).toContainText(/Tresor|Zellkern/);
   await page.screenshot({ path: path.join(SHOTS, 'mobile-74-explain.png'), animations: 'disabled' });
-  await page.getByTestId('explain-sketch').click();
-  await expect(page.getByTestId('explain-sketch')).toBeVisible();
+  await page.getByTestId('explain-style-sketch').click();
+  await expect(page.locator('svg[data-testid=explain-sketch]')).toBeVisible();
   await page.screenshot({ path: path.join(SHOTS, 'mobile-75-explain-sketch.png'), animations: 'disabled' });
   await ctx.close();
 });

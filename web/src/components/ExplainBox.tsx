@@ -43,7 +43,7 @@ export function ExplainBox({ term, meaning }: { term: string; meaning: string })
       {!open && <button type="button" className="btn ghost sm" data-testid="explain-open" onClick={() => { setOpen(true); void load(style); }}>{t('explain_open')}</button>}
       {open && <>
         <div className="chips">
-          {EXPLAIN_STYLES.map(s => <button key={s} type="button" className={'pill sm' + (style === s ? ' on' : '')} data-testid={'explain-' + s} onClick={() => load(s)}>{t(('explain_' + s) as 'explain_example')}</button>)}
+          {EXPLAIN_STYLES.map(s => <button key={s} type="button" className={'pill sm' + (style === s ? ' on' : '')} data-testid={'explain-style-' + s} onClick={() => load(s)}>{t(('explain_' + s) as 'explain_example')}</button>)}
         </div>
         {sketch && sketch.length > 1 ? <Sketch steps={sketch} /> : <p className="explain-text" data-testid="explain-text">{busy ? '…' : text}</p>}
       </>}
