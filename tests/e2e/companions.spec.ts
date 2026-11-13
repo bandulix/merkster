@@ -54,6 +54,8 @@ test('create a companion, share it, and revoke it', async ({ browser }) => {
 
   await a.page.getByTestId('share-revoke').click();
   await b.page.goto('/');
+  // A fresh account can sit on the splash for the first sync. An empty face count is true there, before Merki mounts.
+  await expect(b.page.locator('.splash')).toHaveCount(0, { timeout: 20_000 });
   await expect(b.page.getByTestId('companion-face')).toHaveCount(0);
   await expect(b.page.getByTestId('merki')).toBeVisible();
   await a.ctx.close();
