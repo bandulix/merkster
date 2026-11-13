@@ -90,6 +90,15 @@ http.createServer((req, res) => {
   const send = (code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); };
   if (req.method === 'GET' && req.url === '/__last') return send(200, { count, last, calls });
   if (req.method === 'GET' && req.url === '/health') return send(200, { ok: true });
+  if (req.method === 'GET' && (req.url === '/wiki' || req.url.startsWith('/wiki?'))) {
+    const url = new URL(req.url, 'http://127.0.0.1');
+    if (url.searchParams.get('list') === 'search') return send(200, { query: { search: [{ title: 'Fotosynthese' }] } });
+    return send(200, { query: { pages: { '10': {
+      title: 'Fotosynthese',
+      extract: 'Die Fotosynthese ist ein Prozess, bei dem Pflanzen mit Licht aus Kohlenstoffdioxid und Wasser Glucose und Sauerstoff herstellen. Der Calvin-Zyklus findet im Stroma der Chloroplasten statt.',
+      revisions: [{ revid: 12001 }]
+    } } } });
+  }
   if (req.method !== 'POST' || !req.url.endsWith('/chat/completions')) return send(404, { error: 'not found' });
   if (req.headers.authorization !== 'Bearer ' + KEY) return send(401, { error: { message: 'invalid api key' } });
   let body = '';
@@ -105,6 +114,12 @@ http.createServer((req, res) => {
     last = { model: j.model, images: images.length, imageBytes: images.map(p => Math.round((p.image_url.url.length - 30) * 0.75)), jsonMode: !!j.response_format, prompt: text.slice(0, 400), system: sys.slice(0, 80) };
     calls.push({ system: sys.slice(0, 32), prompt: text.slice(0, 180) });
     if (calls.length > 12) calls.shift();
+    if (sys.includes('GROUNDED_CARDS')) {
+      return send(200, { choices: [{ message: { role: 'assistant', content: JSON.stringify({ cards: [
+        { front: 'Was stellen Pflanzen bei der Fotosynthese her?', back: 'Glucose und Sauerstoff', quote: 'Pflanzen mit Licht aus Kohlenstoffdioxid und Wasser Glucose und Sauerstoff herstellen' },
+        { front: 'Wo findet der Calvin-Zyklus statt?', back: 'Im Stroma der Chloroplasten', quote: 'Der Calvin-Zyklus findet im Stroma der Chloroplasten statt' }
+      ] }) } }] });
+    }
     if (sys.includes('EXPLAIN_CARD')) {
       const style = (text.match(/Style: (\w+)/) || [])[1];
       const textOut = style === 'sketch' ? 'Zellkern → DNA' : style === 'steps' ? 'Lies das Wort. Denk an die DNA. Sag es in einem Satz.' : style === 'mnemonic' ? 'Stell dir den Kern als Tresor vor.' : 'Der Kern ist wie ein Tresor für die DNA.';

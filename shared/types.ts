@@ -27,10 +27,14 @@ export interface CardState {
 export type KnowledgeKind = 'facts' | 'concepts' | 'procedures' | 'transfer' | 'essay' | 'sequence';
 export type StudyMethod = 'retrieval' | 'worked' | 'elaboration' | 'essay' | 'timeline' | 'mixed';
 export type StudyActivity = 'recall' | 'worked' | 'problem' | 'explain' | 'outline' | 'sequence' | 'transfer';
+export type MaterialMode = 'photo' | 'research';
+export type CardSourceProvider = 'wikipedia' | 'wikibooks' | 'klexikon';
+/** A verifiable article the card was written from. The URL is built by the server, not the model. */
+export interface CardSource { provider: CardSourceProvider; lang: string; title: string; url: string; revId: number }
 export interface LearningGoal { id: string; text: string; topic: string; kind: KnowledgeKind; method: StudyMethod }
-export interface CardStudy { goalId: string; method: StudyMethod; activity: StudyActivity; readyOn?: string; phase?: 'learn' | 'mock' }
+export interface CardStudy { goalId: string; method: StudyMethod; activity: StudyActivity; readyOn?: string; phase?: 'learn' | 'mock'; source?: CardSource }
 /** programme metadata on a test. Personal review state stays on the cards. */
-export interface StudyPlan { title: string; goals: LearningGoal[]; minutesPerDay: number; examFormat: string; level: string; sharedPlanId?: string; joined?: boolean }
+export interface StudyPlan { title: string; goals: LearningGoal[]; minutesPerDay: number; examFormat: string; level: string; sharedPlanId?: string; joined?: boolean; material?: MaterialMode }
 export interface Card {
   id: string;
   type: CardType;
@@ -93,7 +97,7 @@ export interface HistoryEntry { id: string; day: string; n: number; firstTry: nu
 export interface AppData { v: 2; settings: Settings; streak: Streak; stats: Stats; history: HistoryEntry[]; tests: Test[]; grades?: GradeEntry[]; }
 
 /** a row on the review/edit screen (before it becomes a card) */
-export interface DraftRow { type: CardType; a: string; b: string; example?: string; distractors?: string[]; low?: boolean; conf?: number; flags?: string[]; sep?: string; goalId?: string; method?: StudyMethod; activity?: StudyActivity; readyOn?: string; phase?: 'learn' | 'mock'; }
+export interface DraftRow { type: CardType; a: string; b: string; example?: string; distractors?: string[]; low?: boolean; conf?: number; flags?: string[]; sep?: string; goalId?: string; method?: StudyMethod; activity?: StudyActivity; readyOn?: string; phase?: 'learn' | 'mock'; source?: CardSource }
 
 /* ---- sync wire format ---- */
 export interface WireTest { id: string; name: string; subject: Subject; foreign: Lang | null; native: Lang; testDate: string; format: Format; articles: boolean; created: string | null; days: string[]; result: ExamResult | null; resultSkipped: boolean; grading?: GradeSystem | null; study?: StudyPlan | null; updatedAt: number; deleted?: boolean; serverCreatedAt?: number; }

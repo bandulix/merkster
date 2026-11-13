@@ -48,7 +48,7 @@ Done exploring? `make down`.
 ## What you get
 
 - **Import** — photo, PDF, or paste → review → cards  
-- **Learning goals** — photo a Lernziele sheet for any subject. The app extracts the goals, asks only if something important is missing, picks a method, and builds the programme up to the exam  
+- **Learning goals** — photo a Lernziele sheet for any subject. The app extracts the goals, asks only if something important is missing, picks a method, and builds the programme up to the exam. Cards then come from your own photos, or from a cited Wikipedia, Wikibooks or Klexikon article — never from an invented fact  
 - **Same sheet** — a second student can join that plan (own progress, same tasks) instead of generating it again  
 - **Grades** — enter the mark after the exam (1–6, points, or percent). Stats show a success rate (Erfolgsquote), a trend, and plan vs no plan. Compare that rate with someone on the same plan or in the same class. Exact grades stay opt-in  
 - **Practice** — successive relearning, tolerant checking, EN/DE  
@@ -109,7 +109,8 @@ More in [CONTRIBUTING.md](CONTRIBUTING.md) · changes in [CHANGELOG.md](CHANGELO
 
 ## Privacy & kids
 
-No ads. No tracking scripts. Classmates on a shared plan see a first name and, by default, a success rate — not each grade, and never a note.  
+No ads. No tracking scripts. Classmates on a shared plan see a first name and, by default, a success rate — not each grade, and never a note. A shared plan still shares the generated cards, including their wording and any figure that was extracted as text.  
+Photos of worksheets and book pages are used once to make that student’s cards. They are not used to train an AI model. The original file is deleted as soon as processing succeeds, and a failed upload is deleted after a short retry window (`PHOTO_RETRY_MINUTES`, default 15).  
 Export or delete under *Settings → Your data*. Host for others? Get parental consent where the law asks, and only send photos to an AI provider you’re fine with — or leave AI off.
 
 ## License

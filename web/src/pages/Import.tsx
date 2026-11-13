@@ -56,6 +56,7 @@ export function ImportPage() {
     <section className="import page narrow">
       <TopBar title={t('add_cards')} back={merge ? `/test/${test.id}/review` : `/test/${test.id}`} />
       <ImportLead name={test.name} />
+      <p className="upload-notice" data-testid="upload-notice">{t('upload_notice')}</p>
       {ai ? <div className="ai-banner on" data-testid="ai-on">✨ <span>{t('ai_on')}</span></div>
         : <div className={'ai-banner' + (isLang ? '' : ' strong')} data-testid="ai-off">{isLang ? '💡' : '✨'} <span>{isLang ? t('ai_tip_lang') : t('ai_tip_general')} {t('ai_tip_admin')}</span></div>}
       {error === 'picture_limit' && <div className="proc" data-testid="import-picture-limit"><b>{t('picture_limit')}</b><p className="muted">{t('pictures_max')}</p><button className="btn primary" onClick={() => setError(null)}>{t('try_again')}</button></div>}

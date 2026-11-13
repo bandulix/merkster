@@ -1,6 +1,7 @@
 /* Merkster – AI extraction on the server. The browser uploads page images (already downscaled to JPEG),
    the server forwards them to the configured OpenAI-compatible endpoint and returns validated cards.
-   The API key never leaves the server and is never logged. Images are processed in memory and not stored. */
+   The API key never leaves the server and is never logged. Photos are inference input only:
+   they are not used to train a model, and the original bytes are deleted when the read finishes. */
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { CARD_TYPES, FORMATS, LANG_CODES, SUBJECT_KEYS, type CardType, type DraftRow, type ExtractMeta, type ExtractResult, type Format, type Lang, type Subject } from '../../shared/types';
@@ -8,6 +9,7 @@ import { FORMAT_DESC_EN, LANG_EN, SUBJECT_EN } from '../../shared/meta';
 import type { Config } from './config';
 import { reservePictures } from './limits';
 import { ID_RE } from './sanitize';
+import { retainDuring } from './photos';
 
 export const SYSTEM_PROMPT = `You turn photos or text of school material (worksheets, textbook pages, notes, vocabulary lists) into study cards for a student preparing for a test.
 RULES
@@ -212,9 +214,12 @@ export async function aiPlugin(app: FastifyInstance, { pool, config }: { pool: p
     }
     const started = Date.now();
     const log = await pool.query('INSERT INTO ai_requests (user_id, images) VALUES ($1, $2) RETURNING id', [uid, images.length]);
+    const files = images.map((bytes, i) => ({ bytes, mime: mimes[i] }));
     try {
-      await screenSchoolMaterial(config, images, mimes, text || undefined);
-      const result = await extractWithLLM(config, meta, images, mimes, text || undefined);
+      const result = await retainDuring(pool, uid, meta.testId || 'upload', files, config.photoRetryMs, async () => {
+        await screenSchoolMaterial(config, images, mimes, text || undefined);
+        return extractWithLLM(config, meta, images, mimes, text || undefined);
+      });
       await pool.query('UPDATE ai_requests SET ok = TRUE, cards = $2, ms = $3 WHERE id = $1', [log.rows[0].id, result.rows.length, Date.now() - started]);
       req.log.info({ userId: String(uid), images: images.length, cards: result.rows.length, ms: Date.now() - started }, 'ai extraction');
       return result;

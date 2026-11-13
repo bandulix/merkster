@@ -1,6 +1,6 @@
 /* Learning-goal programmes: knowledge types, method choice, clarifying questions,
    task generation, worksheet fingerprints. Pure functions – no I/O. */
-import type { CardType, LearningGoal, Subject } from './types';
+import type { CardSource, CardType, LearningGoal, Subject } from './types';
 export type { LearningGoal };
 import { SUBJECT_KEYS } from './types';
 
@@ -39,6 +39,7 @@ export interface StudyTask {
   front: string;
   back: string;
   distractors: string[];
+  source?: CardSource;
 }
 
 export interface GoalsExtract {

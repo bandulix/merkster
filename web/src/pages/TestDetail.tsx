@@ -14,7 +14,10 @@ import { ResultDialog } from '../components/ResultDialog';
 import { ShareSheet, type ShareWhat } from '../components/Share';
 import { ShareWithClass } from '../components/ShareWithClass';
 import { SharedPlan, goalLine } from '../components/SharedPlan';
-import { formatsFor, t, tp, testIcon, type Key } from '../i18n';
+import { formatsFor, t, tp, testIcon, uiLang, type Key } from '../i18n';
+import { api } from '../lib/api';
+import { providerLabel } from '../../../shared/material';
+import type { StudyTask } from '../../../shared/goals';
 import { MerkiSay } from '../components/MerkiSay';
 import { leadDays, mockOpen } from '../../../shared/mockexam';
 
@@ -24,11 +27,27 @@ export function TestDetail() {
   const { id } = useParams(); const [sp] = useSearchParams(); const nav = useNavigate(); const d = useStore();
   const test = store.test(id); const ts = now(), today = S.dayISO(ts);
   const [q, setQ] = useState(''), [edit, setEdit] = useState<string | null>(null), [showSettings, setShowSettings] = useState(false);
-  const [result, setResult] = useState(false), [share, setShare] = useState<ShareWhat | null>(null);
+  const [result, setResult] = useState(false), [share, setShare] = useState<ShareWhat | null>(null), [researching, setResearching] = useState(false), [sourceNote, setSourceNote] = useState('');
   if (!test) return <Navigate to="/" replace />;
   const cd = countdown(test), m = S.mastery(test), ph = S.phase(test, ts);
   const due = S.dueReviews(test, ts).length + S.newItems(test, ts).length;
   const go = () => { const e = S.buildSession([test], ts, d.settings.sessionSize).entries; if (startPractice(e.length ? e : extraEntries([test], d.settings.sessionSize))) nav('/practice'); };
+  const useResearch = async () => {
+    if (!test.study?.goals?.length || researching) return;
+    setResearching(true); setSourceNote('');
+    try {
+      const lang = uiLang() === 'de' ? 'de' : 'en';
+      const res = await api<{ cards: { goalId: string; front: string; back: string; source: StudyTask['source'] }[]; noSource: boolean }>('/api/ai/material/research', { body: { goals: test.study.goals, lang, subject: test.subject } });
+      if (res.noSource || !res.cards?.length) { setSourceNote(t('material_no_source')); return; }
+      store.updateTest(test.id, { study: { ...test.study, material: 'research' } });
+      store.addItems(store.test(test.id)!, res.cards.map(c => ({
+        type: 'qa' as const, a: c.front, b: c.back, goalId: c.goalId,
+        method: test.study!.goals.find(g => g.id === c.goalId)?.method || 'retrieval',
+        activity: 'recall' as const, source: c.source
+      })));
+    } catch { setSourceNote(t('material_no_source')); }
+    finally { setResearching(false); }
+  };
   const fresh = sp.get('fresh') === '1' && test.items.length > 0 && !test.items.some(i => i.st.introduced);
   const plan = S.plan(test);
   const items = q ? test.items.filter(i => (i.term + ' ' + i.meaning).toLowerCase().includes(q.toLowerCase())) : test.items;
@@ -61,6 +80,18 @@ export function TestDetail() {
         <label className="field"><span>{t('td_grading')}</span><select data-testid="td-grading" value={test.grading || ''} onChange={e => store.updateTest(test.id, { grading: (e.target.value || null) as GradeSystem | null })}><option value="">{t('td_grading_default', { sys: t(('gs_' + d.settings.grading) as 'gs_de_grade') })}</option>{GRADE_SYSTEMS.map(g => <option key={g} value={g}>{t(('gs_' + g) as 'gs_de_grade')}</option>)}</select></label>
         <button className="btn link bad" onClick={() => { if (confirm(t('delete_confirm', { name: test.name }))) { store.deleteTest(test.id); nav('/', { replace: true }); } }}>🗑 {t('delete_test')}</button>
       </div>}
+      {test.study?.goals?.length ? <div className="card" data-testid="material-mode">
+        <h3>{t('material_switch')}</h3>
+        <div className="choice-list">
+          <button type="button" className={'choice-card' + (test.study.material === 'photo' ? ' on' : '')} data-testid="mode-photo" onClick={() => { store.updateTest(test.id, { study: { ...test.study!, material: 'photo' } }); nav('/test/' + test.id + '/import'); }}>
+            <b>{t('material_photo_title')}</b><span>{t('material_photo_sub')}</span>
+          </button>
+          <button type="button" className={'choice-card' + (test.study.material === 'research' ? ' on' : '')} data-testid="mode-research" disabled={researching} onClick={() => void useResearch()}>
+            <b>{t('material_research_title')}</b><span>{researching ? t('material_researching') : t('material_research_sub')}</span>
+          </button>
+        </div>
+        {sourceNote && <p className="upload-notice" role="status">{sourceNote}</p>}
+      </div> : null}
       {goalLine(test)}
       {test.study?.sharedPlanId && <SharedPlan test={test} />}
       {plan.length > 0 && <div className="card"><h3>{t('plan_title')}</h3>
@@ -87,5 +118,6 @@ function CardRow({ c, testId, lang, editing, setEdit }: { c: Card; testId: strin
       <span className="ct">{c.type === 'cloze' ? c.term.replace(/\[\[(.+?)\]\]/g, '_____') : c.term}</span><span className="cm">{c.meaning}</span>
       {lang && canSpeak() && <button className="icon-btn sm" aria-label={t('listen')} onClick={e => { e.stopPropagation(); speak(c.term, lang); }}>🔊</button>}
       <span className={'lvl l' + lvl} title={t('level') + ' ' + lvl}>{'●'.repeat(lvl) + '○'.repeat(4 - lvl)}</span>
+      {c.study?.source && <a className="card-source" data-testid="card-source" href={c.study.source.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>{t('source_line', { provider: providerLabel(c.study.source.provider), name: c.study.source.title })}</a>}
     </li>);
 }

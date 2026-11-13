@@ -1,7 +1,7 @@
 /* Photo a Lernziele sheet → review goals → optional questions → day-by-day programme. */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { buildTasks, METHOD_OF, readyOn, type ClarifyQuestion, type LearningGoal, type StudyTask } from '../../../shared/goals';
+import { METHOD_OF, readyOn, type ClarifyQuestion, type LearningGoal, type StudyTask } from '../../../shared/goals';
 import type { KnowledgeKind, StudyMethod, Subject } from '../../../shared/types';
 import { KNOWLEDGE_KINDS } from '../../../shared/goals';
 import { useStore } from '../hooks';
@@ -14,7 +14,7 @@ import { TopBar } from '../components/ui';
 import { SUBJECTS, t, tp, uiLang, type Key } from '../i18n';
 
 const KINDS = KNOWLEDGE_KINDS;
-type Step = 'capture' | 'reading' | 'goals' | 'join' | 'ask' | 'planning';
+type Step = 'capture' | 'reading' | 'goals' | 'join' | 'ask' | 'material' | 'planning';
 interface Match { planId: string; title: string; ownerName: string; memberCount: number; examDate: string | null; already: boolean }
 
 export function GoalsPage() {
@@ -91,8 +91,7 @@ export function GoalsPage() {
     } catch { /* offline: build a private plan */ }
     setQuestions(q => q);
     setQi(0);
-    setStep(questions.length ? 'ask' : 'planning');
-    if (!questions.length) void build(clean, {});
+    setStep(questions.length ? 'ask' : 'material');
   };
 
   const answer = (value: string) => {
@@ -101,36 +100,55 @@ export function GoalsPage() {
     setAnswers(next);
     setCustom('');
     if (qi + 1 < questions.length) setQi(qi + 1);
-    else { setStep('planning'); void build(goals, next); }
+    else setStep('material');
   };
 
-  const build = async (list: LearningGoal[], ans: Record<string, string>) => {
-    setStep('planning');
+  const saveProgramme = async (list: LearningGoal[], ans: Record<string, string>, tasks: StudyTask[], material: 'photo' | 'research') => {
     const days = Math.max(1, S.daysBetween(today, exam));
     const minutes = Number(ans.minutes) || (days <= 3 ? 25 : days <= 14 ? 20 : 15);
     const lang = uiLang() === 'de' ? 'de' : 'en';
-    let tasks: StudyTask[] = [];
-    try {
-      const res = await api<{ tasks: StudyTask[] }>('/api/ai/goals/plan', { body: { goals: list, lang, days, minutes, subject } });
-      tasks = res.tasks || [];
-    } catch { tasks = []; }
-    if (tasks.length < list.length) tasks = buildTasks(list, { tasks }, lang, days, minutes);
     const test = ensureTest();
     store.updateTest(test.id, {
       name: title || t('goals_title'), subject, testDate: exam, native: lang,
-      study: { title: title || t('goals_title'), goals: list, minutesPerDay: minutes, examFormat: ans.exam || 'written', level: ans.level || level, joined: false }
+      study: { title: title || t('goals_title'), goals: list, minutesPerDay: minutes, examFormat: ans.exam || 'written', level: ans.level || level, joined: false, material }
     });
-    const fresh = store.test(test.id)!;
-    store.addItems(fresh, tasks.map(task => ({
-      type: task.type, a: task.front, b: task.back, distractors: task.distractors,
-      goalId: task.goalId, method: list.find(g => g.id === task.goalId)?.method || 'retrieval',
-      activity: task.activity, phase: task.phase, readyOn: readyOn(task.phase, today, exam)
-    })));
+    if (tasks.length) {
+      store.addItems(store.test(test.id)!, tasks.map(task => ({
+        type: task.type, a: task.front, b: task.back, distractors: task.distractors,
+        goalId: task.goalId, method: list.find(g => g.id === task.goalId)?.method || 'retrieval',
+        activity: task.activity, phase: task.phase, readyOn: readyOn(task.phase, today, exam),
+        source: task.source
+      })));
+    }
     try {
       const published = await publishPlan({ kind: 'goals', subject, title: title || t('goals_title'), texts: list.map(g => g.text), examDate: exam, testId: test.id, content: { goals: list, tasks } });
       store.updateTest(test.id, { study: { ...store.test(test.id)!.study!, sharedPlanId: published.planId } });
     } catch { /* the plan still lives on this device */ }
-    nav('/test/' + test.id + '?fresh=1', { replace: true });
+    return test.id;
+  };
+
+  const choosePhoto = () => {
+    const list = goals.map(g => ({ ...g, text: g.text.trim(), topic: g.topic.trim() || g.text.trim().slice(0, 80) })).filter(g => g.text.length >= 8);
+    setStep('planning');
+    void saveProgramme(list, answers, [], 'photo').then(id => nav('/test/' + id + '/import', { replace: true }));
+  };
+
+  const chooseResearch = async () => {
+    const list = goals.map(g => ({ ...g, text: g.text.trim(), topic: g.topic.trim() || g.text.trim().slice(0, 80) })).filter(g => g.text.length >= 8);
+    setError(null);
+    setStep('planning');
+    const lang = uiLang() === 'de' ? 'de' : 'en';
+    try {
+      const res = await api<{ cards: { goalId: string; front: string; back: string; source: StudyTask['source'] }[]; noSource: boolean }>('/api/ai/material/research', { body: { goals: list, lang, subject } });
+      if (res.noSource || !res.cards?.length) { setError(t('material_no_source')); setStep('material'); return; }
+      const tasks: StudyTask[] = res.cards.map(c => ({ goalId: c.goalId, activity: 'recall', type: 'qa', phase: 'learn', front: c.front, back: c.back, distractors: [], source: c.source }));
+      const id = await saveProgramme(list, answers, tasks, 'research');
+      nav('/test/' + id + '?fresh=1', { replace: true });
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : '';
+      setError(code === 'ai_rate_limited' ? t('ai_rate_limited') : code === 'ai_not_configured' ? t('ai_tip_admin') : t('material_no_source'));
+      setStep('material');
+    }
   };
 
   const acceptJoin = async () => {
@@ -149,7 +167,8 @@ export function GoalsPage() {
       store.addItems(store.test(test.id)!, tasks.map(task => ({
         type: task.type, a: task.front, b: task.back, distractors: task.distractors || [],
         goalId: task.goalId, method: list.find(g => g.id === task.goalId)?.method || 'retrieval',
-        activity: task.activity, phase: task.phase, readyOn: readyOn(task.phase, today, exam)
+        activity: task.activity, phase: task.phase, readyOn: readyOn(task.phase, today, exam),
+        source: task.source
       })));
       nav('/test/' + test.id + '?fresh=1', { replace: true });
     } catch {
@@ -169,6 +188,7 @@ export function GoalsPage() {
           <h2 className="q">{t('goals_date')}</h2>
           <div className="chips">{([[7, 'q_week'], [14, 'q_2weeks']] as const).map(([n, k]) => <button key={n} data-testid={'qdate-' + n} className={'pill' + (exam === S.addDays(today, n) ? ' on' : '')} onClick={() => setExam(S.addDays(today, n))}>{t(k)}</button>)}</div>
           <label className="field"><span>{t('wiz_date')}</span><input type="date" data-testid="goals-date" min={today} value={exam} onChange={e => e.target.value && setExam(e.target.value)} /></label>
+          <p className="upload-notice" data-testid="upload-notice">{t('upload_notice')}</p>
           <div className="import-actions">
             <label className="btn primary big wide">📸 {t('take_photo')}<input type="file" accept="image/*" capture="environment" hidden onChange={e => { const f = [...(e.target.files || [])]; if (f.length) void read(f, ''); }} /></label>
             <label className="btn ghost big wide">{t('upload')}<input data-testid="file-input" type="file" accept="image/*,application/pdf,.pdf" hidden onChange={e => { const f = [...(e.target.files || [])]; if (f.length) void read(f, ''); }} /></label>
@@ -211,7 +231,23 @@ export function GoalsPage() {
           {match.examDate && match.examDate !== exam && <p className="muted small">{match.examDate}</p>}
           <div className="row-btns col">
             <button className="btn primary big" data-testid="join-accept" onClick={() => void acceptJoin()}>{t('join_accept')}</button>
-            <button className="btn ghost" data-testid="join-own" onClick={() => { setMatch(null); if (questions.length) setStep('ask'); else void build(goals, answers); }}>{t('join_own')}</button>
+            <button className="btn ghost" data-testid="join-own" onClick={() => { setMatch(null); if (questions.length) setStep('ask'); else setStep('material'); }}>{t('join_own')}</button>
+          </div>
+        </div>
+      )}
+      {step === 'material' && (
+        <div data-testid="material-choice">
+          <h2 className="q">{t('material_choice_title')}</h2>
+          <p className="muted">{t('material_choice_sub')}</p>
+          <div className="choice-list">
+            <button type="button" className="choice-card" data-testid="material-photo" onClick={choosePhoto}>
+              <b>{t('material_photo_title')}</b>
+              <span>{t('material_photo_sub')}</span>
+            </button>
+            <button type="button" className="choice-card" data-testid="material-research" onClick={() => void chooseResearch()}>
+              <b>{t('material_research_title')}</b>
+              <span>{t('material_research_sub')}</span>
+            </button>
           </div>
         </div>
       )}

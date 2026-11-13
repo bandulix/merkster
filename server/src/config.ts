@@ -80,6 +80,9 @@ export const config = {
     jsonMode: env('LLM_JSON_MODE', 'auto') as 'auto' | 'on' | 'off',
     maxTokens: int('LLM_MAX_TOKENS', 4000)
   },
+  // Empty uses Wikipedia, Wikibooks and Klexikon. Tests point this at the mock.
+  wikiBase: env('WIKI_API_BASE'),
+  photoRetryMs: int('PHOTO_RETRY_MINUTES', 15) * 60 * 1000,
   aiLimitHour: int('AI_RATE_LIMIT_PER_HOUR', 30),
   aiLimitDay: int('AI_RATE_LIMIT_PER_DAY', 100),
   authLimitPer10Min: int('AUTH_RATE_LIMIT_PER_10MIN', 20),
