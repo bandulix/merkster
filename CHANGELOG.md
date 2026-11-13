@@ -4,33 +4,42 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
+Minor release. The container image is `ghcr.io/bandulix/merkster:0.2.0` (also `latest` and `0.2`).
+
 ### Added
 
-- Learning goals: photograph a Lernziele sheet, review the extracted goals, answer a clarifying question only when the plan needs it, and get a day-by-day programme. The method follows the kind of knowledge (retrieval, worked examples, self-explanation, outlines, sequence drills, mixed practice).
-- Shared plans: a second photo of the same sheet can join the existing programme. Each student keeps their own schedule and progress. First names only.
-- Exam grades: enter the mark (German 1–6 with +/−, Oberstufe points, or percent), see a success rate against a target grade, and compare with someone on the same plan or in the same class. Exact grades are opt-in.
-- Merki, an alien mascot. Years 1–4 get a round, bouncy Merki; years 5–7 a middle one; year 8 and up a calm Merki with a hood and visor. Speech is one-way: a greeting or a nudge on Today, a short line beside a plan, a session, or the grade stats, and a full-screen moment when a plan is created, a grade is saved, or it is exam day. Lines are generated on the server, cached per day and trigger, and fall back to fixed copy. They can be muted.
-- Companions: a name, a face, and a personality that speaks in Merki’s places. Share with a code, revoke it, or go back to Merki. Photos are cropped, resized, and stripped of camera data. The personality cannot override the safety rules.
-- Practice test (Probeprüfung): opens 3–5 days before the exam, mixes question types, grades what it can, and puts weak goals back into the plan. A shared plan reuses the paper. Scores stay private unless the grade privacy setting allows a summary.
-- Explain it another way: example, memory hook, steps, or a small sketch. Cached per card and style. Unsafe lines fall back to a fixed sentence.
-- Offline pack for the cards already on the device, and a merge that keeps the further-along review. Web Push reminders are opt-in, once a day, with quiet hours from 20:00 to 07:00.
-- Cooperative weekly challenge on a shared plan: 20 units together, contributions without a ranking, and a way to sit the week out.
+- Lernziele plans for any subject. Photograph a sheet, review the extracted goals, answer a clarifying question only when the plan needs it, and get a day-by-day programme. The method follows the kind of knowledge (retrieval, worked examples, self-explanation, outlines, sequence drills, mixed practice).
+- Shared and social plans. A second photo of the same sheet joins the existing programme. Each student keeps their own schedule and progress. First names only.
+- Grades, stats, Erfolgsquote, and compare. Enter the mark (German 1–6 with +/−, Oberstufe points, or percent), see a success rate against a target, a trend, and plan versus no plan. Compare with someone on the same plan or in the same class. Exact grades are opt-in.
+- Merki, an alien mascot. Years 1–4 get a round, bouncy Merki; years 5–7 a middle one; year 8 and up a calm Merki with a hood and visor. Speech is one-way: a greeting or a nudge on Today, and a short line beside a plan, a session, or the grade stats. Saving a grade can open one full-screen moment. Lines are generated on the server, cached per day and trigger, and fall back to fixed copy. They can be muted.
+- Custom avatars and sharing. A companion has a name, a face (a built-in alien or a photo), and a personality that speaks in Merki’s places. Share with a code, revoke it, or go back to Merki. Photos are cropped, resized, and stripped of camera data. The personality cannot override the safety rules.
+- Probeprüfung. A practice test opens 3–5 days before the exam, mixes question types, grades what it can, and puts weak goals back into the plan. A shared plan reuses the paper. Scores stay private unless the grade privacy setting allows a summary.
+- Erklär's mir anders. The same card comes back as an example, a memory hook, steps, or a small sketch. Cached per card, style, and language. Unsafe lines fall back to a fixed sentence.
+- Offline mode and push reminders. An offline pack keeps the cards already on the device, and a merge keeps the further-along review. Web Push reminders are opt-in, once a day, with quiet hours from 20:00 to 07:00.
+- Cooperative weekly challenges on a shared plan: 20 units together, contributions without a ranking, and a way to sit the week out.
 - One streak joker per week, applied automatically on a missed day. Finishing a group challenge earns one more. Merki comments when a joker is used.
-
-### Removed
-
-- Report-card (Zeugnis) upload, the grade simulator, and reward rules that depended on it.
-- Parent and family invites, supporter accounts, family cheers, and promised rewards. Classmates and shared-plan members stay.
+- Class boss fight: the class picks a shared test and chips a shared HP bar by practising that deck correctly. 1v1 vocab clash: challenge a classmate on a shared deck; the server grades answers and names a winner.
 
 ### Changed
 
+- Today lists each test once. Onboarding keeps the next step on screen. Compare explains an empty You column, and a first grade is a labelled mark instead of a blank chart. The streak card uses the full width. Practice, explain, offline, and the streak joker each use one clear action. Tap targets are at least 44px.
+- The first JavaScript load no longer includes OCR or the secondary pages. Those screens load with their routes. Review lookups use partial indexes for plan members, reminders, push preferences, companion grants, and Merki lines.
 - Practice, results, home, review, import, and vocab clash use a more tactile layout: segmented question progress, whole-tile answer feedback, stat chips with an XP glow, a daily-review hero, a stacked card preview, and a versus bar. Logo, palette, and type stay the same.
 - Count labels use the singular when the number is 1 (for example “1 Tag in Folge”). The session time chip shows a duration, and confetti stays behind buttons.
 
-### Added
+### Removed
 
-- Class boss fight: the class picks a shared test and chips a shared HP bar by practising that deck correctly.
-- 1v1 vocab clash: challenge a classmate on a shared deck; the server grades answers and names a winner.
+- Zeugnis upload, the grade simulator, and reward rules that depended on a report card.
+- Parent and family invites, supporter accounts, family cheers, and promised rewards. Classmates and shared-plan members stay.
+
+### Security
+
+- A practice paper and its answer key require ownership or an active shared-plan membership.
+- A push endpoint cannot be moved onto another account.
+- Explanations count toward the same hourly and daily AI limits as extraction. Student text sent to the model is wrapped as data. The explanation cache key includes the language.
+- Profile and companion pictures drop camera data. PNG uploads drop ancillary text chunks. A truncated companion upload is rejected as too large. Class boards show a first name.
 
 ## [0.1.2] - 2026-10-18
 
@@ -95,6 +104,7 @@ First published version. The container image is `ghcr.io/bandulix/merkster:0.1.0
 - The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
 - The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
+[0.2.0]: https://github.com/bandulix/merkster/releases/tag/v0.2.0
 [0.1.2]: https://github.com/bandulix/merkster/releases/tag/v0.1.2
 [0.1.1]: https://github.com/bandulix/merkster/releases/tag/v0.1.1
 [0.1.0]: https://github.com/bandulix/merkster/releases/tag/v0.1.0

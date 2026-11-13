@@ -1,6 +1,6 @@
 {
   "name": "merkster",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "description": "Merkster – snap your school material, practise until the test, and see how the grade turned out.",
   "type": "module",
