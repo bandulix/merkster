@@ -5,7 +5,8 @@
 **Snap it. Drill it. Own the test.**
 
 Photo a vocab list or a sheet of learning goals → practise until exam day.  
-Merkster picks a method for each goal and keeps the plan paced to the exam.
+Merkster picks a method for each goal and keeps the plan paced to the exam.  
+The light design is a warm grey page, white cards, and a soft lime wash on the daily review.
 
 > **Vibe coded** — this app was written with AI coding agents.  
 > **LLM API needed** — photo → smart cards needs an OpenAI-compatible vision key (`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_VISION_MODEL` in `.env`). Without it you only get on-device OCR, which is weaker on worksheets.
@@ -71,7 +72,7 @@ make health     # → http://localhost:8080
 ```
 
 OAuth redirect: `<PUBLIC_URL>/api/auth/google/callback`  
-Image: `ghcr.io/bandulix/merkster:latest` (also `0.2.0` / `0.2`)
+Image: `ghcr.io/bandulix/merkster:latest` (also `0.3.0` / `0.3`)
 
 HTTPS at home: set `DOMAIN` + `PUBLIC_URL`, then `make caddy`.
 
@@ -87,6 +88,8 @@ Every variable is listed in [`.env.example`](.env.example). The ones a real inst
 | `LLM_TEXT_MODEL` | Optional text model. Defaults to the vision model |
 | `LLM_IMAGE_MODEL` | Optional. Draws a companion. The draw button stays hidden when this is unset |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push reminders. When unset, the server generates a key pair in memory. That is fine for a demo and is lost on restart |
+| `WIKI_API_BASE` | Optional. Empty uses Wikipedia, Wikibooks and Klexikon. Point it at a mock for tests |
+| `PHOTO_RETRY_MINUTES` | How long a failed upload is kept before it is deleted. Default 15. A successful upload is deleted at once |
 
 Push reminders also need a browser that allows notifications. Quiet hours stay 20:00–07:00 either way.
 

@@ -4,11 +4,19 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-13
+
+Minor release. The container image is `ghcr.io/bandulix/merkster:0.3.0` (also `latest` and `0.3`).
+
 ### Added
 
 - A study plan can make its cards in one of two ways, and the choice can be changed later. Photograph your own book or worksheet pages, and the cards come only from those photos. Or let the AI look the topic up: it reads Wikipedia (German first, then English), then Wikibooks, then Klexikon, and writes cards only from that article.
-- Each researched card names its source (`Quelle: Wikipedia – Artikel`) with the article URL and the revision it was written from. A card whose answer is not in the article is dropped. If no article is found, the app says so and offers the photo path instead of inventing a fact.
+- Each researched card names its source (`Quelle: Wikipedia – Artikel`) with the article URL and the revision it was written from. A card whose answer is not in the quoted span is dropped. If no article is found, the app says so and offers the photo path instead of inventing a fact.
 - Original photos are deleted when processing succeeds. A failed upload is kept only for a short retry window, then a startup cleanup removes it. Photos are not used to train a model. The upload step says this in a short notice.
+
+### Changed
+
+- Light mode follows a warm grey page and white cards, with a soft lime wash on the daily review, the streak, the weekly challenge, and the practice-test button. The one dark control is a deep green with the lime label. Dark text stays on the light surfaces.
 
 ## [0.2.0] - 2026-11-12
 
@@ -110,6 +118,7 @@ First published version. The container image is `ghcr.io/bandulix/merkster:0.1.0
 - The add-cards heading bolds the test name inside the sentence. It no longer shows a leftover `<b>` tag.
 - The reward amount next to the currency stays wide enough to read the number on a desktop screen.
 
+[0.3.0]: https://github.com/bandulix/merkster/releases/tag/v0.3.0
 [0.2.0]: https://github.com/bandulix/merkster/releases/tag/v0.2.0
 [0.1.2]: https://github.com/bandulix/merkster/releases/tag/v0.1.2
 [0.1.1]: https://github.com/bandulix/merkster/releases/tag/v0.1.1

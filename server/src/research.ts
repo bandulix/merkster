@@ -2,7 +2,7 @@
 import { groundCards, parseExtract, parseSearch, sourceOrder, wikiApi, wikiPageUrl, type DraftCard } from '../../shared/material';
 import type { CardSource, CardSourceProvider, LearningGoal } from '../../shared/types';
 
-const UA = 'Merkster/0.2.0 (https://github.com/bandulix/merkster; educational study app)';
+const UA = 'Merkster/0.3.0 (https://github.com/bandulix/merkster; educational study app)';
 
 export interface Article {
   provider: CardSourceProvider;

@@ -11,6 +11,13 @@ const MIA = `mia.${STAMP}@example.com`, LEO = `leo.${STAMP}@example.com`;
 let testUrl = '';
 test.describe.configure({ mode: 'serial' });
 
+/** Page enter fades from opacity 0. A shot taken during that fade is a blank frame. */
+async function settled(page: import('@playwright/test').Page) {
+  const el = page.locator('.page').first();
+  await expect.poll(async () => (await el.count()) ? el.evaluate(n => getComputedStyle(n).opacity) : '1', { timeout: 5_000 }).toBe('1');
+  await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important}' });
+}
+
 test('student journey: login → import → practice → level up → result → dashboard → share', async ({ browser }) => {
   const { ctx, page } = await newUser(browser, { locale: 'de-DE' });
   await page.goto('/');
@@ -176,20 +183,23 @@ test('same account on a desktop browser: synced data + desktop screenshots + dar
   await expect(page.getByTestId('card-list').locator('li')).toHaveCount(6);
   await page.getByTestId('nav-today').click();
   await expect(page.getByTestId('hero')).toBeVisible();
-  await page.screenshot({ path: path.join(SHOTS, 'desktop-01-today.png') });
+  await settled(page);
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-01-today.png'), animations: 'disabled' });
   await page.getByTestId('nav-results').click();
   await expect(page.getByTestId('result-tiles')).toBeVisible();
-  await page.waitForTimeout(800);
-  await page.screenshot({ path: path.join(SHOTS, 'desktop-02-results.png') });
+  await settled(page);
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-02-results.png'), animations: 'disabled' });
   await page.getByTestId('nav-me').click();
   await expect(page.getByTestId('me-level')).toBeVisible();
-  await page.screenshot({ path: path.join(SHOTS, 'desktop-03-profile.png') });
+  await settled(page);
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-03-profile.png'), animations: 'disabled' });
   await page.goto(testUrl);
-  await page.screenshot({ path: path.join(SHOTS, 'desktop-04-test.png') });
+  await settled(page);
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-04-test.png'), animations: 'disabled' });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: path.join(SHOTS, 'desktop-05-today-dark.png') });
+  await settled(page);
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-05-today-dark.png'), animations: 'disabled' });
   await page.getByTestId('nav-me').click();
   await page.getByTestId('share-week').click();
   await page.getByTestId('fmt-square').click();
