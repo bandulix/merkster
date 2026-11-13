@@ -4,6 +4,12 @@ All notable changes to Merkster are documented here. The format is based on [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A study plan can make its cards in one of two ways, and the choice can be changed later. Photograph your own book or worksheet pages, and the cards come only from those photos. Or let the AI look the topic up: it reads Wikipedia (German first, then English), then Wikibooks, then Klexikon, and writes cards only from that article.
+- Each researched card names its source (`Quelle: Wikipedia – Artikel`) with the article URL and the revision it was written from. A card whose answer is not in the article is dropped. If no article is found, the app says so and offers the photo path instead of inventing a fact.
+- Original photos are deleted when processing succeeds. A failed upload is kept only for a short retry window, then a startup cleanup removes it. Photos are not used to train a model. The upload step says this in a short notice.
+
 ## [0.2.0] - 2026-11-12
 
 Minor release. The container image is `ghcr.io/bandulix/merkster:0.2.0` (also `latest` and `0.2`).

@@ -19,6 +19,7 @@ import { mockExamPlugin } from './mockExamApi';
 import { explainPlugin } from './explainApi';
 import { pushPlugin } from './pushApi';
 import { challengePlugin } from './challengeApi';
+import { researchPlugin } from './researchApi';
 import { avatarsPlugin, initAvatars } from './avatars';
 import { classesPlugin } from './classes';
 import { classGamesPlugin } from './classGames';
@@ -86,6 +87,7 @@ export async function buildApp(config: Config, pool: pg.Pool) {
   await explainPlugin(app, { pool, config });
   await pushPlugin(app, { pool, config });
   await challengePlugin(app, { pool });
+  await researchPlugin(app, { pool, config });
   await classesPlugin(app, { pool, config });
   await classGamesPlugin(app, { pool, config });
   initAvatars(config);

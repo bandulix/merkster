@@ -31,6 +31,8 @@ test('two students share a Lernziele sheet, then grades stay between them', asyn
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-42-clarify.png') });
   await mia.page.getByTestId('exam-written').click();
   await mia.page.getByTestId('min-20').click();
+  await expect(mia.page.getByTestId('material-choice')).toBeVisible();
+  await mia.page.getByTestId('material-research').click();
   await expect(mia.page.getByTestId('plan-overview')).toBeVisible({ timeout: 60_000 });
   await expect(mia.page.getByTestId('method-chip').first()).toBeVisible();
   await mia.page.screenshot({ path: path.join(SHOTS, 'mobile-43-plan.png'), fullPage: true });

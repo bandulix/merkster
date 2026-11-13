@@ -1,6 +1,6 @@
 /* Strict validation of everything clients send (never trust the browser). */
 import { scoreOf, validResult } from '../../shared/grades';
-import { CARD_TYPES, FORMATS, GRADE_SYSTEMS, LANG_CODES, SUBJECT_KEYS, type CardState, type CardStudy, type ExamResult, type KnowledgeKind, type Lang, type LearningGoal, type StudyActivity, type StudyMethod, type StudyPlan, type WireCard, type WireProfile, type WireSession, type WireTest } from '../../shared/types';
+import { CARD_TYPES, FORMATS, GRADE_SYSTEMS, LANG_CODES, SUBJECT_KEYS, type CardSource, type CardState, type CardStudy, type ExamResult, type KnowledgeKind, type Lang, type LearningGoal, type StudyActivity, type StudyMethod, type StudyPlan, type WireCard, type WireProfile, type WireSession, type WireTest } from '../../shared/types';
 
 export const ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -61,11 +61,25 @@ export function cleanStudyPlan(v: unknown): StudyPlan | null {
   const shared = str(o.sharedPlanId, 64);
   if (!goals.length && !ID_RE.test(shared)) return null;
   const minutes = Math.round(num(o.minutesPerDay, 20));
+  const material = o.material === 'photo' || o.material === 'research' ? o.material : undefined;
   return {
     title: str(o.title, 80).trim() || 'Lernplan', goals, minutesPerDay: Math.max(5, Math.min(180, minutes)),
     examFormat: str(o.examFormat, 40), level: str(o.level, 80),
-    ...(ID_RE.test(shared) ? { sharedPlanId: shared } : {}), joined: !!o.joined
+    ...(ID_RE.test(shared) ? { sharedPlanId: shared } : {}), joined: !!o.joined,
+    ...(material ? { material } : {})
   };
+}
+const SOURCE_HOST = /^https:\/\/(?:[a-z]{2}\.(?:wikipedia|wikibooks)\.org|klexikon\.zum\.de)\/wiki\/\S+$/i;
+function cleanSource(v: unknown): CardSource | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const provider = o.provider === 'wikipedia' || o.provider === 'wikibooks' || o.provider === 'klexikon' ? o.provider : null;
+  const title = str(o.title, 180).trim();
+  const url = str(o.url, 400);
+  const revId = Math.round(num(o.revId));
+  const lang = str(o.lang, 8) || 'de';
+  if (!provider || title.length < 2 || !SOURCE_HOST.test(url) || revId < 1) return null;
+  return { provider, lang, title, url, revId };
 }
 export function cleanCardStudy(v: unknown): CardStudy | null {
   if (!v || typeof v !== 'object') return null;
@@ -75,7 +89,8 @@ export function cleanCardStudy(v: unknown): CardStudy | null {
   const method = METHODS.includes(o.method as StudyMethod) ? o.method as StudyMethod : 'retrieval';
   const activity = ACTIVITIES.includes(o.activity as StudyActivity) ? o.activity as StudyActivity : 'recall';
   const ready = day(o.readyOn);
-  return { goalId, method, activity, ...(ready ? { readyOn: ready } : {}), ...(o.phase === 'mock' ? { phase: 'mock' as const } : { phase: 'learn' as const }) };
+  const source = cleanSource(o.source);
+  return { goalId, method, activity, ...(ready ? { readyOn: ready } : {}), ...(o.phase === 'mock' ? { phase: 'mock' as const } : { phase: 'learn' as const }), ...(source ? { source } : {}) };
 }
 export function cleanState(s: unknown): CardState {
   const o = (s || {}) as Record<string, unknown>;

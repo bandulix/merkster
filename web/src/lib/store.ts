@@ -122,7 +122,7 @@ class Store {
         seen.add(k);
         const card: Card = { id: uid(), type, term, meaning, example: (r.example || '').trim(), st: S.freshState() };
         if (type === 'mc') card.distractors = (r.distractors || []).filter(Boolean).slice(0, 4);
-        if (r.goalId && r.method && r.activity) card.study = { goalId: r.goalId, method: r.method, activity: r.activity, ...(r.readyOn ? { readyOn: r.readyOn } : {}), ...(r.phase ? { phase: r.phase } : {}) };
+        if (r.goalId && r.method && r.activity) card.study = { goalId: r.goalId, method: r.method, activity: r.activity, ...(r.readyOn ? { readyOn: r.readyOn } : {}), ...(r.phase ? { phase: r.phase } : {}), ...(r.source ? { source: r.source } : {}) };
         test.items.push(card); added++;
       }
     });

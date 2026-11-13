@@ -499,6 +499,13 @@ textarea { resize: vertical; }
 .import-orb { width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--lime) 72%, #fff); box-shadow: 0 10px 28px rgba(198, 244, 50, .28); }
 .import-line { font-weight: 750; margin: 4px 0 6px; max-width: 28ch; }
 .import-actions { width: 100%; display: grid; gap: 10px; }
+.upload-notice { margin: 12px 0 4px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--lime) 28%, var(--card)); color: var(--text); font-weight: 650; }
+.choice-list { display: grid; gap: 10px; margin-top: 14px; }
+.choice-card { display: grid; gap: 4px; text-align: left; width: 100%; padding: 16px; border-radius: 20px; border: 2px solid var(--line); background: var(--card); box-shadow: var(--shadow); cursor: pointer; }
+.choice-card.on { border-color: var(--blue); }
+.choice-card b { font-size: 1.05rem; }
+.choice-card span { color: var(--muted); font-weight: 650; }
+.card-source { grid-column: 1 / -1; font-size: .82rem; font-weight: 700; color: var(--blue); }
 .import-actions .btn.link { justify-self: center; }
 
 .versus { width: 100%; display: grid; gap: 12px; text-align: left; }

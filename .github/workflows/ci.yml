@@ -70,6 +70,8 @@ jobs:
           MOCK_OIDC_PUBLIC_URL: http://127.0.0.1:9090
           MOCK_OIDC_CLIENT_ID: ci-client
           MOCK_OIDC_CLIENT_SECRET: ci-secret
+          WIKI_API_BASE: http://127.0.0.1:8099/wiki
+          AUTH_RATE_LIMIT_PER_10MIN: 200
         run: |
           set -euo pipefail
           node tools/mock-oidc.mjs > /tmp/oidc.log 2>&1 &

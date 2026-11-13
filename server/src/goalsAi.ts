@@ -1,5 +1,5 @@
 /* Vision read of a Lernziele sheet, then a text call that writes the study tasks.
-   The key stays on the server. Images are not stored. */
+   The key stays on the server. Original photos are deleted after the read, and are not used for training. */
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { buildTasks, questionsFor, validateGoalsExtract, type LearningGoal } from '../../shared/goals';
@@ -8,6 +8,7 @@ import { callLLM, parseContent, screenSchoolMaterial } from './ai';
 import type { Config } from './config';
 import { reservePictures } from './limits';
 import { ID_RE } from './sanitize';
+import { retainDuring } from './photos';
 
 export const GOALS_PROMPT = `GOALS_SHEET
 You read a photo or text of a school's learning goals (Lernziele) for any subject. The student will get a study plan from what you extract.
@@ -96,21 +97,26 @@ export async function goalsAiPlugin(app: FastifyInstance, { pool, config }: { po
     const ui = meta.uiLang === 'en' ? 'English' : 'German';
     const started = Date.now();
     const log = await pool.query('INSERT INTO ai_requests (user_id, images) VALUES ($1, $2) RETURNING id', [uid, images.length]);
+    const testId = typeof meta.testId === 'string' ? meta.testId : 'goals';
+    const files = images.map((bytes, i) => ({ bytes, mime: mimes[i] }));
     try {
-      await screenSchoolMaterial(config, images, mimes, text || undefined);
-      const user: unknown[] = [{ type: 'text', text: `UI language for questions and unreadable notes: ${ui}.\nSubject hint: ${typeof meta.subject === 'string' ? meta.subject : 'detect'}.` + (text.trim() ? '\n"""\n' + text.slice(0, 12000) + '\n"""' : '') }];
-      images.forEach((buf, i) => user.push({ type: 'image_url', image_url: { url: `data:${mimes[i]};base64,${buf.toString('base64')}`, detail: 'high' } }));
-      const model = images.length ? config.llm.visionModel : config.llm.textModel;
-      const out = await complete(config, model, GOALS_PROMPT, user, config.llm.maxTokens);
-      const msg = out?.choices?.[0]?.message;
-      if (!msg) throw Object.assign(new Error('bad_json'), { code: 'bad_json' });
-      const parsed = validateGoalsExtract(parseContent(msg.content));
-      if (!parsed.goals.length) throw Object.assign(new Error('bad_json'), { code: 'bad_json' });
-      const days = typeof meta.days === 'number' ? meta.days : 14;
-      parsed.questions = questionsFor({ goals: parsed.goals, days, level: parsed.level, exam: parsed.examFormat, llm: parsed.questions });
+      const parsed = await retainDuring(pool, uid, testId, files, config.photoRetryMs, async () => {
+        await screenSchoolMaterial(config, images, mimes, text || undefined);
+        const user: unknown[] = [{ type: 'text', text: `UI language for questions and unreadable notes: ${ui}.\nSubject hint: ${typeof meta.subject === 'string' ? meta.subject : 'detect'}.` + (text.trim() ? '\n"""\n' + text.slice(0, 12000) + '\n"""' : '') }];
+        images.forEach((buf, i) => user.push({ type: 'image_url', image_url: { url: `data:${mimes[i]};base64,${buf.toString('base64')}`, detail: 'high' } }));
+        const model = images.length ? config.llm.visionModel : config.llm.textModel;
+        const out = await complete(config, model, GOALS_PROMPT, user, config.llm.maxTokens);
+        const msg = out?.choices?.[0]?.message;
+        if (!msg) throw Object.assign(new Error('bad_json'), { code: 'bad_json' });
+        const next = validateGoalsExtract(parseContent(msg.content));
+        if (!next.goals.length) throw Object.assign(new Error('bad_json'), { code: 'bad_json' });
+        const days = typeof meta.days === 'number' ? meta.days : 14;
+        next.questions = questionsFor({ goals: next.goals, days, level: next.level, exam: next.examFormat, llm: next.questions });
+        return { ...next, model };
+      });
       await pool.query('UPDATE ai_requests SET ok = TRUE, cards = $2, ms = $3 WHERE id = $1', [log.rows[0].id, parsed.goals.length, Date.now() - started]);
       req.log.info({ userId: String(uid), goals: parsed.goals.length, ms: Date.now() - started }, 'ai goals');
-      return { ...parsed, model };
+      return parsed;
     } catch (e) {
       await pool.query('UPDATE ai_requests SET ms = $2 WHERE id = $1', [log.rows[0].id, Date.now() - started]);
       const err = e as Error & { status?: number; code?: string };
